@@ -1,0 +1,107 @@
+/**
+ * Navigation is two-level and scoped by containment:
+ * - `view` picks the container: the active desk, or GLOBAL SETTINGS (things that belong to no desk).
+ * - each container has its own sections, with names that never repeat across the two.
+ */
+export type View = 'desk' | 'system';
+/** Sections of a desk (shown as CONTROLS · NETWORK · TRAFFIC · PRESET). */
+export type DeskView = 'controls' | 'io' | 'monitor' | 'preset';
+/** Sections of GLOBAL SETTINGS: all traffic, this device's network, the preset library, the look. */
+/** Shown as NETWORK (id 'device') · TRAFFIC · LIBRARY · LOOK. */
+export type SystemView = 'device' | 'traffic' | 'library' | 'look';
+export type Mode = 'live' | 'edit';
+
+export const ui = $state({
+  view: 'desk' as View,
+  deskView: 'controls' as DeskView,
+  systemView: 'device' as SystemView,
+  mode: 'live' as Mode,
+  /** Edit mode: the widget open in the Inspector. */
+  selectedId: null as string | null,
+  /** Live mode: the widget touched last, shown in the info panel. */
+  focusedId: null as string | null,
+  /** Live mode: whether the read-only info panel is shown. */
+  infoOpen: true,
+  /**
+   * LOCK: everything is frozen for a show: widgets ignore input, no edit mode, network and
+   * presets are read-only, desks can't be added or removed. Still usable: viewing, switching
+   * views and desk tabs, and PAUSE (a safety control).
+   */
+  locked: false,
+  /** Bumped when something locked is touched, so the LOCK button can hint how to unlock. */
+  lockNudge: 0,
+  /** The confirm dialog currently shown, if any. */
+  confirm: null as ConfirmRequest | null,
+  toast: null as { id: number; text: string; kind: 'info' | 'error' } | null,
+});
+
+let toastId = 0;
+let toastTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** Brief notification. Errors stay up longer so they can actually be read. */
+export function toast(text: string, kind: 'info' | 'error' = 'info') {
+  ui.toast = { id: ++toastId, text, kind };
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (ui.toast = null), kind === 'error' ? 8000 : 2500);
+}
+
+export function errorText(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
+
+export interface ConfirmRequest {
+  title: string;
+  message: string;
+  /** Extra detail lines, shown dimmed. */
+  details?: string[];
+  confirmLabel: string;
+  danger: boolean;
+  resolve: (ok: boolean) => void;
+}
+
+/**
+ * In-app confirmation (TUI styled, works the same on desktop and mobile). Resolves true only
+ * if the user explicitly confirms; Esc, cancel and clicking outside all resolve false.
+ */
+export function confirmAction(opts: {
+  title: string;
+  message: string;
+  details?: string[];
+  confirmLabel?: string;
+  danger?: boolean;
+}): Promise<boolean> {
+  ui.confirm?.resolve(false);
+  return new Promise((resolve) => {
+    ui.confirm = {
+      title: opts.title,
+      message: opts.message,
+      details: opts.details,
+      confirmLabel: opts.confirmLabel ?? 'Confirm',
+      danger: opts.danger ?? false,
+      resolve: (ok) => {
+        ui.confirm = null;
+        resolve(ok);
+      },
+    };
+  });
+}
+
+/** Live ⇄ edit on the desk surface. Refused while LOCKED. */
+export function toggleEditMode() {
+  if (ui.locked) return;
+  ui.mode = ui.mode === 'live' ? 'edit' : 'live';
+  if (ui.mode === 'live') ui.selectedId = null;
+  else ui.deskView = 'controls';
+}
+
+/** Go to a section of the active desk. */
+export function showDesk(section: DeskView = ui.deskView) {
+  ui.view = 'desk';
+  ui.deskView = section;
+}
+
+/** Go to a GLOBAL SETTINGS section. */
+export function showSystem(section: SystemView = ui.systemView) {
+  ui.view = 'system';
+  ui.systemView = section;
+}

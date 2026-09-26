@@ -1,0 +1,216 @@
+/* Design tokens: a terminal. Near-black background, near-white text (or the inverse in light
+   mode, `data-mode="light"` on <html>), one font at one size.
+   Colour comes only from the preset palette (--p0…--p9 and --accent, set by App.svelte) and
+   the fixed status colours below. */
+
+@font-face {
+  font-family: 'JetBrainsMono NFM';
+  src: url('../../assets/fonts/JetBrainsMonoNerdFontMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: 'JetBrainsMono NFM';
+  src: url('../../assets/fonts/JetBrainsMonoNerdFontMono-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: block;
+}
+
+/* Registered so palette changes crossfade instead of snapping. */
+@property --accent {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #2ee6d6;
+}
+@property --p0 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ff5c5c;
+}
+@property --p1 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ff9a3c;
+}
+@property --p2 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ffd23f;
+}
+@property --p3 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #b8f13c;
+}
+@property --p4 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #3ce68a;
+}
+@property --p5 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #2ee6d6;
+}
+@property --p6 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #3cb4ff;
+}
+@property --p7 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #6b7bff;
+}
+@property --p8 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #b06bff;
+}
+@property --p9 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ff6bd6;
+}
+
+@property --bg {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #0b0b0c;
+}
+@property --bg-2 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #111113;
+}
+@property --bg-3 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #19191c;
+}
+@property --line {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #34343a;
+}
+@property --line-strong {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #5c5c64;
+}
+@property --fg {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #eeece6;
+}
+@property --fg-dim {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #9a988f;
+}
+@property --fg-faint {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #5e5d58;
+}
+@property --shadow-px {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #000;
+}
+
+:root {
+  --bg: #0b0b0c;
+  --bg-2: #111113;
+  --bg-3: #19191c;
+  --line: #34343a;
+  --line-strong: #5c5c64;
+  --fg: #eeece6;
+  --fg-dim: #9a988f;
+  --fg-faint: #5e5d58;
+  --shadow-px: #000;
+
+  /* Status colours are fixed (xterm-256 style) so "error" always reads as error. */
+  --ok: #5fd787;
+  --warn: #ffd75f;
+  --danger: #ff5f5f;
+  --info: #87afff;
+  /* The one ACTIVE colour of every widget (pressed, switched on, filled, held). Widgets rest in
+     their own palette colour; whatever is active turns this green. */
+  --active: var(--ok);
+  --active-ink: var(--bg);
+  /* Palette colours used as *text* (not fills). Same as the colour in dark mode; darkened in
+     light mode so bright palette hues stay readable on paper. */
+  --accent-text: var(--accent);
+
+  --font: 'JetBrainsMono NFM', 'JetBrains Mono', ui-monospace, Consolas, monospace;
+  /* One size for everything. Hierarchy comes from case, weight, colour and reverse video. */
+  --fs: 13px;
+  --lh: 20px;
+  --control-h: 28px;
+
+  /* Motion: instant press, springy release; `steps()` for the pixel-y transitions. */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.3, 1.6, 0.5, 1);
+  --t-press: 40ms;
+  --t-release: 180ms;
+  --t-ui: 120ms;
+
+  /* Dither patterns are written inline where used (a var() inside a custom property would be
+     resolved at :root, not per widget):
+       50%: repeating-conic-gradient(C 0 25%, transparent 0 50%) 0 0 / 4px 4px
+       25%: conic-gradient(at 2px 2px, transparent 75%, C 0) 0 0 / 4px 4px */
+
+  color-scheme: dark;
+  transition:
+    --bg 300ms var(--ease-out),
+    --bg-2 300ms var(--ease-out),
+    --bg-3 300ms var(--ease-out),
+    --line 300ms var(--ease-out),
+    --line-strong 300ms var(--ease-out),
+    --fg 300ms var(--ease-out),
+    --fg-dim 300ms var(--ease-out),
+    --fg-faint 300ms var(--ease-out),
+    --shadow-px 300ms var(--ease-out),
+    --accent 400ms var(--ease-out),
+    --p0 400ms var(--ease-out),
+    --p1 400ms var(--ease-out),
+    --p2 400ms var(--ease-out),
+    --p3 400ms var(--ease-out),
+    --p4 400ms var(--ease-out),
+    --p5 400ms var(--ease-out),
+    --p6 400ms var(--ease-out),
+    --p7 400ms var(--ease-out),
+    --p8 400ms var(--ease-out),
+    --p9 400ms var(--ease-out);
+}
+
+/* Light mode: warm paper, near-black ink. Status colours are darkened so they stay readable
+   on a light background; palette colours are unchanged (fills carry their own ink). */
+:root[data-mode='light'] {
+  --bg: #f1eee6;
+  --bg-2: #e8e4da;
+  --bg-3: #dcd7cb;
+  --line: #bfb9ac;
+  --line-strong: #8c8679;
+  --fg: #16161a;
+  --fg-dim: #57544d;
+  --fg-faint: #8e8a80;
+  --shadow-px: #b3ad9f;
+  --ok: #1e8c4e;
+  --warn: #a87400;
+  --danger: #cf2f3c;
+  --info: #2c5cc9;
+  --accent-text: color-mix(in srgb, var(--accent) 55%, #000);
+  color-scheme: light;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --t-press: 0ms;
+    --t-release: 0ms;
+    --t-ui: 0ms;
+  }
+}

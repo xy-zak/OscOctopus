@@ -1,0 +1,33 @@
+// Nerd Font glyphs (Font Awesome range of JetBrainsMono Nerd Font Mono), verified to exist in
+// the bundled font. Any other Nerd Font glyph can be pasted straight into a widget label.
+export const ICONS = {
+  plus: '\u{f067}',
+  trash: '\u{f1f8}',
+  copy: '\u{f0c5}',
+  pencil: '\u{f040}',
+  play: '\u{f04b}',
+  pause: '\u{f04c}',
+  close: '\u{f00d}',
+  refresh: '\u{f021}',
+  download: '\u{f019}',
+  upload: '\u{f093}',
+  save: '\u{f0c7}',
+  file: '\u{f15b}',
+  grid: '\u{f00a}',
+  network: '\u{f0e8}',
+  pulse: '\u{f21e}',
+  panel: '\u{f0db}',
+  sliders: '\u{f1de}',
+  bolt: '\u{f0e7}',
+  toggle: '\u{f205}',
+  crosshairs: '\u{f05b}',
+  check: '\u{f00c}',
+  warning: '\u{f071}',
+  info: '\u{f05a}',
+  eye: '\u{f06e}',
+  filter: '\u{f0b0}',
+  paint: '\u{f1fc}',
+  keyboard: '\u{f11c}',
+} as const;
+
+export type IconName = keyof typeof ICONS;

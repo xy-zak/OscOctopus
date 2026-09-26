@@ -1,0 +1,235 @@
+@import './lib/theme/tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: var(--fs);
+  line-height: var(--lh);
+  font-variant-ligatures: none;
+  font-variant-numeric: tabular-nums;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  overflow: hidden;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+:focus-visible {
+  outline: 1px dashed var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---- scrollbars: thin blocks -------------------------------------------------------------- */
+.scroll {
+  overflow: auto;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--line-strong);
+}
+
+/* ---- headings: "── TITLE ─────────" rules ------------------------------------------------- */
+h2 {
+  display: flex;
+  align-items: center;
+  gap: 1ch;
+  margin: 0;
+  font-size: var(--fs);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+h2::before {
+  content: '──';
+  color: var(--line-strong);
+  font-weight: 400;
+}
+h2::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+/* ---- buttons: square, chunky, sink into a pixel shadow when pressed ------------------------ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1ch;
+  height: var(--control-h);
+  padding: 0 1.5ch;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-2);
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 2px 2px 0 0 var(--shadow-px);
+  transition:
+    translate var(--t-release) var(--ease-spring),
+    box-shadow var(--t-release) var(--ease-spring),
+    background var(--t-ui) steps(2),
+    color var(--t-ui) steps(2),
+    border-color var(--t-ui) steps(2);
+}
+.btn:hover {
+  border-color: var(--fg);
+  background: var(--bg-3);
+}
+.btn:active {
+  translate: 2px 2px;
+  box-shadow: 0 0 0 0 var(--shadow-px);
+  background: var(--fg);
+  color: var(--bg);
+  transition-duration: var(--t-press);
+}
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+.btn.danger {
+  color: var(--danger);
+}
+.btn.danger:active {
+  background: var(--danger);
+  color: var(--bg);
+}
+.btn.ghost {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+.btn.ghost:hover {
+  border-color: var(--line-strong);
+}
+.btn.icon {
+  width: var(--control-h);
+  padding: 0;
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* ---- inputs ------------------------------------------------------------------------------- */
+.input {
+  height: var(--control-h);
+  width: 100%;
+  min-width: 0;
+  padding: 0 1ch;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--bg);
+  caret-color: var(--accent);
+  transition: border-color var(--t-ui) steps(2);
+}
+.input:hover {
+  border-color: var(--line-strong);
+}
+.input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+.input.invalid {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.input::placeholder {
+  color: var(--fg-faint);
+}
+select.input {
+  appearance: none;
+  padding-right: 3ch;
+  /* Pixel "▾" drawn as rects so it stays crisp at any scale. */
+  background: var(--bg)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' shape-rendering='crispEdges'%3E%3Cpath fill='%239a988f' d='M0 0h10v2H0zM2 2h6v2H2zM4 4h2v2H4z'/%3E%3C/svg%3E")
+    no-repeat right 1ch center;
+}
+select.input option {
+  background: var(--bg-2);
+}
+
+/* ---- boxes -------------------------------------------------------------------------------- */
+.card {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+}
+
+.muted {
+  color: var(--fg-dim);
+}
+.faint {
+  color: var(--fg-faint);
+}
+
+/* Reverse-video status tag: [READY] */
+.pill {
+  display: inline-block;
+  padding: 0 1ch;
+  line-height: var(--lh);
+  text-transform: uppercase;
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--fg-faint);
+  color: var(--bg);
+}
+.pill.ready {
+  background: var(--ok);
+}
+.pill.connecting,
+.pill.starting {
+  background: var(--warn);
+}
+.pill.error {
+  background: var(--danger);
+}
+.pill.disabled {
+  background: var(--line-strong);
+}
+
+.mono {
+  /* Everything is monospace; kept so markup reads clearly. */
+  font-family: var(--font);
+}

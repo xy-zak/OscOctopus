@@ -1,0 +1,394 @@
+<script lang="ts">
+  // The top row of tabs picks the *container* you are looking at: one of the open desks, or
+  // GLOBAL SETTINGS (everything that belongs to no single desk). The active tab joins the frame below
+  // it like a folder tab, and shares its colour, so what's inside the frame visibly belongs to
+  // that tab. Desks run at the same time; the tab only chooses which one you see.
+  //
+  // Adding or removing a desk always asks first. When LOCKED, tabs can still be switched
+  // (that's performing) but not added or removed.
+  import { networkStore } from '../lib/state/network.svelte';
+  import { presetStore } from '../lib/state/preset.svelte';
+  import {
+    confirmAction,
+    errorText,
+    showDesk,
+    showSystem,
+    toast,
+    ui,
+  } from '../lib/state/ui.svelte';
+  import { colorVars } from '../lib/theme/palettes';
+  import Icon from '../lib/ui/Icon.svelte';
+
+  let menuOpen = $state(false);
+
+  const closedPresets = $derived(
+    presetStore.summaries.filter((s) => !s.error && !presetStore.isOpen(s.id)),
+  );
+  const systemFailing = $derived(
+    Object.values(networkStore.statuses).filter((s) => s.state === 'error').length,
+  );
+
+  function health(deskId: string): 'ok' | 'warn' | 'bad' | 'none' {
+    const list = networkStore.forDesk(deskId).filter((s) => s.state !== 'disabled');
+    if (list.length === 0) return 'none';
+    if (list.some((s) => s.state === 'error')) return 'bad';
+    return list.every((s) => s.state === 'ready') ? 'ok' : 'warn';
+  }
+
+  function pick(id: string) {
+    presetStore.activate(id);
+    showDesk();
+  }
+
+  const endpointsText = (outputs: number, inputs: number) =>
+    `${outputs} output${outputs === 1 ? '' : 's'} and ${inputs} input${inputs === 1 ? '' : 's'}`;
+
+  async function run(what: string, fn: () => Promise<unknown>) {
+    menuOpen = false;
+    try {
+      await fn();
+      showDesk('controls');
+    } catch (e) {
+      toast(`${what} failed: ${errorText(e)}`, 'error');
+    }
+  }
+
+  async function addBlank() {
+    menuOpen = false;
+    const name = `Desk ${presetStore.desks.length + 1}`;
+    const ok = await confirmAction({
+      title: 'Add desk',
+      message: `Create a new blank desk "${name}"?`,
+      details: [
+        'It gets one UDP output to 127.0.0.1:9000 and starts immediately, alongside the open desks.',
+        'It is saved as a new preset; rename it in the desk’s PRESET section.',
+      ],
+      confirmLabel: 'Add desk',
+    });
+    if (ok) await run('Add desk', () => presetStore.newDesk(name));
+  }
+
+  async function duplicate() {
+    menuOpen = false;
+    const src = presetStore.current;
+    const name = `${src.name} copy`;
+    const ok = await confirmAction({
+      title: 'Duplicate desk',
+      message: `Open a copy of "${src.name}" as a new desk "${name}"?`,
+      details: [
+        `Its ${endpointsText(src.network.outputs.length, src.network.inputs.length)} start immediately.`,
+        'Inputs on the same ports as the original will fail to bind; its NETWORK section will say so.',
+      ],
+      confirmLabel: 'Duplicate',
+    });
+    if (ok) await run('Duplicate desk', () => presetStore.duplicateDesk(name));
+  }
+
+  async function openSaved(id: string, name: string) {
+    menuOpen = false;
+    const ok = await confirmAction({
+      title: 'Open desk',
+      message: `Open saved preset "${name}" as a new desk?`,
+      details: ['Its outputs and inputs start immediately, alongside the open desks.'],
+      confirmLabel: 'Open desk',
+    });
+    if (ok) await run('Open desk', () => presetStore.openDesk(id));
+  }
+
+  async function close(id: string) {
+    const desk = presetStore.desks.find((d) => d.id === id);
+    if (!desk) return;
+    const ok = await confirmAction({
+      title: 'Remove desk',
+      message: `Remove desk "${desk.name}" from the workspace?`,
+      details: [
+        `Its ${endpointsText(desk.network.outputs.length, desk.network.inputs.length)} stop and their sockets close.`,
+        'The preset stays saved: reopen it from + or GLOBAL SETTINGS › LIBRARY.',
+      ],
+      confirmLabel: 'Remove desk',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await presetStore.closeDesk(id);
+    } catch (e) {
+      toast(`Remove desk failed: ${errorText(e)}`, 'error');
+    }
+  }
+
+  // Alt+1…9: desk N · Alt+0: GLOBAL SETTINGS · Alt+[ / Alt+]: previous / next desk.
+  function onkeydown(e: KeyboardEvent) {
+    if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    const digit = /^Digit([0-9])$/.exec(e.code);
+    if (digit) {
+      const n = Number(digit[1]);
+      if (n === 0) showSystem();
+      else if (presetStore.desks[n - 1]) pick(presetStore.desks[n - 1]!.id);
+      else return;
+    } else if (e.key === '[' || e.key === ']') {
+      const i = presetStore.desks.findIndex((d) => d.id === presetStore.activeId);
+      const len = presetStore.desks.length;
+      const next = presetStore.desks[(i + (e.key === ']' ? 1 : -1) + len) % len];
+      if (next) pick(next.id);
+    } else return;
+    e.preventDefault();
+  }
+</script>
+
+<svelte:window {onkeydown} />
+
+<div class="tabs" role="tablist" aria-label="Desks and system">
+  {#each presetStore.desks as d, i (d.id)}
+    {@const h = health(d.id)}
+    {@const c = colorVars(d.color)}
+    {@const on = ui.view === 'desk' && d.id === presetStore.activeId}
+    <div class="tab desk" class:on role="presentation" style:--tc={c.c} style:--tc-ink={c.ink}>
+      <button
+        class="pick"
+        role="tab"
+        aria-selected={on}
+        title="Desk {i + 1}: {d.name} (Alt+{i + 1})"
+        onclick={() => pick(d.id)}
+      >
+        <span class="chip" aria-hidden="true"></span>
+        <span class="name">{d.name}</span>
+        <span class="dot {h}" title="Network: {h}">●</span>{#if presetStore.dirtyIds[d.id]}<span
+            class="dirty"
+            title="Unsaved (autosaving)">+</span
+          >{/if}
+      </button>
+      {#if !ui.locked && presetStore.desks.length > 1}
+        <button
+          class="x"
+          title="Remove desk"
+          aria-label="Remove desk {d.name}"
+          onclick={() => close(d.id)}><Icon name="close" /></button
+        >
+      {/if}
+    </div>
+  {/each}
+
+  {#if !ui.locked}
+    <div class="add-wrap">
+      <button
+        class="add"
+        title="Add a desk"
+        aria-label="Add a desk"
+        aria-expanded={menuOpen}
+        onclick={() => (menuOpen = !menuOpen)}><Icon name="plus" /></button
+      >
+      {#if menuOpen}
+        <div class="menu" role="menu">
+          <button role="menuitem" onclick={addBlank}><Icon name="file" /> NEW BLANK DESK</button>
+          <button role="menuitem" onclick={duplicate}
+            ><Icon name="copy" /> DUPLICATE “{presetStore.current.name}”</button
+          >
+          {#if closedPresets.length}
+            <span class="sep faint">── OPEN SAVED ──</span>
+            {#each closedPresets as s (s.id)}
+              <button role="menuitem" onclick={() => openSaved(s.id, s.name)}>▸ {s.name}</button>
+            {/each}
+          {/if}
+        </div>
+        <div class="menu-scrim" role="presentation" onpointerdown={() => (menuOpen = false)}></div>
+      {/if}
+    </div>
+  {/if}
+
+  <span class="gap"></span>
+
+  <!-- GLOBAL SETTINGS is not a desk: it's set apart at the end, neutral white, never numbered. -->
+  <div class="tab system" class:on={ui.view === 'system'} role="presentation">
+    <button
+      class="pick"
+      role="tab"
+      aria-selected={ui.view === 'system'}
+      title="GLOBAL SETTINGS: traffic of all desks, this device, preset library, look (Alt+0)"
+      onclick={() => showSystem()}
+    >
+      <Icon name="grid" />
+      <span class="name">GLOBAL<span class="long">SETTINGS</span></span>{#if systemFailing > 0}<span
+          class="badge">{systemFailing}!</span
+        >{/if}
+    </button>
+  </div>
+</div>
+
+<style>
+  .tabs {
+    display: flex;
+    align-items: flex-end;
+    min-width: 0;
+    flex: 1;
+    height: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  .gap {
+    flex: 1;
+    min-width: 2ch;
+  }
+  /* A tab is a folder tab: 2px border on three sides in its colour. The header paints the
+     frame's top line along its bottom edge; the active tab's background covers that line, so
+     tab and frame read as one object (no negative margins, so the strip can still scroll). */
+  /* Inactive: a closed box floating just above the frame line, with a pixel shadow.
+     Active: open at the bottom, reaching down to cover the line, joined to its frame. */
+  .tab {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    height: 28px;
+    margin: 0 4px 6px 0;
+    border: 2px solid transparent;
+    background: var(--bg);
+    box-shadow: 2px 2px 0 0 var(--shadow-px);
+    color: var(--fg-dim);
+    transition:
+      background var(--t-ui) steps(2),
+      color var(--t-ui) steps(2),
+      border-color var(--t-ui) steps(2);
+  }
+  .tab.desk {
+    border-color: color-mix(in srgb, var(--tc) 35%, transparent);
+  }
+  .tab.system {
+    --tc: var(--fg);
+    border-color: var(--line-strong);
+  }
+  .tab:hover {
+    color: var(--fg);
+  }
+  .tab.on {
+    height: 34px;
+    margin-bottom: 0;
+    border-bottom: 0;
+    box-shadow: none;
+    border-color: var(--tc);
+    background: var(--bg-2);
+    color: var(--fg);
+  }
+  .pick {
+    display: flex;
+    align-items: center;
+    gap: 1ch;
+    height: 100%;
+    padding: 0 1.5ch;
+    border: 0;
+    background: none;
+    color: inherit;
+    white-space: nowrap;
+    font-weight: 700;
+  }
+  .chip {
+    width: 1ch;
+    height: 12px;
+    background: var(--tc);
+  }
+  .name {
+    max-width: 22ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+  }
+  .long {
+    margin-left: 1ch;
+  }
+  .dot {
+    color: var(--fg-faint);
+  }
+  .dot.ok {
+    color: var(--ok);
+  }
+  .dot.warn {
+    color: var(--warn);
+  }
+  .dot.bad {
+    color: var(--danger);
+  }
+  .dirty {
+    color: var(--warn);
+  }
+  .badge {
+    padding: 0 0.5ch;
+    background: var(--danger);
+    color: var(--bg);
+  }
+  .x {
+    height: 100%;
+    padding: 0 1ch 0 0;
+    border: 0;
+    background: none;
+    color: var(--fg-faint);
+  }
+  .x:hover {
+    color: var(--danger);
+  }
+  .add-wrap {
+    position: relative;
+    align-self: flex-end;
+    margin: 0 0 7px 0.5ch;
+  }
+  .add {
+    width: 26px;
+    height: 26px;
+    border: 1px dashed var(--line-strong);
+    background: none;
+    color: var(--fg-dim);
+  }
+  .add:hover {
+    color: var(--fg);
+    border-color: var(--fg);
+  }
+  .menu {
+    position: fixed;
+    z-index: 60;
+    margin-top: 4px;
+    min-width: 34ch;
+    display: flex;
+    flex-direction: column;
+    padding: 4px 0;
+    border: 1px solid var(--fg);
+    background: var(--bg-2);
+    box-shadow: 4px 4px 0 0 var(--shadow-px);
+    animation: drop var(--t-release) steps(3, end);
+  }
+  @keyframes drop {
+    from {
+      transform: translateY(-6px);
+      opacity: 0;
+    }
+  }
+  .menu-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 59;
+  }
+  .menu button {
+    display: flex;
+    gap: 1ch;
+    padding: 3px 1.5ch;
+    border: 0;
+    background: none;
+    text-align: left;
+    white-space: nowrap;
+  }
+  .menu button:hover,
+  .menu button:focus-visible {
+    background: var(--fg);
+    color: var(--bg);
+    outline: none;
+  }
+  .sep {
+    padding: 4px 1.5ch 2px;
+  }
+  @media (max-width: 760px) {
+    .name {
+      max-width: 10ch;
+    }
+    .long {
+      display: none;
+    }
+  }
+</style>

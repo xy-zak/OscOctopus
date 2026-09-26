@@ -1,0 +1,5 @@
+# ts-rs writes generated TypeScript bindings here when running `cargo test export_bindings`.
+[env]
+TS_RS_EXPORT_DIR = { value = "../src/lib/ipc/bindings", relative = true }
+# u64 timestamps/sequence numbers stay well below 2^53, so plain `number` is safe.
+TS_RS_LARGE_INT = "number"
