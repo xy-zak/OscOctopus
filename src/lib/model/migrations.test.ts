@@ -20,11 +20,11 @@ describe('migratePreset', () => {
     expect(() => migratePreset([])).toThrow(PresetError);
     expect(() => migratePreset({})).toThrow(/schemaVersion/);
   });
-  it('adds a top row when a widget covers the top-right EDIT cells, keeping the layout', () => {
+  it('adds a top row when a widget covers the top-right EDIT cell, keeping the layout', () => {
     const p = newPreset();
     const graph = p.widgets.find((w) => w.type === 'graph')!;
     expect(graph.x + graph.w).toBe(p.grid.cols);
-    graph.y = 0; // the graph now reaches the top-right cells
+    graph.y = 0; // the graph now reaches the top-right cell
     const migrated = migratePreset(JSON.parse(JSON.stringify(p)));
     expect(migrated.grid.rows).toBe(p.grid.rows + 1);
     expect(migrated.widgets).toEqual(p.widgets.map((w) => ({ ...w, y: w.y + 1 })));
@@ -178,5 +178,40 @@ describe('v6 → v7: pads become a numbered grid', () => {
       { kind: 'value', type: 'i', channel: 'number' },
       { kind: 'const', type: 's', value: 'x' },
     ]);
+  });
+});
+
+describe('v7 → v8: messages can also be received', () => {
+  it('turns `enabled` into `send` and adds receiving, switched off', () => {
+    const current = newPreset();
+    const v7 = {
+      ...current,
+      schemaVersion: 7,
+      widgets: current.widgets.map((w, n) => ({
+        ...w,
+        bindings: w.bindings.map(
+          ({ send: _send, receive: _r, sourceIds: _s, forward: _f, ...b }) => ({
+            ...b,
+            enabled: n !== 0,
+          }),
+        ),
+      })),
+    };
+    const migrated = migratePreset(JSON.parse(JSON.stringify(v7)));
+    expect(migrated.schemaVersion).toBe(8);
+    const [first, second] = migrated.widgets;
+    expect(first!.bindings[0]).toMatchObject({
+      send: false,
+      receive: false,
+      sourceIds: [],
+      forward: false,
+    });
+    expect(second!.bindings[0]).toMatchObject({
+      send: true,
+      receive: false,
+      sourceIds: [],
+      forward: false,
+    });
+    expect(first!.bindings[0]).not.toHaveProperty('enabled');
   });
 });

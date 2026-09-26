@@ -66,13 +66,15 @@
     }
   }
 
-  const label = $derived(!locked ? '□ LOCK' : holding ? 'HOLD…' : hint ? 'HOLD 1 SEC' : '■ LOCKED');
+  // Same anatomy as the other master switches: [■] when locked.
+  const box = $derived(hint && !holding ? '' : `[${locked ? '■' : '\u00a0'}]`);
+  const text = $derived(!locked ? 'LOCK' : holding ? 'HOLD…' : hint ? 'HOLD 1 SEC' : 'LOCKED');
 </script>
 
 <button
   type="button"
-  class="lock"
-  class:locked
+  class="mbtn switch lock"
+  class:warn={locked}
   class:holding
   class:hint
   style:--hold="{HOLD_MS}ms"
@@ -103,36 +105,25 @@
   }}
 >
   <span class="fill" aria-hidden="true"></span>
-  <span class="label">{label}</span>
+  <span class="label"
+    >{#if box}<span class="box">{box}</span>{/if}{text}</span
+  >
 </button>
 
 <style>
+  /* The shape comes from .mbtn (app.css); the width is fixed there too, so the label can
+     change while the pointer stays inside. */
   .lock {
     position: relative;
-    /* Fixed width: the label changes, the hit area never does. */
-    width: 14ch;
-    height: 28px;
-    padding: 0;
-    border: 1px solid var(--line-strong);
-    background: var(--bg);
-    color: var(--fg-dim);
     overflow: hidden;
-    white-space: nowrap;
     touch-action: none;
     user-select: none;
     -webkit-user-select: none;
   }
-  .lock:hover {
-    color: var(--fg);
-  }
-  .lock.locked {
-    border-color: var(--warn);
-    background: var(--warn);
-    color: var(--bg);
-    font-weight: 700;
-  }
   .label {
     position: relative;
+    display: inline-flex;
+    gap: 1ch;
   }
   /* Unlock progress: steps across in ten pixel columns. */
   .fill {

@@ -5,17 +5,20 @@
   import { debugStore } from '../../lib/state/debug.svelte';
   import { showDesk } from '../../lib/state/ui.svelte';
 
-  let { widgetId }: { widgetId: string } = $props();
+  /** `heading: false` when the surrounding panel already names it (the Inspector). */
+  let { widgetId, heading = true }: { widgetId: string; heading?: boolean } = $props();
 
   const recent = $derived(debugStore.recentFor(widgetId).slice().reverse());
   const stats = $derived(debugStore.throttle[widgetId]);
 </script>
 
 <section>
-  <div class="head">
-    <h2>Activity</h2>
-    <button class="btn ghost" onclick={() => showDesk('traffic')}>Traffic</button>
-  </div>
+  {#if heading}
+    <div class="head">
+      <h2>Activity</h2>
+      <button class="btn ghost" onclick={() => showDesk('traffic')}>Traffic</button>
+    </div>
+  {/if}
   {#if stats}
     <p class="mono muted stats">
       to core {stats.sent} · coalesced {stats.coalesced} ·

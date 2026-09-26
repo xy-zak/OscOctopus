@@ -71,10 +71,11 @@ describe('buildArg', () => {
 });
 
 describe('buildMessages', () => {
-  it('builds one message per enabled binding with outputs', () => {
+  it('builds one message per sending binding with outputs', () => {
     const w = newWidget('slider', { x: 0, y: 0, w: 1, h: 4 }, ['out-1'], 1);
-    w.bindings.push({ id: 'b2', enabled: false, outputIds: ['out-1'], address: '/off', args: [] });
-    w.bindings.push({ id: 'b3', enabled: true, outputIds: [], address: '/nowhere', args: [] });
+    const rest = { receive: true, sourceIds: [], forward: false, args: [] };
+    w.bindings.push({ id: 'b2', send: false, outputIds: ['out-1'], address: '/off', ...rest });
+    w.bindings.push({ id: 'b3', send: true, outputIds: [], address: '/nowhere', ...rest });
     w.bindings[0]!.args.push({ kind: 'const', type: 's', value: 'x' });
     const out = buildMessages(w, 0.25);
     expect(out).toHaveLength(1);
@@ -115,7 +116,10 @@ describe('graph (two channels)', () => {
       bindings: [
         {
           id: 'xy',
-          enabled: true,
+          send: true,
+          receive: false,
+          sourceIds: [],
+          forward: false,
           outputIds: ['out-1'],
           address: '/xy',
           args: [

@@ -1,14 +1,17 @@
 <script lang="ts">
-  // Pick one of the palette's ten colours (or AUTO = theme accent). The current palette is
-  // read from CSS variables, so this always shows what the desk will actually look like.
+  // Pick one of the palette's ten colours, or AUTO (a widget then takes its desk's colour,
+  // shown by `autoColor`). The current palette is read from CSS variables, so this always shows
+  // what the desk will actually look like.
   import { PALETTE_SIZE } from '../theme/palettes';
 
   interface Props {
     value: number | null;
     allowAuto?: boolean;
+    /** The colour AUTO stands for (a widget's desk colour), shown beside the word. */
+    autoColor?: string;
     onchange: (value: number | null) => void;
   }
-  let { value, allowAuto = true, onchange }: Props = $props();
+  let { value, allowAuto = true, autoColor, onchange }: Props = $props();
   const indices = Array.from({ length: PALETTE_SIZE }, (_, i) => i);
 </script>
 
@@ -20,7 +23,9 @@
       aria-checked={value === null}
       class="auto"
       class:on={value === null}
-      onclick={() => onchange(null)}>AUTO</button
+      title="AUTO: the desk’s colour"
+      onclick={() => onchange(null)}
+      >{#if autoColor}<span class="auto-sw" style:background={autoColor}></span>{/if}AUTO</button
     >
   {/if}
   {#each indices as i (i)}
@@ -67,6 +72,9 @@
       0 0 0 2px var(--fg);
   }
   .auto {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75ch;
     height: 22px;
     padding: 0 1ch;
     border: 1px solid var(--line-strong);
@@ -77,5 +85,10 @@
     background: var(--fg);
     color: var(--bg);
     font-weight: 700;
+  }
+  .auto-sw {
+    width: 10px;
+    height: 10px;
+    box-shadow: 0 0 0 1px var(--bg);
   }
 </style>

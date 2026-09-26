@@ -28,6 +28,15 @@ export const ICONS = {
   filter: '\u{f0b0}',
   paint: '\u{f1fc}',
   keyboard: '\u{f11c}',
+  link: '\u{f0c1}',
+  users: '\u{f0c0}',
+  user: '\u{f007}',
+  key: '\u{f084}',
+  share: '\u{f1e0}',
+  ban: '\u{f05e}',
+  lock: '\u{f023}',
+  signin: '\u{f090}',
+  signout: '\u{f08b}',
 } as const;
 
 export type IconName = keyof typeof ICONS;

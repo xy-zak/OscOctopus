@@ -45,7 +45,7 @@
       </div>
     </div>
   {:else}
-    <p class="faint">Nothing will be sent: no enabled message has an output.</p>
+    <p class="faint">Nothing will be sent: no message sends to an output.</p>
   {/each}
 </section>
 

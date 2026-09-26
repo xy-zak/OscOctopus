@@ -3,6 +3,7 @@
   import type { Preset } from '../model/preset';
   import { viewsOf } from '../widgets/registry';
   import GridItem from './GridItem.svelte';
+  import { colorVars } from '../theme/palettes';
   import { metrics as computeMetrics, editCell, toPx, withEditCell, type Rect } from './engine';
 
   interface Props {
@@ -17,8 +18,10 @@
     locked?: boolean;
     /** A press landed on the desk while locked (to hint how to unlock). */
     onlockedpress?: () => void;
-    /** Rendered in the reserved top-right cells (the EDIT / LIVE switch). */
+    /** Rendered in the reserved top-right cell (the EDIT / LIVE switch). */
     editControl?: Snippet;
+    /** Who else is editing a widget, if anyone (shared desks). */
+    holderOf?: (id: string) => { name: string; color: string } | null;
   }
   let {
     preset,
@@ -26,6 +29,7 @@
     locked = false,
     onlockedpress,
     editControl,
+    holderOf,
     selectedId,
     focusedId = null,
     onselect,
@@ -37,6 +41,8 @@
   let height = $state(0);
 
   const grid = $derived(preset.grid);
+  // Widgets whose colour is AUTO take the desk's own colour (see colorVars).
+  const auto = $derived(colorVars(preset.color));
   const m = $derived(computeMetrics(width, height, grid, grid.gap));
   const cells = $derived(
     editing
@@ -62,6 +68,8 @@
 <div
   class="canvas"
   class:editing
+  style:--auto-c={auto.c}
+  style:--auto-ink={auto.ink}
   bind:clientWidth={width}
   bind:clientHeight={height}
   role="presentation"
@@ -128,6 +136,7 @@
         {editing}
         selected={selectedId === w.id}
         focused={focusedId === w.id}
+        holder={editing ? (holderOf?.(w.id) ?? null) : null}
         onselect={(id) => onselect(id)}
         {onfocus}
         {oncommit}

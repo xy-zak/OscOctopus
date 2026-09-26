@@ -4,7 +4,7 @@
   // tracks the exact value 1:1 under the finger. Scale marks sit either side of the track.
   import type { SliderWidget } from '../../model/preset';
   import { sliderPosition, sliderValue } from '../../osc/curves';
-  import { emitValue } from '../../osc/sender';
+  import { emitValue } from '../../osc/flow';
   import { tapHaptic, tickHaptic } from '../../platform/haptics';
   import { numberValue } from '../../state/values.svelte';
   import { clamp } from '../../util';

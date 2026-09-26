@@ -1,11 +1,14 @@
 //! End-to-end: real sockets on 127.0.0.1, an output sending to an input of the same manager.
 //! Asserts the bytes recorded as sent are exactly the bytes recorded as received.
 
+mod common;
+
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use osc_octopus_lib::debug::{DebugEvent, DebugHub, DebugKind, Direction};
+use common::{free_tcp_port, free_udp_port, manager, packets, wait_for};
+use osc_octopus_lib::debug::{DebugHub, DebugKind, Direction};
 use osc_octopus_lib::net::{
     EndpointState, InputConfig, NetworkConfig, NetworkManager, OutputConfig, Resolver, TcpFraming,
     Transport, UdpMode, MAX_TCP_CLIENTS, WRITE_TIMEOUT,
@@ -14,28 +17,6 @@ use osc_octopus_lib::osc::{encode_message, OscArg, OscMessage};
 
 /// Default desk used by single-desk tests.
 const D: &str = "desk-1";
-
-fn manager() -> (NetworkManager, Arc<DebugHub>) {
-    let debug = Arc::new(DebugHub::new(10_000, 10_000));
-    let net = NetworkManager::new(debug.clone(), Arc::new(|_| {}));
-    (net, debug)
-}
-
-fn free_udp_port() -> u16 {
-    std::net::UdpSocket::bind("127.0.0.1:0")
-        .unwrap()
-        .local_addr()
-        .unwrap()
-        .port()
-}
-
-fn free_tcp_port() -> u16 {
-    std::net::TcpListener::bind("127.0.0.1:0")
-        .unwrap()
-        .local_addr()
-        .unwrap()
-        .port()
-}
 
 fn message() -> OscMessage {
     OscMessage {
@@ -48,29 +29,8 @@ fn message() -> OscMessage {
     }
 }
 
-async fn wait_for<T>(what: &str, mut f: impl FnMut() -> Option<T>) -> T {
-    let deadline = Instant::now() + Duration::from_secs(5);
-    loop {
-        if let Some(v) = f() {
-            return v;
-        }
-        assert!(Instant::now() < deadline, "timed out waiting for {what}");
-        tokio::time::sleep(Duration::from_millis(20)).await;
-    }
-}
-
-fn packets(debug: &DebugHub, endpoint: &str, dir: Direction) -> Vec<DebugEvent> {
-    debug
-        .history()
-        .into_iter()
-        .filter(|e| {
-            e.kind == DebugKind::Packet && e.endpoint_id == endpoint && e.direction == Some(dir)
-        })
-        .collect()
-}
-
 async fn assert_round_trip(net: &NetworkManager, debug: &DebugHub, out_id: &str, in_id: &str) {
-    net.send(D, &[out_id.to_string()], &message(), Some("widget-1"))
+    net.send(D, &[out_id.to_string()], &message(), Some("widget-1"), None)
         .await
         .unwrap();
     let received = wait_for("inbound packet", || {
@@ -193,7 +153,7 @@ async fn tcp_output_reports_refused_connection() {
         (net.status_of(D, "out")?.state == EndpointState::Error).then_some(())
     })
     .await;
-    net.send(D, &["out".into()], &message(), None)
+    net.send(D, &["out".into()], &message(), None, None)
         .await
         .unwrap();
     let sent = wait_for("dropped packet event", || {
@@ -225,7 +185,9 @@ async fn reconcile_keeps_unchanged_and_removes_deleted() {
 
     net.apply(D, NetworkConfig::default()).await.unwrap();
     assert!(net.status_of(D, "a").is_none());
-    net.send(D, &["a".into()], &message(), None).await.unwrap();
+    net.send(D, &["a".into()], &message(), None, None)
+        .await
+        .unwrap();
     let last = debug.history().pop().unwrap();
     assert_eq!(last.kind, DebugKind::Error);
     assert!(last.error.unwrap().contains("no output"));
@@ -310,7 +272,7 @@ async fn pause_blocks_every_output_and_records_what_would_have_left() {
     .unwrap();
 
     assert!(net.set_paused(true));
-    net.send(D, &["out".into()], &message(), Some("w"))
+    net.send(D, &["out".into()], &message(), Some("w"), None)
         .await
         .unwrap();
     tokio::time::sleep(Duration::from_millis(200)).await;
@@ -397,7 +359,9 @@ async fn tcp_write_to_a_peer_that_never_reads_times_out_instead_of_hanging() {
     };
     for _ in 0..1_000 {
         let started = Instant::now();
-        net.send(D, &["out".into()], &big, None).await.unwrap();
+        net.send(D, &["out".into()], &big, None, None)
+            .await
+            .unwrap();
         assert!(
             started.elapsed() < WRITE_TIMEOUT + Duration::from_secs(2),
             "a send must never hang on a stalled peer"
@@ -467,7 +431,7 @@ async fn slow_dns_on_one_desk_does_not_block_sends_on_another() {
     // Desk a is now waiting on its lookup; desk b must still send immediately.
     tokio::time::sleep(Duration::from_millis(200)).await;
     let started = Instant::now();
-    net.send("b", &["out".into()], &message(), None)
+    net.send("b", &["out".into()], &message(), None, None)
         .await
         .unwrap();
     assert!(

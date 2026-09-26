@@ -4,6 +4,7 @@
   // Invalid drops spring back.
   import type { Snippet } from 'svelte';
   import { tapHaptic, tickHaptic } from '../platform/haptics';
+  import * as touch from '../state/touch';
   import {
     isFree,
     moveRect,
@@ -27,6 +28,8 @@
     selected: boolean;
     /** Live mode: highlighted as the widget shown in the info panel. */
     focused?: boolean;
+    /** Edit mode: someone else is editing this widget (a sync peer): shown, and not draggable. */
+    holder?: { name: string; color: string } | null;
     onselect: (id: string) => void;
     /** Live mode: a pointer went down on this widget. */
     onfocus?: (id: string) => void;
@@ -42,6 +45,7 @@
     editing,
     selected,
     focused = false,
+    holder = null,
     onselect,
     onfocus,
     oncommit,
@@ -80,6 +84,8 @@
 
   function move(e: PointerEvent) {
     if (!gesture || e.pointerId !== gesture.pointerId) return;
+    // Someone else is editing it: a tap still selects it (to see who), a drag does nothing.
+    if (holder) return;
     const dx = e.clientX - gesture.x0;
     const dy = e.clientY - gesture.y0;
     if (!gesture.moved && Math.hypot(dx, dy) < TAP_SLOP) return;
@@ -131,13 +137,18 @@
   class:selected
   class:focused={focused && !editing}
   class:lifted={gesture?.moved}
+  class:held={editing && !!holder}
+  style:--holder={holder?.color}
   class:invalid={gesture?.moved && !valid}
   style:transform="translate3d({box.left + offset.x}px, {box.top + offset.y}px, 0)"
   style:width="{box.width}px"
   style:height="{box.height}px"
   onpointerdown={(e) => start(e, 'move')}
-  onpointerdowncapture={() => {
-    if (!editing) onfocus?.(id);
+  onpointerdowncapture={(e) => {
+    if (editing) return;
+    onfocus?.(id);
+    // Local hands win: while this pointer is down, input and peers don't move the widget.
+    touch.begin(id, e.pointerId);
   }}
   onpointermove={move}
   onpointerup={end}
@@ -146,6 +157,9 @@
   <div class="content" inert={editing}>
     {@render children()}
   </div>
+  {#if editing && holder}
+    <span class="holder" title="{holder.name} is editing this widget">✎ {holder.name}</span>
+  {/if}
   {#if editing && selected}
     {#each HANDLES as h (h)}
       <!-- Move/up events bubble from the captured handle to the item's listeners. -->
@@ -171,6 +185,26 @@
     touch-action: none;
   }
   .item.editing .content {
+    pointer-events: none;
+  }
+  /* A peer is editing it: outlined in their colour, with their name. */
+  .item.held {
+    cursor: not-allowed;
+    outline: 2px dashed var(--holder);
+    outline-offset: 2px;
+  }
+  .holder {
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    max-width: 100%;
+    padding: 0 0.5ch;
+    overflow: hidden;
+    background: var(--holder);
+    color: var(--bg);
+    font-weight: 700;
+    white-space: nowrap;
+    text-overflow: ellipsis;
     pointer-events: none;
   }
   /* Selection: marching ants. */

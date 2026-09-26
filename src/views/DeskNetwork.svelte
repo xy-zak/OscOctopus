@@ -10,18 +10,29 @@
   const network = $derived(presetStore.current.network);
   const change = () => presetStore.touch({ network: true });
 
+  /** Asks first when messages send to (or listen on) the endpoint being deleted. */
+  async function confirmRemove(kind: 'output' | 'input', id: string): Promise<boolean> {
+    const sends = kind === 'output' ? presetStore.outputUsage(id) : 0;
+    const listens = presetStore.sourceUsage(id);
+    if (sends + listens === 0) return true;
+    const uses = [
+      sends ? `${sends} message(s) send to it` : '',
+      listens ? `${listens} message(s) listen on it` : '',
+    ].filter(Boolean);
+    return confirmAction({
+      title: `Delete ${kind}`,
+      message: `${uses.join(' and ')}. Delete it and remove it from those messages?`,
+      confirmLabel: `Delete ${kind}`,
+      danger: true,
+    });
+  }
+
   async function removeOutput(id: string) {
-    const n = presetStore.outputUsage(id);
-    if (n > 0) {
-      const ok = await confirmAction({
-        title: 'Delete output',
-        message: `${n} message(s) send to this output. Delete it and remove it from those messages?`,
-        confirmLabel: 'Delete output',
-        danger: true,
-      });
-      if (!ok) return;
-    }
-    presetStore.removeOutput(id);
+    if (await confirmRemove('output', id)) presetStore.removeOutput(id);
+  }
+
+  async function removeInput(id: string) {
+    if (await confirmRemove('input', id)) presetStore.removeInput(id);
   }
 
   const apply = $derived(networkStore.applyState(presetStore.current.id));
@@ -85,7 +96,7 @@
           <InputCard
             bind:input={network.inputs[i]!}
             onchange={change}
-            onremove={() => presetStore.removeInput(input.id)}
+            onremove={() => removeInput(input.id)}
           />
         {:else}
           <p class="faint">

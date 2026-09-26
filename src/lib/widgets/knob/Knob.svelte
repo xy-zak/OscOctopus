@@ -7,7 +7,7 @@
   //            {value, delta} with delta = ±deltaStep. A short trail shows the direction.
   import type { KnobWidget } from '../../model/preset';
   import { sliderPosition, sliderValue } from '../../osc/curves';
-  import { emitValue } from '../../osc/sender';
+  import { emitValue } from '../../osc/flow';
   import { isRecord } from '../../osc/value';
   import { tapHaptic, tickHaptic } from '../../platform/haptics';
   import { values } from '../../state/values.svelte';

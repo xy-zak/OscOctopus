@@ -153,6 +153,72 @@ h2::after {
   pointer-events: none;
 }
 
+/* ---- master bar: every all-desk control has one shape (App.svelte, LockButton.svelte) -------
+   Readouts (OUT, SYNC) show a status lamp and open their settings. Switches (IN, PAUSE, LOCK)
+   show [■] when what they name is on, have a fixed width so the bar never shifts, and fill with
+   a status colour while they hold the app in a safety state. */
+.mbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 1ch;
+  height: 28px;
+  padding: 0 1ch;
+  border: 1px solid var(--line-strong);
+  background: var(--bg);
+  color: var(--fg-dim);
+  font-weight: 400;
+  white-space: nowrap;
+  transition:
+    background var(--t-ui) steps(2),
+    color var(--t-ui) steps(2),
+    border-color var(--t-ui) steps(2);
+}
+.mbtn:hover {
+  border-color: var(--fg-dim);
+  color: var(--fg);
+}
+.mbtn.switch {
+  width: 12ch;
+}
+.mbtn .lamp {
+  color: var(--fg-faint);
+}
+.mbtn .lamp.ok {
+  color: var(--ok);
+}
+.mbtn .lamp.warn {
+  color: var(--warn);
+}
+.mbtn .lamp.bad {
+  color: var(--danger);
+  animation: mbtn-blink 1s steps(1) infinite;
+}
+.mbtn .box {
+  font-weight: 400;
+}
+.mbtn .box.blink {
+  animation: mbtn-blink 1s steps(1) infinite;
+}
+.mbtn.warn,
+.mbtn.warn:hover {
+  border-color: var(--warn);
+  background: var(--warn);
+  color: var(--bg);
+  font-weight: 700;
+}
+.mbtn.danger,
+.mbtn.danger:hover {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: var(--bg);
+  font-weight: 700;
+}
+@keyframes mbtn-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
 /* ---- inputs ------------------------------------------------------------------------------- */
 .input {
   height: var(--control-h);

@@ -5,6 +5,7 @@ import { open, save } from '@tauri-apps/plugin-dialog';
 import type { Preset } from '../lib/model/preset';
 import { presetStore } from '../lib/state/preset.svelte';
 import { confirmAction, toast } from '../lib/state/ui.svelte';
+import { sharedDesks } from '../lib/sync/app.svelte';
 import { errorText } from '../lib/util';
 
 const PRESET_FILES = [{ name: 'OscOctopus preset', extensions: ['json'] }];
@@ -156,6 +157,9 @@ export const importIntoDesk = () =>
         `Its ${desk.widgets.length} widgets, grid and network settings are replaced by the file's.`,
         'Its outputs and inputs restart with the imported config.',
         'To keep this desk as it is, export it first, or use GLOBAL SETTINGS › LIBRARY › Import as new desk.',
+        ...(sharedDesks.isLive(desk.id)
+          ? ['This desk is shared: it is replaced for everyone in the session.']
+          : []),
       ],
       confirmLabel: 'Replace desk',
       danger: true,

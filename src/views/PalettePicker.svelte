@@ -19,6 +19,7 @@
       aria-checked={theme.palette === id}
       class="pal"
       class:on={theme.palette === id}
+      title={PALETTES[id].note}
       onclick={() => pick(id)}
     >
       <span class="radio">{theme.palette === id ? '(•)' : '( )'}</span>

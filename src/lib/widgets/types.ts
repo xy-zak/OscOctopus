@@ -5,7 +5,7 @@
 // defs.ts and registry.ts collect them in maps typed over every `WidgetType`, so a missing
 // piece is a compile error rather than a silent default.
 import type { Widget, WidgetType } from '../model/preset';
-import type { WidgetValue } from '../osc/value';
+import type { Scalar, ValueList, WidgetValue } from '../osc/value';
 
 export type WidgetOf<T extends WidgetType> = Extract<Widget, { type: T }>;
 
@@ -28,6 +28,23 @@ export interface ChannelInfo {
 export type Gate =
   { kind: 'queue' } | { kind: 'throttle'; maxHz: number } | { kind: 'merge'; maxHz: number };
 
+/**
+ * What a received OSC message says about a widget's value, by channel. Single-value widgets
+ * use the key `value`. Only the channels the message carried are present.
+ */
+export type InputPatch = Record<string, Scalar | ValueList>;
+
+/** Where a shown value came from (see osc/flow.ts for what each origin may do). */
+export type ValueOrigin = 'touch' | 'input' | 'peer' | 'init';
+
+/** What `show` may do besides setting the value (see state/feedback.svelte.ts). */
+export interface FeedbackApi {
+  origin: ValueOrigin;
+  setPadLit(pad: number, on: boolean): void;
+  flashPad(pad: number): void;
+  flash(): void;
+}
+
 export interface WidgetDef<W extends Widget> {
   /** Shown in the toolbar and the Inspector. */
   label: string;
@@ -40,4 +57,27 @@ export interface WidgetDef<W extends Widget> {
   /** Named channels of the value; [] = a single value (no channel choice). */
   channels(w: W): ChannelInfo[];
   gate(w: W): Gate;
+  /**
+   * The value a received message sets, given the current one, or null to ignore it. It must
+   * be idempotent: it *sets* state (a toggle pad is set on or off, never flipped). The one
+   * exception is a bare `delta` on an endless knob, which adds.
+   */
+  input(w: W, patch: InputPatch, current: WidgetValue): WidgetValue | null;
+  /**
+   * The channels compared to recognise our own sent values coming back (see osc/expect.ts),
+   * each with the numeric tolerance allowed. Single-value widgets use the key `value`.
+   */
+  echoTolerance(w: W): Record<string, number>;
+  /**
+   * Whether a value from a sync peer is one this widget can hold: the right shape, in range.
+   * A peer's value that isn't is ignored (it is never coerced: peers run the same code).
+   */
+  isValue(w: W, value: unknown): value is WidgetValue;
+  /**
+   * Visual feedback a shown value implies beyond the value itself (pads, trigger flashes).
+   * Flashes are for events happening now (`input`, `peer`), never for a snapshot (`init`).
+   */
+  show?(w: W, value: WidgetValue, fx: FeedbackApi): void;
+  /** The touch key a value belongs to, when finer than the widget (one pad of a grid). */
+  touchKey?(w: W, value: WidgetValue): string;
 }

@@ -15,11 +15,22 @@ use super::util::{system_resolver, Resolver, TaskGroup};
 use super::{tcp, udp, InputConfig, NetworkConfig, OutputConfig, Transport};
 use crate::debug::{DebugEvent, DebugHub, DebugKind};
 use crate::error::{AppError, AppResult};
+use crate::input::{Avoid, InputHub, INPUT_QUEUE_CAP};
 use crate::osc::{encode_message, OscMessage};
 
 enum Sender {
     Udp(udp::UdpOutput),
     Tcp(Arc<tcp::TcpOutput>),
+}
+
+impl Sender {
+    /// Where packets currently go (for TCP: the connected peer, if any).
+    async fn target(&self) -> Option<SocketAddr> {
+        match self {
+            Sender::Udp(u) => Some(u.target()),
+            Sender::Tcp(t) => t.target().await,
+        }
+    }
 }
 
 struct RunningOutput {
@@ -58,6 +69,8 @@ impl Endpoints {
 pub struct NetworkManager {
     debug: Arc<DebugHub>,
     board: Arc<StatusBoard>,
+    /// Inbound messages for input mapping, and this app's own output sockets.
+    input: Arc<InputHub>,
     resolver: Resolver,
     endpoints: RwLock<Endpoints>,
     /// Serialises `apply` calls. The endpoint map itself is write-locked only for the final,
@@ -72,6 +85,7 @@ impl NetworkManager {
         Self {
             debug,
             board: Arc::new(StatusBoard::new(on_status)),
+            input: Arc::new(InputHub::new(INPUT_QUEUE_CAP)),
             resolver: system_resolver(),
             endpoints: RwLock::new(Endpoints::default()),
             apply_lock: Mutex::new(()),
@@ -87,6 +101,10 @@ impl NetworkManager {
 
     pub fn status(&self) -> Vec<EndpointStatus> {
         self.board.snapshot()
+    }
+
+    pub fn input(&self) -> &Arc<InputHub> {
+        &self.input
     }
 
     pub fn status_of(&self, desk: &str, id: &str) -> Option<EndpointStatus> {
@@ -134,6 +152,7 @@ impl NetworkManager {
             transport,
             board: self.board.clone(),
             debug: self.debug.clone(),
+            input: self.input.clone(),
         }
     }
 
@@ -314,18 +333,21 @@ impl NetworkManager {
 
     /// Stops every endpoint of a desk (the desk was closed).
     pub async fn close_desk(&self, desk: &str) -> AppResult<Vec<EndpointStatus>> {
+        self.input.forget_desk(desk);
         self.apply(desk, NetworkConfig::default()).await
     }
 
     /// Encodes once and sends to each of the desk's outputs. Per-output results go to the
     /// debug log; only an encode failure (the message itself is invalid) is returned as an
     /// error. While paused, nothing is written: each output records a "blocked" event instead.
+    /// `avoid` (forwarded input) skips outputs that would send it back to where it came from.
     pub async fn send(
         &self,
         desk: &str,
         output_ids: &[String],
         msg: &OscMessage,
         source: Option<&str>,
+        avoid: Option<&Avoid>,
     ) -> AppResult<()> {
         let bytes = match encode_message(msg) {
             Ok(b) => b,
@@ -355,6 +377,12 @@ impl NetworkManager {
         // Checked once per message so a message is never half-sent across outputs.
         let paused = self.is_paused();
         for (k, output) in targets {
+            if let (Some(avoid), Some(out)) = (avoid, &output) {
+                if let Some(reason) = self.sends_back(avoid, &k, out).await {
+                    out.ctx.info(reason);
+                    continue;
+                }
+            }
             match output {
                 Some(out) if paused => out.ctx.packet_blocked(&bytes, source),
                 Some(out) => match &out.sender {
@@ -365,6 +393,23 @@ impl NetworkManager {
             }
         }
         Ok(())
+    }
+
+    /// Why `out` must not carry a forwarded input back to its sender, if it must not.
+    async fn sends_back(
+        &self,
+        avoid: &Avoid,
+        k: &EndpointKey,
+        out: &RunningOutput,
+    ) -> Option<String> {
+        if avoid.endpoint_id.as_deref() == Some(k.1.as_str()) {
+            return Some("not forwarded: the input arrived on this output".into());
+        }
+        let origin: SocketAddr = avoid.remote.as_deref()?.parse().ok()?;
+        let target = out.sender.target().await?;
+        self.input
+            .is_origin(target, origin)
+            .then(|| format!("not forwarded to {target}: the input came from {origin}"))
     }
 
     /// Records a packet addressed to an output that isn't running, and why.

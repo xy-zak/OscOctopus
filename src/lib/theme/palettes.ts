@@ -1,14 +1,29 @@
 // Colour palettes. The UI itself is always near-black on near-white; palettes only colour
 // active things (fills, lit buttons, switches, cursors). Each palette has exactly ten colours,
 // so a widget's colour is just an index 0–9 and switching palette recolours the whole desk.
+// Two kinds. RAINBOW, NEON and PASTEL run through every hue. The themed ones are heavily
+// inspired by one colour but travel across its neighbouring hues (SUNSET goes yellow → orange →
+// pink → purple), so their colours stay distinct; most end with two contrasting accents
+// (indices 8 and 9, like UNDERWATER's pink and peach). GREYSCALE is pure grey. The picker lists
+// the themed ones around the colour wheel. Index 5, the default accent, is a clear mid colour in
+// each. Some follow the look of other software (a green-screen terminal, VS Code themes); hover
+// one in the picker to see which.
 
 export const PALETTE_IDS = [
   'rainbow',
   'neon',
   'pastel',
+  'crimson',
   'sunset',
-  'greyscale',
+  'amber',
+  'phosphor',
   'underwater',
+  'frost',
+  'cobalt',
+  'violet',
+  'sakura',
+  'sand',
+  'greyscale',
 ] as const;
 export type PaletteId = (typeof PALETTE_IDS)[number];
 
@@ -17,7 +32,10 @@ export const PALETTE_SIZE = 10;
 /** Palette index of the default accent, also the first desk's identity colour. */
 export const DEFAULT_ACCENT = 5;
 
-export const PALETTES: Record<PaletteId, { name: string; colors: readonly string[] }> = {
+export const PALETTES: Record<
+  PaletteId,
+  { name: string; colors: readonly string[]; /** What it follows, if anything. */ note?: string }
+> = {
   rainbow: {
     name: 'RAINBOW',
     colors: [
@@ -108,6 +126,134 @@ export const PALETTES: Record<PaletteId, { name: string; colors: readonly string
       '#ffd6a5',
     ],
   },
+  phosphor: {
+    name: 'PHOSPHOR',
+    note: 'Terminal greens, from lime through green to teal, with amber and copper',
+    colors: [
+      '#f0ffa8',
+      '#cfff5e',
+      '#9cf23f',
+      '#5cff78',
+      '#2fe07a',
+      '#19c98f',
+      '#16b8a8',
+      '#1fa2c4',
+      '#ffb000',
+      '#ff6b4a',
+    ],
+  },
+  amber: {
+    name: 'AMBER',
+    note: 'Amber-terminal golds, from cream through honey to rust, with cyan and green',
+    colors: [
+      '#fff6cc',
+      '#ffe58f',
+      '#ffd24d',
+      '#ffb000',
+      '#f29b1d',
+      '#dd8a2e',
+      '#c9743a',
+      '#b35f3a',
+      '#3ad6ff',
+      '#7cff8a',
+    ],
+  },
+  crimson: {
+    name: 'CRIMSON',
+    note: 'Reds, from coral through crimson and raspberry to plum, with gold and teal',
+    colors: [
+      '#ffb3a7',
+      '#ff8a80',
+      '#ff5c5c',
+      '#f23a4f',
+      '#d92b5a',
+      '#c2256e',
+      '#a8237f',
+      '#8a2a8f',
+      '#ffd23f',
+      '#2ee6c8',
+    ],
+  },
+  sakura: {
+    name: 'SAKURA',
+    note: 'Spring pinks, from blossom through orchid to lavender, with leaf green and sky',
+    colors: [
+      '#ffe4ec',
+      '#ffc6d9',
+      '#ffa3c4',
+      '#ff85b3',
+      '#f76fa8',
+      '#e56bc2',
+      '#c77ddb',
+      '#a58cf0',
+      '#9be36b',
+      '#8fd3ff',
+    ],
+  },
+  violet: {
+    name: 'VIOLET',
+    note: 'Purples, from orchid through violet to periwinkle, with the yellow and aqua of the Shades of Purple theme (VS Code)',
+    colors: [
+      '#ffb3f0',
+      '#f28cff',
+      '#d86bff',
+      '#b85cff',
+      '#9a5cff',
+      '#7c61ff',
+      '#6272ff',
+      '#5a85ff',
+      '#fad000',
+      '#9effff',
+    ],
+  },
+  cobalt: {
+    name: 'COBALT',
+    note: 'Blues, from ice through cobalt to indigo, with the yellow and pink of the Cobalt2 theme (VS Code)',
+    colors: [
+      '#b8f0ff',
+      '#8adfff',
+      '#5cc8ff',
+      '#3aa6ff',
+      '#2b86ff',
+      '#3d6bff',
+      '#5a5cff',
+      '#7a55f0',
+      '#ffc600',
+      '#ff628c',
+    ],
+  },
+  frost: {
+    name: 'FROST',
+    note: 'Muted arctic blues and frost, after Nord, with its aurora yellow and purple',
+    colors: [
+      '#e5f0f5',
+      '#c9dde6',
+      '#a9ccd9',
+      '#8fbcbb',
+      '#88c0d0',
+      '#81a1c1',
+      '#6f8fbf',
+      '#5e81ac',
+      '#ebcb8b',
+      '#b48ead',
+    ],
+  },
+  sand: {
+    name: 'SAND',
+    note: 'Desert: bone, wheat, ochre, clay and sage, with turquoise and sky',
+    colors: [
+      '#f7efdc',
+      '#efdcb4',
+      '#e2c48c',
+      '#d1a871',
+      '#c28f6b',
+      '#b07c73',
+      '#9fae88',
+      '#7fa6a0',
+      '#34c3b5',
+      '#6fa8dc',
+    ],
+  },
 };
 
 function rgb(hex: string): [number, number, number] {
@@ -167,8 +313,13 @@ export function paletteVars(palette: PaletteId, accent: number): Record<string, 
 }
 
 /** Style values for something coloured by palette index (null = theme accent). */
+/**
+ * CSS colours for a palette index. `null` (AUTO) is the colour of the surrounding desk:
+ * `--auto-c` / `--auto-ink`, which the desk's grid sets (GridCanvas). Outside a desk it falls
+ * back to the accent.
+ */
 export function colorVars(index: number | null): { c: string; ink: string } {
   return index === null
-    ? { c: 'var(--accent)', ink: 'var(--accent-ink)' }
+    ? { c: 'var(--auto-c, var(--accent))', ink: 'var(--auto-ink, var(--accent-ink))' }
     : { c: `var(--p${index})`, ink: `var(--p${index}-ink)` };
 }

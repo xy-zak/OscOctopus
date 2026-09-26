@@ -40,7 +40,9 @@
         <p class="detail">· {line}</p>
       {/each}
       <div class="actions">
-        <button class="btn" bind:this={cancelBtn} onclick={() => c.resolve(false)}>Cancel</button>
+        <button class="btn" bind:this={cancelBtn} onclick={() => c.resolve(false)}
+          >{c.cancelLabel}</button
+        >
         <button
           class="btn"
           class:primary={!c.danger}

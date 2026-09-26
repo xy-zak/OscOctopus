@@ -59,10 +59,24 @@ class DebugStore {
 
   /** Records a failure that happened in the UI / IPC layer and never reached Rust. */
   local(error: string, source?: string, endpointName = 'ui') {
+    this.record('error', error, source, endpointName);
+  }
+
+  /** Records something worth knowing that happened in the UI (e.g. a peer's edit). */
+  note(message: string, endpointName = 'ui') {
+    this.record('info', message, undefined, endpointName);
+  }
+
+  private record(
+    kind: 'error' | 'info',
+    text: string,
+    source: string | undefined,
+    endpointName: string,
+  ) {
     const ev: DebugEvent = {
       seq: 0,
       tsMicros: Math.round((performance.timeOrigin + performance.now()) * 1000),
-      kind: 'error',
+      kind,
       direction: null,
       desk: null,
       endpointId: '',
@@ -74,10 +88,11 @@ class DebugStore {
       wireLen: null,
       decoded: null,
       decodeError: null,
-      error,
-      message: null,
+      error: kind === 'error' ? text : null,
+      message: kind === 'info' ? text : null,
       source: source ?? null,
       blocked: false,
+      origin: null,
     };
     this.index([ev]);
     this.append([ev]);

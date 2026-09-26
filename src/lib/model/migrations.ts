@@ -66,6 +66,22 @@ const steps: Record<number, (preset: Raw) => Raw> = {
       w.type === 'pads' ? padsToNumbers(w) : w,
     ),
   }),
+  // v8: messages can also be received (OSC input drives widgets). `enabled` became `send`;
+  // nothing receives or forwards until the user turns it on.
+  7: (p) => ({
+    ...p,
+    schemaVersion: 8,
+    widgets: ((p.widgets as Raw[] | undefined) ?? []).map((w) => ({
+      ...w,
+      bindings: ((w.bindings as Raw[] | undefined) ?? []).map(({ enabled, ...b }) => ({
+        ...b,
+        send: enabled !== false,
+        receive: false,
+        sourceIds: [],
+        forward: false,
+      })),
+    })),
+  }),
 };
 
 const OLD_PAD_CHANNELS: Record<string, string> = {
@@ -136,7 +152,7 @@ export function migratePreset(input: unknown): Preset {
 }
 
 /**
- * The top-right cells belong to the desk's EDIT / LIVE switch. A desk laid out before that (or
+ * The top-right cell belongs to the desk's EDIT / LIVE switch. A desk laid out before that (or
  * edited by hand) with a widget there gets a new, empty top row instead: every widget moves
  * down one row together, so the layout itself stays exactly as it was.
  */

@@ -15,10 +15,20 @@ export function valueArg(type: ValueArgType, channel?: string): ArgTemplate {
   return channel ? { kind: 'value', type, channel } : { kind: 'value', type };
 }
 
+/** A message that sends to `outputIds`; receiving is off until the user turns it on. */
 export function newBinding(
   address: string,
   outputIds: string[],
   args: ArgTemplate[] = [valueArg('f')],
 ): Binding {
-  return { id: uid('b'), enabled: true, outputIds, address, args };
+  return {
+    id: uid('b'),
+    send: true,
+    outputIds,
+    receive: false,
+    sourceIds: [],
+    forward: false,
+    address,
+    args,
+  };
 }

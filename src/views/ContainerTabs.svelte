@@ -9,6 +9,9 @@
   import { networkStore } from '../lib/state/network.svelte';
   import { presetStore } from '../lib/state/preset.svelte';
   import { showDesk, showGlobal, ui } from '../lib/state/ui.svelte';
+  import { sharedDesks } from '../lib/sync/app.svelte';
+  import { viewersOf } from '../lib/sync/locks';
+  import { syncSession } from '../lib/sync/session.svelte';
   import { colorVars } from '../lib/theme/palettes';
   import Icon from '../lib/ui/Icon.svelte';
   import { addDesk, duplicateDesk, openDesk, removeDesk } from './deskActions';
@@ -75,7 +78,21 @@
         onclick={() => pick(d.id)}
       >
         <span class="chip" aria-hidden="true"></span>
+        {#if sharedDesks.view[d.id]?.shared}<span
+            class="shared"
+            title={syncSession.joined
+              ? 'Shared with the session'
+              : 'Shared (not syncing: no session joined)'}
+            class:off={!syncSession.joined}>⇄</span
+          >{/if}
         <span class="name">{d.name}</span>
+        {#each viewersOf(syncSession.presence, d.id) as peer (peer)}
+          <span
+            class="viewer"
+            style:color={colorVars(syncSession.peers[peer]?.color ?? 0).c}
+            title="{syncSession.peerName(peer)} is on this desk">●</span
+          >
+        {/each}
         <span class="dot {h}" title="Network: {h}">●</span>{#if presetStore.isDirty(d.id)}<span
             class="dirty"
             title="Unsaved (autosaving)">+</span
@@ -239,6 +256,17 @@
   }
   .dirty {
     color: var(--warn);
+  }
+  /* Shared desk: ⇄, dimmed when no session is joined. Dots: peers on this desk. */
+  .shared {
+    color: var(--accent-text);
+  }
+  .shared.off {
+    color: var(--fg-faint);
+  }
+  .viewer {
+    margin-left: -0.5ch;
+    font-size: 0.8em;
   }
   .badge {
     padding: 0 0.5ch;

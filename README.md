@@ -2,12 +2,16 @@
 
 A flexible OSC control desk. Build a dashboard of buttons, switches, faders and XY graphs on a
 grid, bind each one to OSC messages, and send them over UDP (unicast / broadcast / multicast) or TCP (SLIP or
-length-prefix framing). Dashboards are saved as presets. The TRAFFIC view shows the exact bytes of
-every packet sent and received.
+length-prefix framing). Incoming OSC can drive the same widgets, safely. Dashboards are saved as
+presets, and can be **shared live** with other OscOctopus apps on the network, so several
+people play and edit one desk together. The TRAFFIC view shows the exact bytes of every packet
+sent and received.
 
 **Stack:** Tauri 2 (Rust core) · Svelte 5 + TypeScript · Vite.
 **Look:** a terminal UI in JetBrains Mono Nerd Font (bundled), near-black on near-white, coloured
-from one of six palettes (RAINBOW, NEON, PASTEL, SUNSET, GREYSCALE, UNDERWATER).
+from one of fourteen palettes: RAINBOW, NEON and PASTEL (every hue), themed ones inspired by one
+colour that travel across its neighbours, most with two contrasting accents (SUNSET, UNDERWATER,
+PHOSPHOR, AMBER, CRIMSON, SAKURA, VIOLET, COBALT, FROST, SAND), and GREYSCALE.
 **Targets:** Windows, Linux, Android (next: macOS, iOS).
 
 ## Quick start
@@ -36,7 +40,7 @@ On first launch you get a demo desk with a **loopback** setup: an output sending
 | `npm run lint`     | Prettier check + type-check                                        |
 | `npm run bindings` | Regenerate TS types and endpoint defaults from Rust (`src/lib/ipc/bindings/`, via ts-rs) |
 | `npm run format`   | Prettier (write)                                                   |
-| `cd src-tauri && cargo test` | Rust unit tests + real-socket loopback tests (UDP, TCP SLIP / length-prefix, timeouts, client cap) |
+| `cd src-tauri && cargo test` | Rust unit tests + real-socket tests: loopback (UDP, TCP SLIP / length-prefix, timeouts, client cap), input mapping, and sync between two apps (auth, wrong key, duplicates, chunking, bans, rate limits) |
 | `cd src-tauri && cargo clippy --all-targets -- -D warnings` | Rust lints                  |
 
 Change a Rust type (or an endpoint default) that crosses IPC → run `npm run bindings` →
@@ -51,10 +55,10 @@ The screen always shows **where you are**, by containment:
 
 ```
 ▓ LOCKED / PAUSED banners: the whole app, full width
-[■ DESK A ●][■ DESK B ●][+]                [GLOBAL SETTINGS] │ 3/3 OUT · PAUSE · LOCK
+[■ DESK A ●][■ ⇄ DESK B ●][+]  [GLOBAL SETTINGS] │ ● 3/3 OUT  ● 2 SYNC │ [■] IN ON  [ ] PAUSE  [ ] LOCK
 ╔ frame in the active tab's colour ════════════════════════════════════════════════════╗
-║ F1 CONTROLS  F2 NETWORK  F3 TRAFFIC  F4 PRESET                                         ║
-║                        the desk's two top-right grid cells → [ LIVE ▐██▌]             ║
+║ F1 CONTROLS  F2 NETWORK  F3 TRAFFIC  F4 PRESET  F5 SYNC                                ║
+║                              the desk's top-right grid cell → [LIVE ●━◯ EDIT]        ║
 ║ …                                                                                     ║
 ```
 
@@ -63,20 +67,29 @@ The screen always shows **where you are**, by containment:
   nothing else.
 - **Every desk has an identity colour.** It is used for its tab and its frame, so you always know
   which desk you are in. GLOBAL SETTINGS is neutral white: it belongs to no desk.
-- **Sections sit inside the frame.** NETWORK and TRAFFIC exist at both levels. The frame colour tells you which one you're in: the desk's own colour, or white for GLOBAL SETTINGS.
+- **Sections sit inside the frame.** NETWORK, TRAFFIC and SYNC exist at both levels. The frame colour tells you which one you're in: the desk's own colour, or white for GLOBAL SETTINGS.
 
 | Desk (per desk) | | GLOBAL SETTINGS (all desks / this device) | |
 | --- | --- | --- | --- |
-| **F1 CONTROLS** | The widgets. *Live* plays them (multi-touch; the side panel shows the exact messages of the last-touched widget). *EDIT* adds, moves, resizes and edits them. The EDIT / LIVE switch in the two top-right cells flips between the two (green = LIVE). | **F1 NETWORK** | This device's interfaces and broadcast addresses, plus a read-only table of every desk's endpoints. Click one to edit it in that desk. |
+| **F1 CONTROLS** | The widgets. *Live* plays them (multi-touch; the side panel shows the exact messages of the last-touched widget). *EDIT* adds, moves, resizes and edits them. The EDIT / LIVE toggle switch in the top-right cell flips between the two: lever left = LIVE (green), right = EDIT. | **F1 NETWORK** | This device's interfaces and broadcast addresses, plus a read-only table of every desk's endpoints. Click one to edit it in that desk. |
 | **F2 NETWORK** | This desk's outputs and inputs (UDP unicast/broadcast/multicast, TCP SLIP or length-prefix), with live status and the OS's own errors. | **F2 TRAFFIC** | Every packet and lifecycle event of all desks, sequence-numbered, filterable. Hex/ASCII, decoded view, export. |
 | **F3 TRAFFIC** | The traffic of this desk only. | **F3 LIBRARY** | Every saved desk preset: open as desk, delete, new blank desk, import as new desk. |
 | **F4 PRESET** | This desk's name and colour, save, export, *import into this desk*, duplicate, remove. | **F4 LOOK** | Dark (default) or light background, plus the palette and accent. All are shared by every desk. |
+| **F5 SYNC** | Share this desk with the sync session, see who else is on it, choose the device that forwards input, restore an earlier version. | **F5 SYNC** | This device's name, colour and fingerprint; join or leave a session; listen port, LAN discovery and devices by address; the desks shared in the session (*Open*); every device with its state, round trip and clock. |
 
-- **The master controls sit outside every tab and frame** (top right), because they affect all desks:
-  - **PAUSE** blocks all outgoing OSC. It is enforced in the Rust core, and held packets are
-    logged with their exact bytes.
-  - **LOCK** freezes widgets and settings. Unlock with a 1 s press-and-hold.
-  - Both survive restarts.
+- **The master bar sits outside every tab and frame** (top right), because it affects all desks.
+  Status first, then the switches from least to most restrictive:
+  - **OUT** (readout): outputs ready / enabled across all desks, and messages per second. Its
+    lamp is green when all are ready, red when one failed. Click it for GLOBAL SETTINGS ›
+    NETWORK.
+  - **SYNC** (readout): devices connected in your session; click it for GLOBAL SETTINGS › SYNC.
+  - **IN** (switch, Alt+I): `[■] IN ON` lets received OSC drive widgets; `[ ] IN OFF` (amber)
+    ignores it all (still shown in TRAFFIC).
+  - **PAUSE** (switch, Alt+P): blocks all outgoing OSC (red while paused). It is enforced in the
+    Rust core, and held packets are logged with their exact bytes.
+  - **LOCK** (switch, Alt+L): freezes widgets and settings (amber while locked). Unlock with a
+    1 s press-and-hold. Edits from other devices on shared desks wait until you unlock.
+  - Switches show `[■]` when what they name is on. IN, PAUSE and LOCK survive restarts.
 - **All open desks run at the same time.** A tab only chooses which one you see. **+** adds a desk
   (new, duplicate, open saved) and **×** removes one, always after a confirmation. Removing keeps
   the preset saved.
@@ -96,6 +109,9 @@ The screen always shows **where you are**, by containment:
   values are sent as numbers.
 
 **Messages:**
+- **Both ways:** each message can **OUT** (send to outputs when the widget changes) and **IN**
+  (receive from the desk's inputs, or replies on an output, and set the widget). **FORWARD**
+  re-sends a received change to the outputs (a bridge), never back to where it came from.
 - **Channels:** each value argument can pick a channel of the widget's value (e.g. `x`,
   `delta`, `number`). With `(default)` it takes `value` if the widget has one, otherwise its first
   channel.
@@ -109,10 +125,20 @@ The screen always shows **where you are**, by containment:
   - `m`: a MIDI message built from a note event. No widget produces note events yet, so it
     only appears for widgets that do (e.g. a future keyboard).
 
+**Sharing a desk:**
+1. On every device, open GLOBAL SETTINGS › SYNC (F5). On one device, *Generate* a key, and join
+   with a session name. On the others, join with the same name and key. Devices on the same
+   LAN find each other; otherwise add one by address.
+2. On the desk to share: DESK › SYNC (F5) › *Share with session*. The others see it under *Shared in
+   this session* and *Open* it.
+3. Everyone can now play and edit it. Only the device you touch sends OSC; the others show the
+   value. A widget someone has open in the Inspector shows their name. Take over to edit it
+   anyway.
+
 **Keys:**
 - Alt+1…9 opens desk N, Alt+0 opens GLOBAL SETTINGS, and Alt+[ / Alt+] go to the previous / next desk.
-- F1…F4 switch sections inside the current frame.
-- Alt+E edit, Alt+P pause, Alt+L lock.
+- F1…F5 switch sections inside the current frame.
+- Alt+E edit, Alt+P pause, Alt+I input on/off, Alt+L lock.
 - In edit mode: arrows nudge, Del removes, Esc deselects.
 
 ## Platforms

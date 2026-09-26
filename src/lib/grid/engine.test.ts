@@ -75,16 +75,17 @@ describe('findFreeSpot', () => {
   });
 });
 
-describe('reserved EDIT cells', () => {
-  it('are the two top-right cells and follow the column count', () => {
-    expect(editCell(grid)).toMatchObject({ x: 10, y: 0, w: 2, h: 1 });
-    expect(editCell({ cols: 5, rows: 3 })).toMatchObject({ x: 3, y: 0, w: 2 });
-    expect(editCell({ cols: 1, rows: 3 })).toMatchObject({ x: 0, y: 0, w: 1 });
+describe('reserved EDIT cell', () => {
+  it('is the top-right cell and follows the column count', () => {
+    expect(editCell(grid)).toMatchObject({ x: 11, y: 0, w: 1, h: 1 });
+    expect(editCell({ cols: 5, rows: 3 })).toMatchObject({ x: 4, y: 0, w: 1, h: 1 });
+    expect(editCell({ cols: 1, rows: 3 })).toMatchObject({ x: 0, y: 0, w: 1, h: 1 });
   });
-  it('block placement over them', () => {
+  it('blocks placement over it, and only it', () => {
     const all = withEditCell(items, grid);
-    expect(isFree({ x: 9, y: 0, w: 2, h: 1 }, grid, all)).toBe(false);
+    expect(isFree({ x: 10, y: 0, w: 2, h: 1 }, grid, all)).toBe(false);
     expect(isFree({ x: 11, y: 0, w: 1, h: 2 }, grid, all)).toBe(false);
+    expect(isFree({ x: 10, y: 0, w: 1, h: 1 }, grid, all)).toBe(true);
     expect(isFree({ x: 10, y: 1, w: 2, h: 1 }, grid, all)).toBe(true);
     expect(
       findFreeSpot({ w: 2, h: 1 }, { cols: 2, rows: 2 }, withEditCell([], { cols: 2, rows: 2 })),

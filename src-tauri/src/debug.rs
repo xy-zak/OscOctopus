@@ -9,6 +9,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde::Serialize;
 use ts_rs::TS;
 
+use crate::input::Origin;
 use crate::net::Transport;
 use crate::osc::OscPacketView;
 
@@ -67,6 +68,8 @@ pub struct DebugEvent {
     pub source: Option<String>,
     /// True for an outbound packet that was held back because output is paused.
     pub blocked: bool,
+    /// Set for an inbound packet sent by this app (or a sync peer app): never applied to widgets.
+    pub origin: Option<Origin>,
 }
 
 #[derive(Debug, Clone, Serialize, TS)]
@@ -117,9 +120,11 @@ impl DebugHub {
         }
     }
 
-    pub fn push(&self, mut event: DebugEvent) {
+    /// Records an event; returns the sequence number it was given.
+    pub fn push(&self, mut event: DebugEvent) -> u64 {
         let mut inner = self.inner.lock().unwrap();
-        event.seq = inner.next_seq;
+        let seq = inner.next_seq;
+        event.seq = seq;
         inner.next_seq += 1;
         if event.ts_micros == 0 {
             event.ts_micros = now_micros();
@@ -134,6 +139,7 @@ impl DebugHub {
             inner.total_dropped += 1;
         }
         inner.pending.push_back(event);
+        seq
     }
 
     /// Takes everything buffered since the last call. Returns `None` if there is nothing new.

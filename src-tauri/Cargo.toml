@@ -6,7 +6,7 @@ authors = ["OscOctopus contributors"]
 license = ""
 repository = ""
 edition = "2021"
-rust-version = "1.80"
+rust-version = "1.85"
 
 [lib]
 # `_lib` suffix avoids a name clash with the binary on Windows (cargo#8519).
@@ -22,7 +22,7 @@ tauri-plugin-log = "2"
 tauri-plugin-store = "2"
 tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde_json = { version = "1", features = ["raw_value"] }
 tokio = { version = "1", features = ["rt-multi-thread", "net", "sync", "time", "macros", "io-util"] }
 rosc = "0.11"
 socket2 = { version = "0.6", features = ["all"] }
@@ -30,6 +30,12 @@ if-addrs = "0.15"
 thiserror = "2"
 ts-rs = "12"
 log = "0.4"
+# Sync (peer-to-peer shared desks): Noise handshake, key derivation, hashing, LAN discovery.
+snow = "0.10"
+argon2 = "0.5"
+blake2 = "0.10"
+mdns-sd = "0.21"
+getrandom = "0.3"
 
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
 tauri-plugin-haptics = "2"

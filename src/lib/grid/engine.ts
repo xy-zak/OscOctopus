@@ -115,12 +115,11 @@ export function findFreeSpot(
 export const EDIT_CELL_ID = '__edit';
 
 /**
- * The top-right two cells always hold the desk's EDIT / LIVE switch, so no widget may use them.
- * They move with the right edge when the column count changes.
+ * The top-right cell always holds the desk's EDIT / LIVE switch, so no widget may use it. It
+ * moves with the right edge when the column count changes.
  */
 export function editCell(grid: GridSize): Placed {
-  const w = Math.min(2, grid.cols);
-  return { id: EDIT_CELL_ID, x: grid.cols - w, y: 0, w, h: 1 };
+  return { id: EDIT_CELL_ID, x: grid.cols - 1, y: 0, w: 1, h: 1 };
 }
 
 /** Widgets plus the reserved EDIT cell: what placement and collision checks run against. */

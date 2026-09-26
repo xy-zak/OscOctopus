@@ -38,6 +38,11 @@ pub(crate) struct TcpOutput {
 }
 
 impl TcpOutput {
+    /// The connected peer's address, if connected.
+    pub async fn target(&self) -> Option<SocketAddr> {
+        self.conn.lock().await.as_ref().map(|c| c.remote)
+    }
+
     pub async fn send(&self, ctx: &Ctx, bytes: &[u8], source: Option<&str>) {
         let frame = encode_frame(self.framing, bytes);
         let mut guard = self.conn.lock().await;
@@ -140,6 +145,8 @@ async fn run_connection(
     let remote = stream
         .peer_addr()
         .unwrap_or_else(|_| SocketAddr::from(([0, 0, 0, 0], 0)));
+    // While connected, packets from this socket (e.g. into this app's own TCP input) are ours.
+    let _own = local.map(|l| ctx.input.register_own(l));
     let (reader, writer) = stream.into_split();
     *out.conn.lock().await = Some(Connection {
         writer,

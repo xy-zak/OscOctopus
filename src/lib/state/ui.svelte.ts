@@ -2,15 +2,19 @@
  * Navigation is two-level and scoped by containment:
  * - `view` picks the container: the active desk, or GLOBAL SETTINGS (things that belong to no
  *   desk).
- * - each container has its own sections. Ids are the lower-case UI labels. NETWORK and
- *   TRAFFIC exist in both containers; the frame colour tells them apart on screen.
+ * - each container has its own sections. Ids are the lower-case UI labels. NETWORK, TRAFFIC
+ *   and SYNC exist in both containers; the frame colour tells them apart on screen.
  */
 export type View = 'desk' | 'global';
 /** Sections of a desk. */
-export type DeskView = 'controls' | 'network' | 'traffic' | 'preset';
+export type DeskView = 'controls' | 'network' | 'traffic' | 'preset' | 'sync';
 /** Sections of GLOBAL SETTINGS. */
-export type GlobalView = 'network' | 'traffic' | 'library' | 'look';
+export type GlobalView = 'network' | 'traffic' | 'library' | 'look' | 'sync';
 export type Mode = 'live' | 'edit';
+/** The Inspector's foldable sections (edit mode), in order. */
+export type InspectorSection = 'visual' | 'interaction' | 'messages' | 'activity';
+/** The live-mode info panel's foldable sections, in order. */
+export type InfoSection = 'value' | 'messages' | 'activity';
 
 export interface Section<Id extends string> {
   id: Id;
@@ -18,20 +22,22 @@ export interface Section<Id extends string> {
   hint: string;
 }
 
-/** In F-key order (F1…F4). */
+/** In F-key order (F1…F5). */
 export const DESK_SECTIONS: readonly Section<DeskView>[] = [
   { id: 'controls', label: 'CONTROLS', hint: 'This desk’s widgets: play them, or EDIT them' },
   { id: 'network', label: 'NETWORK', hint: 'This desk’s OSC outputs and inputs' },
   { id: 'traffic', label: 'TRAFFIC', hint: 'Traffic of this desk only' },
   { id: 'preset', label: 'PRESET', hint: 'This desk’s name, colour and preset file' },
+  { id: 'sync', label: 'SYNC', hint: 'Share this desk live with the sync session' },
 ];
 
-/** In F-key order (F1…F4). */
+/** In F-key order (F1…F5). */
 export const GLOBAL_SECTIONS: readonly Section<GlobalView>[] = [
   { id: 'network', label: 'NETWORK', hint: 'This device’s interfaces, and every desk’s endpoints' },
   { id: 'traffic', label: 'TRAFFIC', hint: 'Traffic of all desks together' },
   { id: 'library', label: 'LIBRARY', hint: 'All saved desk presets on this device' },
   { id: 'look', label: 'LOOK', hint: 'Background, palette and accent, shared by every desk' },
+  { id: 'sync', label: 'SYNC', hint: 'Share desks live with other OscOctopus devices' },
 ];
 
 export const ui = $state({
@@ -45,6 +51,13 @@ export const ui = $state({
   focusedId: null as string | null,
   /** Live mode: whether the read-only info panel is shown. */
   infoOpen: true,
+  /** Live mode: which info panel sections are unfolded (remembered per device once toggled). */
+  infoSections: { value: true, messages: true, activity: true } as Record<InfoSection, boolean>,
+  /** Edit mode: which Inspector sections are unfolded (remembered per device once toggled). */
+  inspectorOpen: { visual: true, interaction: true, messages: true, activity: false } as Record<
+    InspectorSection,
+    boolean
+  >,
   /**
    * LOCK: everything is frozen for a show: widgets ignore input, no edit mode, network and
    * presets are read-only, desks can't be added or removed. Still usable: viewing, switching
@@ -74,6 +87,7 @@ export interface ConfirmRequest {
   /** Extra detail lines, shown dimmed. */
   details?: string[];
   confirmLabel: string;
+  cancelLabel: string;
   danger: boolean;
   resolve: (ok: boolean) => void;
 }
@@ -87,6 +101,7 @@ export function confirmAction(opts: {
   message: string;
   details?: string[];
   confirmLabel?: string;
+  cancelLabel?: string;
   danger?: boolean;
 }): Promise<boolean> {
   ui.confirm?.resolve(false);
@@ -96,6 +111,7 @@ export function confirmAction(opts: {
       message: opts.message,
       details: opts.details,
       confirmLabel: opts.confirmLabel ?? 'Confirm',
+      cancelLabel: opts.cancelLabel ?? 'Cancel',
       danger: opts.danger ?? false,
       resolve: (ok) => {
         ui.confirm = null;

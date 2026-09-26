@@ -109,6 +109,24 @@ describe('workspace', () => {
     expect(presetStore.isDirty(id)).toBe(false);
   });
 
+  it('removing endpoints and widgets strips references and names what was deleted', async () => {
+    await presetStore.init();
+    const desk = presetStore.current;
+    const { deskChanges } = await import('./changes');
+    const deleted: string[] = [];
+    const stop = deskChanges.on((c) => deleted.push(...(c.deleted ?? [])));
+    const input = desk.network.inputs[0]!;
+    const w = desk.widgets[0]!;
+    w.bindings[0]!.receive = true;
+    w.bindings[0]!.sourceIds = [input.id];
+
+    presetStore.removeInput(input.id);
+    expect(w.bindings[0]!.sourceIds).toEqual([]);
+    presetStore.removeWidget(w.id);
+    stop();
+    expect(deleted).toEqual([`i/${input.id}`, `w/${w.id}`]);
+  });
+
   it('never opens the same preset twice', async () => {
     const p = newPreset('Twice');
     files.set(p.id, p);

@@ -3,7 +3,7 @@
   // Tap to flip; or drag the block, which follows the finger and settles on the nearer side.
   import { clamp } from '../../util';
   import type { SwitchWidget } from '../../model/preset';
-  import { emitValue } from '../../osc/sender';
+  import { emitValue } from '../../osc/flow';
   import { tapHaptic, tickHaptic } from '../../platform/haptics';
   import { numberValue } from '../../state/values.svelte';
   import WidgetFrame from '../WidgetFrame.svelte';

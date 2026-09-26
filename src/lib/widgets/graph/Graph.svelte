@@ -6,7 +6,7 @@
   import type { GraphWidget } from '../../model/preset';
   import { sliderPosition, sliderValue } from '../../osc/curves';
   import { formatValue } from '../../osc/format';
-  import { emitValue } from '../../osc/sender';
+  import { emitValue } from '../../osc/flow';
   import { isRecord, type XY } from '../../osc/value';
   import { tapHaptic } from '../../platform/haptics';
   import { values } from '../../state/values.svelte';

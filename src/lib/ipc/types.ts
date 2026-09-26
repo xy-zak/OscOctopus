@@ -1,5 +1,8 @@
 // Re-exports of the types generated from Rust by ts-rs (`npm run bindings`).
 // Never hand-edit anything in ./bindings; change the Rust type and regenerate.
+export type { AppKind } from './bindings/AppKind';
+export type { Backup } from './bindings/Backup';
+export type { Avoid } from './bindings/Avoid';
 export type { DebugBatch } from './bindings/DebugBatch';
 export type { DebugEvent } from './bindings/DebugEvent';
 export type { DebugKind } from './bindings/DebugKind';
@@ -8,6 +11,8 @@ export type { EndpointKind } from './bindings/EndpointKind';
 export type { EndpointState } from './bindings/EndpointState';
 export type { EndpointStats } from './bindings/EndpointStats';
 export type { EndpointStatus } from './bindings/EndpointStatus';
+export type { InboundMessage } from './bindings/InboundMessage';
+export type { InputBatch } from './bindings/InputBatch';
 export type { InputConfig } from './bindings/InputConfig';
 export type { NetInterface } from './bindings/NetInterface';
 export type { NetworkConfig } from './bindings/NetworkConfig';
@@ -15,8 +20,19 @@ export type { OscArg } from './bindings/OscArg';
 export type { OscMessage } from './bindings/OscMessage';
 export type { OscPacketView } from './bindings/OscPacketView';
 export type { OscTimeTag } from './bindings/OscTimeTag';
+export type { Origin } from './bindings/Origin';
 export type { OutputConfig } from './bindings/OutputConfig';
+export type { PeerInfo } from './bindings/PeerInfo';
+export type { PeerSource } from './bindings/PeerSource';
+export type { PeerState } from './bindings/PeerState';
+export type { PeerStats } from './bindings/PeerStats';
+export type { PeerStatus } from './bindings/PeerStatus';
 export type { PresetSummary } from './bindings/PresetSummary';
+export type { Profile } from './bindings/Profile';
+export type { SyncBatch } from './bindings/SyncBatch';
+export type { SyncConfig } from './bindings/SyncConfig';
+export type { SyncEvent } from './bindings/SyncEvent';
+export type { SyncStatus } from './bindings/SyncStatus';
 export type { TcpFraming } from './bindings/TcpFraming';
 export type { Transport } from './bindings/Transport';
 export type { UdpMode } from './bindings/UdpMode';

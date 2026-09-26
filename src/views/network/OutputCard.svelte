@@ -26,6 +26,29 @@
     ...new Set(v4.map((i) => i.broadcast).filter((b): b is string => !!b)),
   ]);
 
+  /** An input of this app (any desk) this output sends into, e.g. the first-run loopback. */
+  const ownInput = $derived.by(() => {
+    const host = output.host.trim().toLowerCase();
+    const local =
+      host === 'localhost' ||
+      host === '::1' ||
+      host.startsWith('127.') ||
+      networkStore.interfaces.some((i) => i.ip === host);
+    if (!local) return null;
+    for (const desk of presetStore.desks) {
+      const input = desk.network.inputs.find(
+        (i) =>
+          i.enabled &&
+          i.transport === output.transport &&
+          i.port === output.port &&
+          (i.bindAddress === '0.0.0.0' || i.bindAddress === host || host === 'localhost'),
+      );
+      if (input)
+        return desk.id === presetStore.current.id ? input.name : `${desk.name} › ${input.name}`;
+    }
+    return null;
+  });
+
   // Point out likely mistakes instead of silently "fixing" them.
   const warning = $derived.by(() => {
     const h = output.host.trim();
@@ -154,6 +177,12 @@
     {/if}
   </div>
   {#if warning}<p class="warn">{warning}</p>{/if}
+  {#if ownInput}
+    <p class="faint">
+      Sends into this app's own input “{ownInput}”. Those packets show in TRAFFIC but never drive
+      widgets, so this can't loop.
+    </p>
+  {/if}
   <p class="id mono faint">id {output.id}</p>
 </div>
 

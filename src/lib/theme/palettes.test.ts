@@ -2,8 +2,23 @@ import { describe, expect, it } from 'vitest';
 import { inkFor, nearestIndex, PALETTE_IDS, PALETTE_SIZE, PALETTES, paletteVars } from './palettes';
 
 describe('palettes', () => {
-  it('has the six themes, ten distinct valid colours each', () => {
-    expect(PALETTE_IDS).toEqual(['rainbow', 'neon', 'pastel', 'sunset', 'greyscale', 'underwater']);
+  it('has every theme, ten distinct valid colours each', () => {
+    expect(PALETTE_IDS).toEqual([
+      'rainbow',
+      'neon',
+      'pastel',
+      'crimson',
+      'sunset',
+      'amber',
+      'phosphor',
+      'underwater',
+      'frost',
+      'cobalt',
+      'violet',
+      'sakura',
+      'sand',
+      'greyscale',
+    ]);
     for (const id of PALETTE_IDS) {
       const { colors } = PALETTES[id];
       expect(colors).toHaveLength(PALETTE_SIZE);

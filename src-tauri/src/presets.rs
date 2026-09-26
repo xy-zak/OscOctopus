@@ -35,7 +35,7 @@ pub struct PresetSummary {
     pub error: Option<String>,
 }
 
-fn check_id(id: &str) -> AppResult<()> {
+pub(crate) fn check_id(id: &str) -> AppResult<()> {
     let ok = !id.is_empty()
         && id.len() <= 64
         && id
@@ -50,7 +50,7 @@ fn check_id(id: &str) -> AppResult<()> {
     }
 }
 
-fn path_for(dir: &Path, id: &str) -> AppResult<PathBuf> {
+pub(crate) fn path_for(dir: &Path, id: &str) -> AppResult<PathBuf> {
     check_id(id)?;
     Ok(dir.join(format!("{id}.json")))
 }

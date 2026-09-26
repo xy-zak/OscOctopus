@@ -6,6 +6,7 @@
   import { formatArg, formatBytes, formatTime, hexDump, summarize } from '../lib/osc/format';
   import { debugStore } from '../lib/state/debug.svelte';
   import { networkStore } from '../lib/state/network.svelte';
+  import { inputStore, type Outcome } from '../lib/state/input.svelte';
   import { presetStore } from '../lib/state/preset.svelte';
   import { toast } from '../lib/state/ui.svelte';
   import Segmented from '../lib/ui/Segmented.svelte';
@@ -82,8 +83,32 @@
   function rowText(e: DebugEvent) {
     if (e.kind !== 'packet') return e.message ?? e.error ?? '';
     if (e.blocked) return `${summarize(e.decoded)} · paused, not sent`;
-    if (e.decoded) return summarize(e.decoded);
+    const mapped = e.direction === 'in' ? inputNote(e) : '';
+    if (e.decoded) return `${summarize(e.decoded)}${mapped ? ` · ${mapped}` : ''}`;
     return e.decodeError ? `undecodable: ${e.decodeError}` : '';
+  }
+
+  const RESULTS: Record<Outcome['result'], string> = {
+    applied: '→',
+    forwarded: '→ forwarded by',
+    coalesced: 'superseded (newer value in the same batch) for',
+    touched: 'not applied (being touched):',
+    'own echo': 'own value echoed back, ignored by',
+    ignored: 'not a usable value for',
+    'no match': 'no widget listens to this',
+    dropped: 'dropped (too many at once) for',
+    'forward stopped': '→ (forwarding stopped: loop)',
+  };
+
+  /** What input mapping did with an inbound packet, in words. */
+  function inputNote(e: DebugEvent): string {
+    if (e.origin === 'self') return 'from this app: not applied to widgets';
+    if (e.origin === 'peer') return 'from a sync peer app: not applied';
+    const outcomes = inputStore.outcomeOf(e.seq);
+    if (!outcomes) return '';
+    return outcomes
+      .map((o) => (o.widget ? `${RESULTS[o.result]} ${o.widget}` : RESULTS[o.result]))
+      .join(' · ');
   }
 
   async function exportLog() {
@@ -247,6 +272,8 @@
             </dd>{/if}
           {#if e.message}<dt>note</dt>
             <dd>{e.message}</dd>{/if}
+          {#if e.direction === 'in' && inputNote(e)}<dt>input</dt>
+            <dd>{inputNote(e)}</dd>{/if}
           {#if e.error}<dt>error</dt>
             <dd class="bad">{e.error}</dd>{/if}
           {#if e.decodeError}<dt>decode</dt>

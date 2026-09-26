@@ -8,7 +8,7 @@
   import { clamp } from '../../util';
   import type { ListWidget } from '../../model/preset';
   import { isRecord, listValue } from '../../osc/value';
-  import { emitValue } from '../../osc/sender';
+  import { emitValue } from '../../osc/flow';
   import { tapHaptic } from '../../platform/haptics';
   import { values } from '../../state/values.svelte';
   import WidgetFrame from '../WidgetFrame.svelte';

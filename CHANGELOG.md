@@ -7,6 +7,63 @@ Scripts.
 
 ## [Unreleased]
 
+### Added
+
+- **OSC input drives widgets.** A widget's message can now also _receive_: from one of the
+  desk's inputs, or from replies arriving on an output (X32-style devices). An external OSC
+  sender or device can move faders, switches, knobs and graphs, light pads, pick list items,
+  and flash buttons. Addresses can have `{placeholders}`, and incoming OSC wildcards are matched.
+- **Loop-safe by design.**
+  - Received OSC only moves the widget. Re-sending it (_forward_) is opt-in per message, never
+    goes back to where it came from, and is never allowed on armed buttons or encoder deltas.
+  - Packets this app (or a sync peer) sent itself are recognised and never applied.
+  - A widget you are touching ignores input, and our own echoes are dropped.
+  - A breaker stops a widget that forwards more than 40 times a second.
+  - **IN** (master bar, Alt+I) switches all input off.
+  - TRAFFIC shows what happened to every received message.
+- **Sync: share desks live between OscOctopus apps**, peer to peer, with no server.
+  - Join a session (GLOBAL SETTINGS › SYNC, F5) with a generated key or a passphrase. Others
+    see this device under its name, in its LOOK accent colour.
+    Connections are authenticated and encrypted (Noise XXpsk3), and apps on the LAN find each
+    other (mDNS) or are added by address.
+  - Share a desk (DESK › SYNC, F5), and everyone in the session can play it and edit it at the
+    same time.
+  - **Editing:** changes merge per field, and the later change to the same field wins. Nothing
+    is deleted by inference. A remote batch deleting many widgets asks first. _Soft locks_ show
+    who is editing which widget.
+  - **Offline and LOCK:** edits made offline merge on reconnect. LOCK holds remote edits until
+    you unlock.
+  - **Live values:** values show everywhere, but only the device that was touched sends OSC.
+    PAUSE also stops sharing your touches, and one chosen device forwards device input.
+  - **History:** earlier versions of shared desks are kept, restorable as a copy.
+- **`OSCOCTOPUS_PROFILE`** runs an instance with its own data, to test sync on one machine.
+
+### Changed
+
+- **Preset schema v8:** a message's `enabled` became `send`, next to the new `receive`,
+  `sourceIds` and `forward` (migrated automatically, all off).
+- The master bar gained **SYNC** (connected devices) and **IN**. Desks gained **F5 SYNC**,
+  and GLOBAL SETTINGS **F5 SYNC**.
+- **The Inspector is in foldable sections:** VISUAL, INTERACTION, MESSAGES (with the preview)
+  and ACTIVITY (folded by default). The LIVE info panel has the same look: VALUE, MESSAGES and
+  ACTIVITY. Which ones are open is remembered per device.
+- **The EDIT / LIVE switch is a toggle switch in one cell:** it takes only the top-right cell
+  (it used to take two). Its bat lever flips left for LIVE (green) and right for EDIT. The lamp
+  is gone.
+- **One look for the master bar:** OUT and SYNC are status readouts (a lamp; click to open
+  them), then the switches IN, PAUSE and LOCK, from least to most restrictive. All share one
+  size and border. Each switch shows `[■]` when on and fills with a colour in its safety state,
+  so IN ON / IN OFF is as clear as PAUSE and LOCK.
+- **Eight themed palettes** in GLOBAL SETTINGS › LOOK. Like SUNSET and UNDERWATER, each is
+  inspired by one colour but travels across its neighbouring hues, then adds two contrasting
+  accents: PHOSPHOR (terminal greens), AMBER (terminal golds), CRIMSON, SAKURA, VIOLET (after
+  Shades of Purple), COBALT (after Cobalt2), FROST (after Nord) and SAND. Hover a palette to see
+  what it follows.
+- **AUTO widget colour follows the desk's colour** (it was the global accent), so a desk's
+  widgets match its tab and frame unless given their own colour.
+- **Each message is ruled into parts** (address, OUT, IN & FORWARD, arguments), so the two
+  directions no longer run together; FORWARD's explanation has its own line.
+
 ### Safety
 
 - **TCP outputs never hang.** A write that can't complete within 2 s (the peer stopped reading)

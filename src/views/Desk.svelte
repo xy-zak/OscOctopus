@@ -2,7 +2,10 @@
   import { isFree, withEditCell } from '../lib/grid/engine';
   import GridCanvas from '../lib/grid/GridCanvas.svelte';
   import { presetStore } from '../lib/state/preset.svelte';
-  import { toggleEditMode, ui } from '../lib/state/ui.svelte';
+  import { toast, toggleEditMode, ui } from '../lib/state/ui.svelte';
+  import { lockedBy, sharedDesks } from '../lib/sync/app.svelte';
+  import { syncSession } from '../lib/sync/session.svelte';
+  import { colorVars } from '../lib/theme/palettes';
   import Icon from '../lib/ui/Icon.svelte';
   import { DEFS, WIDGET_TYPES } from '../lib/widgets/defs';
   import DeskPanel from './DeskPanel.svelte';
@@ -17,6 +20,19 @@
   // Edit mode always has the panel; live mode has it when the info panel is switched on.
   const panel = $derived(editing || ui.infoOpen);
 
+  // Shared desks: who else edits which widget, and what concurrent edits left to sort out.
+  const shared = $derived(sharedDesks.view[preset.id]?.shared ?? false);
+  function holderOf(id: string) {
+    const peer = shared ? lockedBy(preset.id, id)[0] : undefined;
+    if (!peer) return null;
+    return {
+      name: syncSession.peerName(peer),
+      color: colorVars(syncSession.peers[peer]?.color ?? 0).c,
+    };
+  }
+  const conflicts = $derived(editing && shared ? sharedDesks.conflicts(preset.id) : []);
+  const invalid = $derived(sharedDesks.view[preset.id]?.invalid ?? []);
+
   function onkeydown(e: KeyboardEvent) {
     if (!editing) return;
     const t = e.target as HTMLElement;
@@ -26,6 +42,11 @@
       return;
     }
     if (!selected) return;
+    const holder = holderOf(selected.id);
+    if (holder) {
+      toast(`${holder.name} is editing this widget: take it over in the Inspector first`);
+      return;
+    }
     if (e.key === 'Delete' || e.key === 'Backspace') {
       presetStore.removeWidget(selected.id);
       e.preventDefault();
@@ -54,8 +75,10 @@
 <svelte:window {onkeydown} />
 
 <div class="desk">
-  {#if editing}
-    <div class="toolbar">
+  <!-- The tool row is there in both modes, at one fixed height, so the desk below never moves
+       when switching: EDIT adds widgets here, LIVE shows or hides the info panel. -->
+  <div class="toolbar">
+    {#if editing}
       <span class="faint">ADD</span>
       {#each WIDGET_TYPES as t (t)}
         <button class="btn" onclick={() => presetStore.addWidget(t)}
@@ -65,6 +88,32 @@
       <span class="hint faint"
         >drag: move · handles: resize · arrows: nudge · del: remove · esc: deselect</span
       >
+    {:else}
+      <!-- A switch like the master bar's (.mbtn), for the side panel. -->
+      <button
+        class="mbtn switch info"
+        role="switch"
+        aria-checked={ui.infoOpen}
+        title={ui.infoOpen
+          ? 'Hide the widget info panel'
+          : 'Show the widget info panel (value, messages, activity)'}
+        onclick={() => (ui.infoOpen = !ui.infoOpen)}
+        ><span class="box">[{ui.infoOpen ? '■' : '\u00a0'}]</span>INFO</button
+      >
+    {/if}
+  </div>
+  {#if conflicts.length || (editing && invalid.length)}
+    <div class="conflicts" role="status">
+      <span class="tag">CHECK</span>
+      <span class="list">
+        {#each conflicts.slice(0, 4) as c (c.kind + c.widgetIds.join())}
+          <span>{c.text}</span>
+        {/each}
+        {#if conflicts.length > 4}<span class="faint">and {conflicts.length - 4} more</span>{/if}
+        {#each invalid.slice(0, 2) as text (text)}
+          <span>received a part that cannot be shown ({text})</span>
+        {/each}
+      </span>
     </div>
   {/if}
   <div class="body">
@@ -72,6 +121,7 @@
       <GridCanvas
         {preset}
         {editing}
+        {holderOf}
         selectedId={ui.selectedId}
         focusedId={ui.infoOpen ? ui.focusedId : null}
         onselect={(id) => (ui.selectedId = id)}
@@ -81,9 +131,10 @@
         onlockedpress={() => ui.lockNudge++}
       >
         {#snippet editControl()}
-          <!-- Always the two top-right cells. A key switch on a screwed-on plate, so it reads as
-               equipment, not a widget: the key points at EDIT (grey) or LIVE (green, lamp lit).
-               The labels become icons when the words don't fit. -->
+          <!-- Always the top-right cell. A panel toggle switch, so it reads as equipment, not a
+               widget: a bat lever through a mounting nut, flipped left for LIVE (green) and right
+               for EDIT (grey). In a small cell the words become icons, then give way to the
+               lever alone. -->
           <button
             class="mode"
             class:live={!editing}
@@ -98,26 +149,27 @@
                 ? 'Back to LIVE: play the widgets (Alt+E)'
                 : 'Switch to EDIT: move and change widgets (Alt+E)'}
           >
-            <span class="lbl edit-lbl"
-              ><span class="word">EDIT</span><span class="glyph"><Icon name="pencil" /></span></span
-            >
-            <span class="lock" aria-hidden="true">
-              <span class="tick to-edit"></span>
-              <span class="tick to-live"></span>
-              <span class="key"></span>
+            <span class="labels">
+              <span class="lbl live-lbl"
+                ><span class="word">LIVE</span><span class="glyph"><Icon name="check" /></span
+                ></span
+              >
+              <span class="lbl edit-lbl"
+                ><span class="word">EDIT</span><span class="glyph"><Icon name="pencil" /></span
+                ></span
+              >
             </span>
-            <span class="lbl live-lbl"
-              ><span class="word">LIVE</span><span class="glyph"><Icon name="check" /></span><span
-                class="lamp"
-              ></span></span
-            >
+            <span class="toggle" aria-hidden="true">
+              <span class="nut"></span>
+              <span class="lever"><span class="bat"></span></span>
+            </span>
           </button>
         {/snippet}
       </GridCanvas>
     </div>
     {#if panel}
       <!-- One persistent panel: its content changes, the panel itself never re-animates. -->
-      <aside class="side scroll" class:edit={editing}>
+      <aside class="side scroll">
         {#if editing && selected}
           {#key selected.id}
             <Inspector bind:widget={preset.widgets[selectedIndex]!} />
@@ -138,24 +190,45 @@
     display: flex;
     flex-direction: column;
   }
+  /* One fixed height in both modes (no wrapping: it scrolls sideways when narrow), so switching
+     modes swaps its contents without moving anything below. */
   .toolbar {
+    flex: none;
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
     gap: 1ch;
-    padding: 6px 1ch;
+    height: 40px;
+    padding: 0 1ch;
     border-bottom: 1px solid var(--line);
     background: var(--bg-2);
-    animation: drop var(--t-release) steps(3, end);
+    white-space: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
-  @keyframes drop {
-    from {
-      transform: translateY(-100%);
-      opacity: 0;
-    }
-  }
-  .hint {
+  .hint,
+  .info {
     margin-left: auto;
+  }
+  /* Concurrent edits that clash (shared desks): shown, never fixed automatically. */
+  .conflicts {
+    display: flex;
+    gap: 1ch;
+    padding: 2px 1ch;
+    border-bottom: 1px solid var(--warn);
+    background: var(--bg-2);
+    color: var(--warn);
+  }
+  .conflicts .tag {
+    flex: none;
+    padding: 0 1ch;
+    background: var(--warn);
+    color: var(--bg);
+    font-weight: 700;
+  }
+  .conflicts .list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 2ch;
   }
   .body {
     flex: 1;
@@ -170,25 +243,24 @@
     /* The desk's grid backdrop (dots + crosses) takes the desk's own colour. */
     --grid-tint: var(--scope);
   }
-  /* EDIT / LIVE: a key switch on a plate held by four screws. Grey for EDIT, green for LIVE.
-     --dia: the lock cylinder, as big as the plate's height allows. */
+  /* EDIT / LIVE: a panel toggle switch, seen from the front. A bat lever comes out of the
+     middle of a mounting nut and points at the mode: left for LIVE (green), right for EDIT
+     (grey). Flipping squeezes it through its own length (a scale from -1 to 1), which is how a
+     real toggle looks from the front as it snaps over. */
   .mode {
     --tone: var(--line-strong);
-    --key: var(--fg-dim);
-    --screw: radial-gradient(circle, var(--line-strong) 1.5px, transparent 2px);
-    --dia: min(calc(100cqh - 14px), 32cqw);
+    --lever: var(--fg-dim);
+    --lever-hi: color-mix(in srgb, var(--lever) 60%, var(--fg));
+    --lever-lo: color-mix(in srgb, var(--lever) 55%, var(--bg));
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
     width: 100%;
     height: 100%;
-    padding: 0 6px;
+    padding: 5px 6px;
     border: 1px solid var(--tone);
-    background:
-      var(--screw) 0 0 / 10px 10px no-repeat,
-      var(--screw) 100% 0 / 10px 10px no-repeat,
-      var(--screw) 0 100% / 10px 10px no-repeat,
-      var(--screw) 100% 100% / 10px 10px no-repeat,
-      var(--bg-2);
+    background: var(--bg-2);
     box-shadow: 4px 4px 0 0 var(--shadow-px);
     font-weight: 700;
     container-type: size;
@@ -196,34 +268,36 @@
   }
   .mode.live {
     --tone: var(--ok);
-    --key: var(--ok);
+    --lever: var(--ok);
   }
   .mode:disabled {
     opacity: 0.4;
     cursor: default;
   }
-  /* The label of the mode the key points at is lit; the other stays faint. */
+  /* LIVE on the left, EDIT on the right: the side the lever points at is lit. */
+  .labels {
+    flex: none;
+    display: flex;
+    justify-content: space-between;
+    line-height: 1;
+  }
   .lbl {
-    flex: 1;
-    min-width: 0;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 0.75ch;
     color: var(--fg-faint);
     transition: color var(--t-ui) steps(2);
-  }
-  .mode:not(.live) .edit-lbl {
-    color: var(--fg);
   }
   .live .live-lbl {
     color: var(--ok);
   }
+  .mode:not(.live) .edit-lbl {
+    color: var(--fg);
+  }
   .glyph {
     display: none;
   }
-  /* Too narrow for the words beside the lock: icons instead. */
-  @container (max-width: 17ch) {
+  /* Too narrow for the words: icons. Too short for labels at all: the lever says it. */
+  @container (max-width: 9ch) {
     .word {
       display: none;
     }
@@ -231,79 +305,77 @@
       display: inline;
     }
   }
-  /* The lamp: dark in EDIT, green and lit in LIVE. */
-  .lamp {
-    flex: none;
-    width: 6px;
-    height: 6px;
-    background: var(--line);
-    transition:
-      background var(--t-ui) steps(2),
-      box-shadow var(--t-ui) steps(2);
+  @container (max-height: 48px) {
+    .labels {
+      display: none;
+    }
   }
-  .live .lamp {
-    background: var(--ok);
-    box-shadow: 0 0 6px 1px color-mix(in srgb, var(--ok) 60%, transparent);
-  }
-  /* The lock cylinder: a round, dithered barrel with a tick at each position. */
-  .lock {
+  /* Sizes follow the cell: the nut, and the lever's reach from the middle to near the edge. */
+  .toggle {
+    --nut: clamp(14px, min(46cqh, 34cqw), 34px);
+    --reach: calc(50cqw - 14px);
+    --bar: clamp(4px, calc(var(--nut) * 0.26), 8px);
+    --tip: clamp(8px, calc(var(--nut) * 0.5), 14px);
     position: relative;
-    flex: none;
-    width: var(--dia);
-    height: var(--dia);
-    border: 2px solid var(--tone);
-    border-radius: 50%;
-    background:
-      conic-gradient(at 2px 2px, transparent 75%, var(--line) 0) 0 0 / 4px 4px,
-      var(--bg);
-    transition: border-color var(--t-ui) steps(2);
+    flex: 1;
+    min-height: 0;
+    /* On the whole switch, not the lever: a mirrored lever would throw its shadow the wrong way. */
+    filter: drop-shadow(2px 2px 0 var(--shadow-px));
   }
-  /* Ticks sit just outside the barrel, 45° either side of straight up. */
-  .tick {
-    position: absolute;
-    left: 50%;
-    bottom: 50%;
-    width: 1px;
-    height: calc(var(--dia) / 2 + 5px);
-    background: linear-gradient(to top, transparent calc(100% - 4px), var(--fg-faint) 0);
-    transform-origin: 50% 100%;
-  }
-  .tick.to-edit {
-    rotate: -45deg;
-  }
-  .tick.to-live {
-    rotate: 45deg;
-  }
-  /* The key's bow, seen end-on: a bar across the barrel whose top end (the notch) points at
-     the mode. It turns with a spring, like a key clicking into place. */
-  .key {
+  /* The mounting nut: an octagon with a rim, around the dark bushing. */
+  .nut {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: max(5px, calc(var(--dia) * 0.26));
-    height: calc(var(--dia) * 0.9);
+    width: var(--nut);
+    height: var(--nut);
     translate: -50% -50%;
-    rotate: -45deg;
-    background: var(--key);
-    box-shadow: 2px 2px 0 0 var(--shadow-px);
-    transition:
-      rotate var(--t-release) var(--ease-spring),
-      background var(--t-ui) steps(2);
+    clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
+    background:
+      radial-gradient(circle, var(--bg) 0 22%, transparent 23%),
+      conic-gradient(at 2px 2px, transparent 75%, var(--line) 0) 0 0 / 4px 4px,
+      var(--bg-3);
+    box-shadow: inset 0 0 0 2px var(--tone);
+    transition: box-shadow var(--t-ui) steps(2);
   }
-  .key::before {
-    content: '';
+  /* The lever: a bar from the middle out to its bat (the rounded tip), lit on top and shaded
+     underneath. Pointing right (EDIT) is scale 1; left (LIVE) is the same lever mirrored. */
+  .lever {
     position: absolute;
     left: 50%;
-    top: 2px;
-    width: 2px;
-    height: 3px;
-    translate: -50% 0;
-    background: var(--bg);
+    top: 50%;
+    width: var(--reach);
+    height: var(--bar);
+    translate: 0 -50%;
+    transform-origin: 0 50%;
+    scale: 1 1;
+    background: linear-gradient(
+      to bottom,
+      var(--lever-hi) 0 1px,
+      var(--lever) 1px calc(100% - 1px),
+      var(--lever-lo) calc(100% - 1px)
+    );
+    transition: scale var(--t-release) var(--ease-spring);
   }
-  .live .key {
-    rotate: 45deg;
+  .live .lever {
+    scale: -1 1;
   }
-  .mode:active:not(:disabled) .key {
+  .bat {
+    position: absolute;
+    right: calc(var(--tip) / -2);
+    top: 50%;
+    width: var(--tip);
+    height: var(--tip);
+    translate: 0 -50%;
+    clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
+    background: linear-gradient(
+      to bottom,
+      var(--lever-hi) 0 30%,
+      var(--lever) 30% 70%,
+      var(--lever-lo) 70%
+    );
+  }
+  .mode:active:not(:disabled) .lever {
     transition-duration: var(--t-press);
   }
   .side {
@@ -311,12 +383,10 @@
     flex: none;
     height: 100%;
     padding: 12px 14px 20px;
+    /* The same thin rule as under the headers (--line), in both modes. */
     border-left: 1px solid var(--line);
     background: var(--bg-2);
     animation: slide-in var(--t-release) steps(4, end);
-  }
-  .side.edit {
-    border-left-color: var(--accent);
   }
   @keyframes slide-in {
     from {
@@ -336,9 +406,6 @@
       height: 45%;
       border-left: 0;
       border-top: 1px solid var(--line);
-    }
-    .side.edit {
-      border-top-color: var(--accent);
     }
   }
 </style>

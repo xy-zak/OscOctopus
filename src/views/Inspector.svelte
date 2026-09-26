@@ -1,11 +1,20 @@
 <script lang="ts">
-  // Edit-mode side panel for the selected widget: what every widget has (label, colour, cell),
-  // its type's own props (its <Type>Inspector, see widgets/registry.ts), its messages, and a
-  // live preview of exactly what it sends.
+  // Edit-mode side panel for the selected widget, in four foldable sections:
+  //   VISUAL       what every widget has (label, colour, cell);
+  //   INTERACTION  its type's own props (its <Type>Inspector, see widgets/registry.ts);
+  //   MESSAGES     what it sends and receives, and a preview of exactly what it sends now;
+  //   ACTIVITY     what actually happened on the wire (folded by default).
+  // Which sections are open is remembered per device once one is folded or unfolded.
   import type { Widget } from '../lib/model/preset';
   import { appearance } from '../lib/state/appearance.svelte';
+  import { debugStore } from '../lib/state/debug.svelte';
+  import { persistSetting } from '../lib/state/persist';
   import { presetStore } from '../lib/state/preset.svelte';
-  import { PALETTES } from '../lib/theme/palettes';
+  import { showDesk, ui, type InspectorSection } from '../lib/state/ui.svelte';
+  import { lockedBy, takeOver } from '../lib/sync/app.svelte';
+  import { syncSession } from '../lib/sync/session.svelte';
+  import { colorVars, PALETTES } from '../lib/theme/palettes';
+  import Collapsible from '../lib/ui/Collapsible.svelte';
   import Field from '../lib/ui/Field.svelte';
   import Icon from '../lib/ui/Icon.svelte';
   import Swatches from '../lib/ui/Swatches.svelte';
@@ -13,84 +22,156 @@
   import { viewsOf } from '../lib/widgets/registry';
   import BindingsEditor from './inspector/BindingsEditor.svelte';
   import WidgetActivity from './widget/WidgetActivity.svelte';
+  import WidgetHeader from './widget/WidgetHeader.svelte';
   import WidgetPreview from './widget/WidgetPreview.svelte';
 
   let { widget = $bindable() }: { widget: Widget } = $props();
 
   const touch = () => presetStore.touch();
   const Props = $derived(viewsOf(widget).inspector);
+  // Soft lock (shared desks): read-only while another device edits this widget.
+  const deskId = $derived(presetStore.current.id);
+  const holders = $derived(lockedBy(deskId, widget.id));
+  const locked = $derived(holders.length > 0);
+
+  const open = (s: InspectorSection) => ui.inspectorOpen[s];
+  const toggle = (s: InspectorSection) => (on: boolean) => {
+    ui.inspectorOpen[s] = on;
+    void persistSetting('inspectorSections', { ...ui.inspectorOpen });
+  };
+
+  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+  const lookSummary = $derived(
+    `${widget.label ? `“${widget.label}”` : 'no label'} · x${widget.x} y${widget.y} · ${widget.w}×${widget.h}`,
+  );
+  const messagesSummary = $derived.by(() => {
+    const b = widget.bindings;
+    if (b.length === 0) return 'none';
+    const out = b.filter((x) => x.send).length;
+    const inn = b.filter((x) => x.receive).length;
+    return `${plural(b.length, 'message')} · ${out} out · ${inn} in`;
+  });
+  const activitySummary = $derived(plural(debugStore.recentFor(widget.id).length, 'recent packet'));
 </script>
 
 <div class="inspector">
-  <header>
-    <div class="head">
-      <span class="kind">{DEFS[widget.type].label.toUpperCase()}</span>
-      <span class="faint">{widget.id}</span>
-    </div>
-    <div class="actions">
-      <button
-        class="btn icon"
-        title="Duplicate"
-        onclick={() => presetStore.duplicateWidget(widget.id)}><Icon name="copy" /></button
-      >
-      <button
-        class="btn icon danger"
-        title="Delete"
-        onclick={() => presetStore.removeWidget(widget.id)}><Icon name="trash" /></button
-      >
-    </div>
-  </header>
+  <WidgetHeader kind={DEFS[widget.type].label.toUpperCase()} label={widget.label} id={widget.id}>
+    {#snippet actions()}
+      <fieldset class="plain" disabled={locked}>
+        <button
+          class="btn icon"
+          title="Duplicate"
+          onclick={() => presetStore.duplicateWidget(widget.id)}><Icon name="copy" /></button
+        >
+        <button
+          class="btn icon danger"
+          title="Delete"
+          onclick={() => presetStore.removeWidget(widget.id)}><Icon name="trash" /></button
+        >
+      </fieldset>
+    {/snippet}
+  </WidgetHeader>
 
-  <section class="grid2">
-    <Field label="Label" wide>
-      <input class="input" bind:value={widget.label} oninput={touch} />
-    </Field>
-    <Field label="Colour · {PALETTES[appearance.theme.palette].name}" wide>
-      <Swatches
-        value={widget.color}
-        onchange={(c) => {
-          widget.color = c;
-          touch();
-        }}
-      />
-    </Field>
-    <Field label="Cell" wide>
-      <span class="readout">x{widget.x} y{widget.y} · {widget.w}×{widget.h}</span>
-    </Field>
-  </section>
+  {#if locked}
+    <div class="held" role="status">
+      <span
+        >● {holders.map((p) => syncSession.peerName(p)).join(', ')}
+        {holders.length > 1 ? 'are' : 'is'} editing this widget. Read-only here until you take over.</span
+      >
+      <button class="btn" onclick={() => takeOver(deskId, widget.id)}>Take over</button>
+    </div>
+  {/if}
 
-  <Props bind:widget onchange={touch} />
-  <BindingsEditor bind:widget onchange={touch} />
-  <WidgetPreview {widget} />
-  <WidgetActivity widgetId={widget.id} />
+  <Collapsible
+    title="Visual"
+    open={open('visual')}
+    ontoggle={toggle('visual')}
+    summary={lookSummary}
+  >
+    <fieldset class="plain" disabled={locked}>
+      <section class="grid2">
+        <Field label="Label" wide>
+          <input class="input" bind:value={widget.label} oninput={touch} />
+        </Field>
+        <Field
+          label="Colour · {PALETTES[appearance.theme.palette].name}"
+          hint="AUTO follows the desk’s colour"
+          wide
+        >
+          <Swatches
+            value={widget.color}
+            autoColor={colorVars(presetStore.current.color).c}
+            onchange={(c) => {
+              widget.color = c;
+              touch();
+            }}
+          />
+        </Field>
+        <Field label="Cell" wide>
+          <span class="readout">x{widget.x} y{widget.y} · {widget.w}×{widget.h}</span>
+        </Field>
+      </section>
+    </fieldset>
+  </Collapsible>
+
+  <Collapsible
+    title="Interaction"
+    open={open('interaction')}
+    ontoggle={toggle('interaction')}
+    summary="how the {DEFS[widget.type].label.toLowerCase()} behaves"
+  >
+    <fieldset class="plain" disabled={locked}>
+      <Props bind:widget onchange={touch} />
+    </fieldset>
+  </Collapsible>
+
+  <Collapsible
+    title="Messages"
+    open={open('messages')}
+    ontoggle={toggle('messages')}
+    summary={messagesSummary}
+  >
+    <fieldset class="plain" disabled={locked}>
+      <BindingsEditor bind:widget onchange={touch} />
+    </fieldset>
+    <WidgetPreview {widget} />
+  </Collapsible>
+
+  <Collapsible
+    title="Activity"
+    open={open('activity')}
+    ontoggle={toggle('activity')}
+    summary={activitySummary}
+  >
+    {#snippet actions()}
+      <button class="btn ghost" onclick={() => showDesk('traffic')}>Traffic</button>
+    {/snippet}
+    <WidgetActivity widgetId={widget.id} heading={false} />
+  </Collapsible>
 </div>
 
 <style>
   .inspector {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
   }
-  header {
+  /* Groups what a soft lock disables, without adding a box. */
+  .plain {
+    display: contents;
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+  }
+  .held {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
-  }
-  .head {
-    display: flex;
     gap: 1ch;
-    min-width: 0;
-  }
-  .kind {
-    padding: 0 1ch;
-    background: var(--accent);
-    color: var(--accent-ink);
-    font-weight: 700;
-  }
-  .actions {
-    display: flex;
-    gap: 6px;
+    padding: 4px 1ch;
+    border: 1px solid var(--warn);
+    color: var(--warn);
   }
   .readout {
     line-height: var(--control-h);

@@ -10,6 +10,7 @@ use super::ctx::Ctx;
 use super::status::EndpointState;
 use super::util::{bind_for, parse_ip, TaskGroup};
 use super::{InputConfig, OutputConfig, UdpMode};
+use crate::input::OwnSocketGuard;
 
 /// Largest possible UDP payload.
 const RECV_BUF: usize = 65_536;
@@ -21,6 +22,10 @@ pub(crate) struct UdpOutput {
 }
 
 impl UdpOutput {
+    pub fn target(&self) -> SocketAddr {
+        self.target
+    }
+
     pub async fn send(&self, ctx: &Ctx, bytes: &[u8], source: Option<&str>) {
         let result = match self.socket.send_to(bytes, self.target).await {
             Ok(n) if n == bytes.len() => Ok(()),
@@ -120,12 +125,16 @@ pub(crate) fn start_output(
         cfg.mode
     ));
 
+    // Packets from this socket must never drive this app's own widgets (an output aimed at an
+    // input of this app). The guard lives as long as the socket's task.
+    let own = local.map(|l| ctx.input.register_own(l));
     // Many devices reply to the sender's port; show those replies too.
     tasks.push(tokio::spawn(reply_loop(
         socket.clone(),
         local,
         target,
         ctx.clone(),
+        own,
     )));
 
     Ok(UdpOutput {
@@ -140,6 +149,7 @@ async fn reply_loop(
     local: Option<SocketAddr>,
     target: SocketAddr,
     ctx: Ctx,
+    _own: Option<OwnSocketGuard>,
 ) {
     let mut buf = vec![0u8; RECV_BUF];
     loop {

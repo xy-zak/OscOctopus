@@ -17,6 +17,7 @@ pub use status::{
     EndpointKind, EndpointState, EndpointStats, EndpointStatus, StatusBoard, StatusListener,
 };
 pub use tcp::{MAX_TCP_CLIENTS, WRITE_TIMEOUT};
+pub(crate) use util::resolve;
 pub use util::{system_resolver, ResolveFuture, Resolver, RESOLVE_TIMEOUT};
 
 use serde::{Deserialize, Serialize};

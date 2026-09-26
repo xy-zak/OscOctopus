@@ -25,6 +25,9 @@ pub enum AppError {
     #[error("{0}")]
     InvalidPath(String),
 
+    #[error("sync: {0}")]
+    Sync(String),
+
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
 

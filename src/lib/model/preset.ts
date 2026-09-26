@@ -5,7 +5,7 @@ import { z } from 'zod';
 import type { InputConfig, NetworkConfig, OutputConfig } from '../ipc/types';
 import { PALETTE_IDS, PALETTE_SIZE } from '../theme/palettes';
 
-export const CURRENT_SCHEMA_VERSION = 7;
+export const CURRENT_SCHEMA_VERSION = 8;
 
 /**
  * Every numeric range the schema enforces. The zod schemas below and the editor fields
@@ -42,9 +42,13 @@ type Range = { readonly min: number; readonly max?: number };
 const inRange = (n: z.ZodNumber, r: Range) =>
   r.max === undefined ? n.min(r.min) : n.min(r.min).max(r.max);
 
+/** Names that would collide with object internals when used as keys (ids arrive from peers). */
+const RESERVED_IDS = new Set(['__proto__', 'constructor', 'prototype']);
+
 export const IdSchema = z
   .string()
-  .regex(/^[A-Za-z0-9_-]{1,64}$/, 'ids use 1-64 of A-Z a-z 0-9 - _');
+  .regex(/^[A-Za-z0-9_-]{1,64}$/, 'ids use 1-64 of A-Z a-z 0-9 - _')
+  .refine((id) => !RESERVED_IDS.has(id), 'this id is reserved');
 
 // ---- Network (mirrors the Rust types; `satisfies` keeps them in lock-step) -----------------
 
@@ -114,10 +118,19 @@ export const ArgTemplateSchema = z.discriminatedUnion('kind', [
 ]);
 export type ArgTemplate = z.infer<typeof ArgTemplateSchema>;
 
+/**
+ * One OSC message of a widget. It can go both ways: `send` sends it to `outputIds` whenever
+ * the widget changes; `receive` listens for it on `sourceIds` (inputs of the desk, or outputs,
+ * meaning replies arriving on that output's socket) and sets the widget from it. `forward`
+ * re-sends the widget's messages after received input changed it (a bridge); off by default.
+ */
 export const BindingSchema = z.object({
   id: IdSchema,
-  enabled: z.boolean(),
+  send: z.boolean(),
   outputIds: z.array(IdSchema),
+  receive: z.boolean(),
+  sourceIds: z.array(IdSchema),
+  forward: z.boolean(),
   address: z.string(),
   args: z.array(ArgTemplateSchema),
 });
@@ -138,7 +151,7 @@ const WidgetBase = z.object({
   w: z.number().int().min(1),
   h: z.number().int().min(1),
   label: z.string(),
-  /** Index into the global palette (0–9); null uses the accent. */
+  /** Index into the global palette (0–9); null (AUTO) uses the desk's colour. */
   color: ColorIndex.nullable(),
   bindings: z.array(BindingSchema),
 });

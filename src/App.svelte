@@ -6,12 +6,12 @@
   //   │ logo  [DESK A][DESK B][+]              [GLOBAL SETTINGS] │ out · PAUSE · LOCK             │
   //   └──────╥──────────────────────────────────────────────────────────────────────────┘
   //   ╔══════╝ frame in the active container's colour ═════════════════════════════════╗
-  //   ║ F1 CONTROLS  F2 NETWORK  F3 TRAFFIC  F4 PRESET                       tools        ║
+  //   ║ F1 CONTROLS  F2 NETWORK  F3 TRAFFIC  F4 PRESET  F5 SYNC                           ║
   //   ║ …section…                                                                        ║
   //   ╚══════════════════════════════════════════════════════════════════════════════════╝
   //
-  // Everything inside the frame belongs to the tab it hangs from. NETWORK and TRAFFIC exist in
-  // both a desk and GLOBAL SETTINGS; the frame's colour (the desk's own, or white) says which.
+  // Everything inside the frame belongs to the tab it hangs from. NETWORK, TRAFFIC and SYNC exist
+  // in both a desk and GLOBAL SETTINGS; the frame's colour (the desk's own, or white) says which.
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { onMount } from 'svelte';
   import { isTauri } from './lib/ipc/commands';
@@ -19,8 +19,12 @@
   import { appearance } from './lib/state/appearance.svelte';
   import { debugStore } from './lib/state/debug.svelte';
   import { networkStore } from './lib/state/network.svelte';
+  import { startReceiver } from './lib/osc/receiver.svelte';
+  import { inputStore } from './lib/state/input.svelte';
   import { persistSetting } from './lib/state/persist';
   import { presetStore } from './lib/state/preset.svelte';
+  import { sharedDesks, startSharedDesks } from './lib/sync/app.svelte';
+  import { syncSession } from './lib/sync/session.svelte';
   import {
     currentSection,
     currentSections,
@@ -31,7 +35,6 @@
   } from './lib/state/ui.svelte';
   import { colorVars, paletteVars } from './lib/theme/palettes';
   import ConfirmDialog from './lib/ui/ConfirmDialog.svelte';
-  import Icon from './lib/ui/Icon.svelte';
   import LockButton from './lib/ui/LockButton.svelte';
   import PixelLogo from './lib/ui/PixelLogo.svelte';
   import { measureCharWidth } from './lib/ui/textfit';
@@ -40,7 +43,9 @@
   import Desk from './views/Desk.svelte';
   import DeskNetwork from './views/DeskNetwork.svelte';
   import DeskPreset from './views/DeskPreset.svelte';
+  import DeskSync from './views/DeskSync.svelte';
   import GlobalNetwork from './views/GlobalNetwork.svelte';
+  import GlobalSync from './views/GlobalSync.svelte';
   import Library from './views/Library.svelte';
   import Look from './views/Look.svelte';
   import Traffic from './views/Traffic.svelte';
@@ -63,10 +68,19 @@
       // Restore PAUSE before any desk's network starts: a restart mid-show must not
       // suddenly resume output.
       if (await getSetting('paused')) await networkStore.setPaused(true);
+      // Input mapping: listen first, then open the gate (Rust starts with it closed).
+      await startReceiver();
+      await inputStore.setEnabled((await getSetting('inputEnabled')) ?? true);
       ui.locked = (await getSetting('locked')) ?? false;
       await presetStore.init();
       ui.infoOpen = (await getSetting('infoOpen')) ?? true;
+      Object.assign(ui.inspectorOpen, await getSetting('inspectorSections'));
+      Object.assign(ui.infoSections, await getSetting('infoSections'));
       ready = true;
+      // Sync last: the desks it may share are open by now. A failure here (e.g. the port is
+      // taken) is shown in the SYNC section, never blocks the app.
+      await syncSession.start().catch((e: unknown) => (syncSession.error = errorText(e)));
+      await startSharedDesks();
     } catch (e) {
       fatal = `Startup failed: ${errorText(e)}`;
     }
@@ -101,6 +115,10 @@
   $effect(() => {
     const paused = networkStore.paused;
     if (ready) void persistSetting('paused', paused);
+  });
+  $effect(() => {
+    const enabled = inputStore.enabled;
+    if (ready) void persistSetting('inputEnabled', enabled);
   });
 
   function setLocked(locked: boolean) {
@@ -139,10 +157,10 @@
     ui.view === 'desk' ? colorVars(desk.color) : { c: 'var(--fg)', ink: 'var(--bg)' },
   );
 
-  // F1…F4: sections of whatever container you're in. Alt+E edit, Alt+P pause, Alt+L lock
-  // (unlocking needs the press-and-hold on LOCK, never a single keystroke).
+  // F1…F5: sections of whatever container you're in. Alt+E edit, Alt+P pause, Alt+I input,
+  // Alt+L lock (unlocking needs the press-and-hold on LOCK, never a single keystroke).
   function onkeydown(e: KeyboardEvent) {
-    const f = /^F([1-4])$/.exec(e.key);
+    const f = /^F([1-5])$/.exec(e.key);
     if (f && !e.altKey && !e.ctrlKey && !e.metaKey) {
       showSectionAt(Number(f[1]) - 1);
       e.preventDefault();
@@ -152,6 +170,7 @@
     const k = e.key.toLowerCase();
     if (k === 'e' && ui.view === 'desk') toggleEditMode();
     else if (k === 'p') void networkStore.setPaused(!networkStore.paused);
+    else if (k === 'i') void inputStore.setEnabled(!inputStore.enabled);
     else if (k === 'l' && !ui.locked) setLocked(true);
     else return;
     e.preventDefault();
@@ -164,7 +183,22 @@
     ),
   );
   const readyOutputs = $derived(outputs.filter((s) => s.state === 'ready').length);
+  /** OUT lamp: red when an endpoint failed, green when every enabled output is ready. */
+  const outLamp = $derived(
+    allFailing > 0 ? 'bad' : outputs.length > 0 && readyOutputs === outputs.length ? 'ok' : 'warn',
+  );
   const txRate = $derived(Object.values(networkStore.rates).reduce((a, r) => a + r.txPps, 0));
+
+  // SYNC pill: devices connected in the session; trouble when an address is being refused.
+  const syncPeers = $derived(syncSession.status?.peers ?? []);
+  const syncConnected = $derived(syncPeers.filter((p) => p.state === 'connected').length);
+  const syncTrouble = $derived(syncPeers.some((p) => p.state === 'refused'));
+  /** SYNC lamp: off outside a session; red when an address is refused; green with peers. */
+  const syncLamp = $derived(
+    !syncSession.joined ? '' : syncTrouble ? 'bad' : syncConnected > 0 ? 'ok' : 'warn',
+  );
+  /** Shared desks with remote edits waiting for LOCK to be released. */
+  const waiting = $derived(Object.values(sharedDesks.view).filter((v) => v.waiting).length);
 </script>
 
 <svelte:window {onkeydown} />
@@ -173,7 +207,9 @@
   <!-- Whole-app states: full width, above everything, because they affect every desk. -->
   {#if ui.locked}
     <div class="banner locked" role="status">
-      ■ LOCKED · all desks frozen · press and hold LOCK for 1 second to unlock
+      ■ LOCKED · all desks frozen · press and hold LOCK for 1 second to unlock{waiting
+        ? ` · edits from other devices on ${waiting} shared desk(s) are applied on unlock`
+        : ''}
     </div>
   {/if}
   {#if networkStore.paused}
@@ -186,28 +222,58 @@
     <span class="brand" title="OscOctopus"><PixelLogo /></span>
     {#if ready}<ContainerTabs />{:else}<span class="tabs-placeholder"></span>{/if}
     <!-- Master section: affects ALL desks, so it sits outside every tab and frame. -->
+    <!-- The master bar affects every desk. Status first (click to open it), then the switches,
+         from least to most restrictive: IN gates incoming OSC, PAUSE outgoing, LOCK everything.
+         All five share one shape (.mbtn, app.css). -->
     <div class="master" aria-label="All desks">
       <button
-        class="net"
-        class:bad={allFailing > 0}
-        class:ok={allFailing === 0 && readyOutputs === outputs.length && outputs.length > 0}
+        class="mbtn"
         onclick={() => showGlobal('network')}
-        title="Outputs ready / enabled across all desks · messages per second"
+        title="Outputs ready / enabled across all desks · messages per second. Click for NETWORK"
       >
-        <span class="led">●</span>{readyOutputs}/{outputs.length} OUT<span class="rate"
+        <span class="lamp {outLamp}">●</span>{readyOutputs}/{outputs.length} OUT<span class="rate"
           >{txRate.toFixed(0)}/s</span
         >
       </button>
       <button
-        class="pause"
-        class:on={networkStore.paused}
-        aria-pressed={networkStore.paused}
+        class="mbtn"
+        onclick={() => showGlobal('sync')}
+        title={syncSession.joined
+          ? `Session “${syncSession.status?.session}”: ${syncConnected} device(s) connected. Click for SYNC`
+          : 'Not sharing: click to join a session with other devices (GLOBAL SETTINGS › SYNC)'}
+      >
+        <span class="lamp {syncLamp}">{syncSession.joined ? '●' : '○'}</span>{syncSession.joined
+          ? `${syncConnected} SYNC`
+          : 'SYNC'}
+      </button>
+      <span class="sep" aria-hidden="true"></span>
+      <button
+        class="mbtn switch"
+        class:warn={!inputStore.enabled}
+        role="switch"
+        aria-checked={inputStore.enabled}
+        title={inputStore.enabled
+          ? 'OSC IN is on: incoming OSC drives widgets whose messages receive. Click to ignore all input (Alt+I)'
+          : 'OSC IN is off: incoming OSC is ignored (still shown in TRAFFIC). Click to let it drive widgets (Alt+I)'}
+        onclick={() => inputStore.setEnabled(!inputStore.enabled)}
+      >
+        <span class="box">[{inputStore.enabled ? '■' : '\u00a0'}]</span>{inputStore.enabled
+          ? 'IN ON'
+          : 'IN OFF'}
+      </button>
+      <button
+        class="mbtn switch"
+        class:danger={networkStore.paused}
+        role="switch"
+        aria-checked={networkStore.paused}
         title={networkStore.paused
-          ? 'Output of all desks paused. Click to resume (Alt+P)'
+          ? 'Output of all desks is paused: nothing is sent. Click to resume (Alt+P)'
           : 'Pause all outgoing OSC, on every desk (Alt+P)'}
         onclick={() => networkStore.setPaused(!networkStore.paused)}
       >
-        {#if networkStore.paused}<span class="blink">■</span> PAUSED{:else}<Icon name="pause" /> PAUSE{/if}
+        <span class="box" class:blink={networkStore.paused}
+          >[{networkStore.paused ? '■' : '\u00a0'}]</span
+        >{networkStore.paused ? 'PAUSED' : 'PAUSE'}
       </button>
       <LockButton locked={ui.locked} onchange={setLocked} nudge={ui.lockNudge} />
     </div>
@@ -228,18 +294,7 @@
           >
         {/each}
       </nav>
-      <!-- The EDIT / LIVE switch lives on the desk itself, in its top-right cells (see Desk). -->
-      {#if ui.view === 'desk' && ui.deskView === 'controls' && ui.mode === 'live'}
-        <div class="tools">
-          <button
-            class="btn icon ghost"
-            class:lit={ui.infoOpen}
-            title={ui.infoOpen ? 'Hide widget info' : 'Show widget info (preview & activity)'}
-            aria-pressed={ui.infoOpen}
-            onclick={() => (ui.infoOpen = !ui.infoOpen)}><Icon name="panel" /></button
-          >
-        </div>
-      {/if}
+      <!-- The EDIT / LIVE switch lives on the desk itself, in its top-right cell (see Desk). -->
     </div>
 
     <main class:locked={ui.locked}>
@@ -259,8 +314,10 @@
           {#key desk.id}
             <Traffic scope={desk.id} />
           {/key}
-        {:else}
+        {:else if ui.deskView === 'preset'}
           <DeskPreset />
+        {:else}
+          <DeskSync />
         {/if}
       {:else if ui.globalView === 'network'}
         <GlobalNetwork />
@@ -268,8 +325,10 @@
         <Traffic />
       {:else if ui.globalView === 'library'}
         <Library />
-      {:else}
+      {:else if ui.globalView === 'look'}
         <Look />
+      {:else}
+        <GlobalSync />
       {/if}
     </main>
   </section>
@@ -324,48 +383,14 @@
     margin-bottom: 2px;
     border-left: 1px solid var(--line);
   }
-  .net {
-    height: 28px;
-    padding: 0 1ch;
-    border: 1px solid var(--line);
-    background: var(--bg);
-    color: var(--fg-dim);
-    white-space: nowrap;
-  }
-  .led {
-    margin-right: 1ch;
-    color: var(--warn);
-  }
-  .net.ok .led {
-    color: var(--ok);
-  }
-  .net.bad .led {
-    color: var(--danger);
-    animation: blink 1s steps(1) infinite;
-  }
   .rate {
-    margin-left: 1ch;
     color: var(--fg-faint);
   }
-  .pause {
-    height: 28px;
-    padding: 0 1ch;
-    border: 1px solid var(--line-strong);
-    background: var(--bg);
-    color: var(--fg-dim);
-    white-space: nowrap;
-    transition:
-      background var(--t-ui) steps(2),
-      color var(--t-ui) steps(2);
-  }
-  .pause:hover {
-    color: var(--fg);
-  }
-  .pause.on {
-    border-color: var(--danger);
-    background: var(--danger);
-    color: var(--bg);
-    font-weight: 700;
+  /* Between the readouts and the switches. */
+  .sep {
+    width: 1px;
+    height: 20px;
+    background: var(--line);
   }
   /* Narrow screens: the master controls get their own line on top, so the tabs keep the
      full width and still sit directly on the frame they open. */
@@ -459,19 +484,6 @@
     background: var(--danger);
     color: var(--bg);
     font-weight: 700;
-  }
-  .tools {
-    display: flex;
-    align-items: center;
-    gap: 1ch;
-    margin-left: auto;
-  }
-  .tools .btn {
-    height: 26px;
-  }
-  .lit {
-    color: var(--accent-text);
-    border-color: var(--accent);
   }
   @media (max-width: 760px) {
     .fkey {

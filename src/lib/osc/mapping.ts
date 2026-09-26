@@ -127,13 +127,13 @@ export interface Outgoing {
 }
 
 /**
- * Every message a widget sends for `value`. Disabled or output-less bindings are skipped.
+ * Every message a widget sends for `value`. Bindings that don't send, or have no output, are skipped.
  * All bindings are sent on every change (for the graph, moving only X still resends Y) so a
  * receiver that missed a packet resynchronises on the next one.
  */
 export function buildMessages(widget: Widget, value: WidgetValue): Outgoing[] {
   return widget.bindings
-    .filter((b) => b.enabled && b.outputIds.length > 0)
+    .filter((b) => b.send && b.outputIds.length > 0)
     .map((b) => ({
       bindingId: b.id,
       outputIds: [...b.outputIds],

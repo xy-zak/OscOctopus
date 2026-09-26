@@ -55,7 +55,7 @@
     {#each preset.widgets as w (w.id)}
       <li>
         <button class="row" onclick={() => (ui.selectedId = w.id)}>
-          <span class="sw" style:background={colorVars(w.color).c}></span>
+          <span class="sw" style:background={colorVars(w.color ?? preset.color).c}></span>
           <span class="type faint">{DEFS[w.type].label.padEnd(6)}</span>
           <span class="name">{w.label}</span>
           <span class="faint">{w.x},{w.y} {w.w}×{w.h}</span>

@@ -1,9 +1,9 @@
 // The workspace: every open desk is a preset (layout, widgets, network config), shown
 // as a tab. All open desks' networks run at the same time; editing always happens on the
-// active desk (`current`). Every mutation goes through `touch()`, which marks the desk dirty,
-// autosaves it (see autosave.svelte.ts), and (for network edits) re-applies that desk's
-// network config.
-import { presets as presetIpc } from '../ipc/commands';
+// active desk (`current`). Every change of any desk ends in `changed()`, which autosaves it
+// (see autosave.svelte.ts), re-applies its network config when endpoints changed, and tells
+// sync (state/changes.ts). `touch()` is `changed()` for the active desk.
+import { presets as presetIpc, sync as syncIpc } from '../ipc/commands';
 import type { PresetSummary } from '../ipc/types';
 import {
   collisions,
@@ -24,11 +24,14 @@ import {
   type WidgetType,
 } from '../model/preset';
 import { getSetting } from '../platform/settings';
+import { patchInPlace } from '../sync/reconcile';
 import { PALETTE_SIZE } from '../theme/palettes';
 import { errorText } from '../util';
 import { DEFS, initialValue, newWidget } from '../widgets/defs';
 import { appearance } from './appearance.svelte';
 import { Autosave } from './autosave.svelte';
+import { deskChanges, syncKey, syncRecords } from './changes';
+import { forgetFeedback } from './feedback.svelte';
 import { networkStore } from './network.svelte';
 import { persistSetting } from './persist';
 import { toast, ui } from './ui.svelte';
@@ -143,7 +146,7 @@ class PresetStore {
     if (collides) preset = withFreshWidgetIds(preset);
     this.desks.push(preset);
     for (const w of preset.widgets) values[w.id] = initialValue(w);
-    if (collides) this.autosave.touch(preset.id);
+    if (collides) this.changed(preset.id);
     return preset;
   }
 
@@ -185,9 +188,9 @@ class PresetStore {
     this.activate(p.id);
   }
 
-  /** Copies the active desk into a new preset and opens it as a new tab. */
-  async duplicateDesk(name: string) {
-    const copy = withFreshWidgetIds(this.snapshot());
+  /** Copies a desk (the active one by default) into a new preset and opens it as a new tab. */
+  async duplicateDesk(name: string, sourceId = this.current.id) {
+    const copy = withFreshWidgetIds(this.snapshot(sourceId));
     copy.id = uid('p');
     copy.name = name;
     copy.color = this.nextDeskColor();
@@ -204,7 +207,7 @@ class PresetStore {
     if (i < 0 || this.desks.length <= 1) return false;
     await this.autosave.flush(id);
     await networkStore.closeDesk(id);
-    for (const w of this.desks[i]!.widgets) delete values[w.id];
+    for (const w of this.desks[i]!.widgets) forgetWidget(w.id);
     this.desks.splice(i, 1);
     this.autosave.forget(id);
     if (this.activeId === id) {
@@ -215,12 +218,27 @@ class PresetStore {
     return true;
   }
 
-  /** Marks the active desk changed. Pass `network: true` when its network config changed. */
-  touch(opts: { network?: boolean } = {}) {
-    const desk = this.current;
+  /**
+   * A desk's contents changed; every change path ends here. It autosaves, re-applies the
+   * network when `network` is set, and tells sync. `origin: 'remote'` marks changes that came
+   * from sync (never shared again). `deleted` names what this change removed on purpose (sync
+   * keys, see `syncKey`): sync never infers a deletion from a missing widget.
+   */
+  changed(
+    deskId: string,
+    opts: { network?: boolean; origin?: 'local' | 'remote'; deleted?: string[] } = {},
+  ) {
+    const desk = this.desks.find((d) => d.id === deskId);
+    if (!desk) return;
     desk.updatedAt = new Date().toISOString();
-    this.autosave.touch(desk.id);
-    if (opts.network) networkStore.scheduleApply(desk.id, () => this.snapshot(desk.id).network);
+    this.autosave.touch(deskId);
+    if (opts.network) networkStore.scheduleApply(deskId, () => this.snapshot(deskId).network);
+    deskChanges.emit({ deskId, origin: opts.origin ?? 'local', deleted: opts.deleted });
+  }
+
+  /** Marks the active desk changed (see `changed`). */
+  touch(opts: { network?: boolean; deleted?: string[] } = {}) {
+    this.changed(this.current.id, opts);
   }
 
   /** Saves a desk now (after any save of it already in progress). */
@@ -253,7 +271,10 @@ class PresetStore {
     }
     this.savesInFlight++;
     try {
-      await presetIpc.save(snap);
+      // A shared desk is saved with its sync record (record first, see sync/docs.rs).
+      const record = syncRecords.of(id);
+      if (record) await syncIpc.deskSave(snap, record);
+      else await presetIpc.save(snap);
       this.saveError = null;
       this.lastSavedAt = Date.now();
       await this.refreshList();
@@ -264,6 +285,46 @@ class PresetStore {
     } finally {
       this.savesInFlight--;
     }
+  }
+
+  /**
+   * Opens a desk that came from sync peers (a shared desk joined from the session). Peers
+   * address widgets by id, so its ids are kept: a clash with an open desk is refused.
+   */
+  async adopt(preset: Preset) {
+    PresetSchema.parse(preset);
+    if (this.isOpen(preset.id)) throw new Error('a desk with this id is already open');
+    const taken = new Set(this.desks.flatMap((d) => d.widgets.map((w) => w.id)));
+    if (preset.widgets.some((w) => taken.has(w.id)))
+      throw new Error('its widgets clash with an open desk; close that desk first');
+    this.desks.push(preset);
+    for (const w of preset.widgets) values[w.id] = initialValue(w);
+    await this.autosave.save(preset.id);
+    await networkStore.apply(preset.id, this.snapshot(preset.id).network);
+    this.activate(preset.id);
+  }
+
+  /**
+   * Applies a desk as merged by sync, in place (see sync/reconcile.ts): only what differs
+   * changes, and open editors stay attached. Marked `remote`, so it is never shared again.
+   */
+  applyRemote(deskId: string, next: Preset, network: boolean) {
+    const desk = this.desks.find((d) => d.id === deskId);
+    if (!desk) return;
+    const before = new Set(desk.widgets.map((w) => w.id));
+    patchInPlace(desk, next);
+    const after = new Set(desk.widgets.map((w) => w.id));
+    for (const w of desk.widgets) if (!before.has(w.id)) values[w.id] = initialValue(w);
+    for (const id of before) {
+      if (after.has(id)) continue;
+      forgetWidget(id);
+      if (ui.focusedId === id) ui.focusedId = null;
+      if (ui.selectedId === id) {
+        ui.selectedId = null;
+        toast('The widget you were editing was deleted on another device');
+      }
+    }
+    this.changed(deskId, { origin: 'remote', network });
   }
 
   /** Deletes a preset file; closes its desk first if it is open. */
@@ -299,7 +360,7 @@ class PresetStore {
     );
     if (incoming.widgets.some((w) => others.has(w.id))) incoming = withFreshWidgetIds(incoming);
     const old = this.desks[i]!;
-    for (const w of old.widgets) delete values[w.id];
+    for (const w of old.widgets) forgetWidget(w.id);
     const replaced: Preset = {
       ...incoming,
       id: old.id,
@@ -311,7 +372,7 @@ class PresetStore {
     for (const w of replaced.widgets) values[w.id] = initialValue(w);
     if (this.activeId === deskId) ui.selectedId = ui.focusedId = null;
     await networkStore.apply(deskId, this.snapshot(deskId).network);
-    this.autosave.touch(deskId);
+    this.changed(deskId, { deleted: removedKeys(old, replaced) });
     await this.autosave.save(deskId);
   }
 
@@ -345,17 +406,31 @@ class PresetStore {
     );
   }
 
+  /** Number of widget messages that listen on an endpoint (an input, or an output's replies). */
+  sourceUsage(endpointId: string): number {
+    return this.current.widgets.reduce(
+      (n, w) => n + w.bindings.filter((b) => b.sourceIds.includes(endpointId)).length,
+      0,
+    );
+  }
+
   /** Removes an output and every reference to it from widget messages. */
   removeOutput(id: string) {
     for (const w of this.current.widgets)
-      for (const b of w.bindings) b.outputIds = b.outputIds.filter((o) => o !== id);
+      for (const b of w.bindings) {
+        b.outputIds = b.outputIds.filter((o) => o !== id);
+        b.sourceIds = b.sourceIds.filter((s) => s !== id);
+      }
     this.current.network.outputs = this.current.network.outputs.filter((o) => o.id !== id);
-    this.touch({ network: true });
+    this.touch({ network: true, deleted: [syncKey.output(id)] });
   }
 
+  /** Removes an input and every reference to it from widget messages. */
   removeInput(id: string) {
+    for (const w of this.current.widgets)
+      for (const b of w.bindings) b.sourceIds = b.sourceIds.filter((s) => s !== id);
     this.current.network.inputs = this.current.network.inputs.filter((i) => i.id !== id);
-    this.touch({ network: true });
+    this.touch({ network: true, deleted: [syncKey.input(id)] });
   }
 
   // ---- widgets --------------------------------------------------------------------------
@@ -411,10 +486,10 @@ class PresetStore {
 
   removeWidget(id: string) {
     this.current.widgets = this.current.widgets.filter((w) => w.id !== id);
-    delete values[id];
+    forgetWidget(id);
     if (ui.selectedId === id) ui.selectedId = null;
     if (ui.focusedId === id) ui.focusedId = null;
-    this.touch();
+    this.touch({ deleted: [syncKey.widget(id)] });
   }
 
   setRect(id: string, rect: Rect) {
@@ -435,10 +510,10 @@ class PresetStore {
       );
       return false;
     }
-    // The top-right cells are the EDIT / LIVE switch's, and they move with the right edge.
+    // The top-right cell is the EDIT / LIVE switch's, and it moves with the right edge.
     if (collisions(editCell(next), this.current.widgets).length) {
       toast(
-        `A widget sits in the top-right cells of a ${next.cols}-column grid, where the EDIT / LIVE switch goes; move it first`,
+        `A widget sits in the top-right cell of a ${next.cols}-column grid, where the EDIT / LIVE switch goes; move it first`,
         'error',
       );
       return false;
@@ -447,6 +522,25 @@ class PresetStore {
     this.touch();
     return true;
   }
+}
+
+/** Drops a removed widget's live value and visual feedback. */
+function forgetWidget(id: string) {
+  delete values[id];
+  forgetFeedback(id);
+}
+
+/** Sync keys of the widgets and endpoints `before` had and `after` doesn't (replaced desk). */
+function removedKeys(before: Preset, after: Preset): string[] {
+  const gone = <T extends { id: string }>(a: T[], b: T[]) => {
+    const kept = new Set(b.map((x) => x.id));
+    return a.filter((x) => !kept.has(x.id)).map((x) => x.id);
+  };
+  return [
+    ...gone(before.widgets, after.widgets).map(syncKey.widget),
+    ...gone(before.network.outputs, after.network.outputs).map(syncKey.output),
+    ...gone(before.network.inputs, after.network.inputs).map(syncKey.input),
+  ];
 }
 
 export const presetStore = new PresetStore();

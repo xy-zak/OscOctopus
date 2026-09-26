@@ -4,6 +4,7 @@ use std::sync::Arc;
 use super::status::{key, EndpointKey, EndpointKind, EndpointState, StatusBoard};
 use super::Transport;
 use crate::debug::{now_micros, DebugEvent, DebugHub, DebugKind, Direction};
+use crate::input::InputHub;
 use crate::osc::decode_packet;
 
 /// Everything an endpoint task needs to report what it is doing.
@@ -16,6 +17,7 @@ pub(crate) struct Ctx {
     pub transport: Transport,
     pub board: Arc<StatusBoard>,
     pub debug: Arc<DebugHub>,
+    pub input: Arc<InputHub>,
 }
 
 fn addr(a: Option<SocketAddr>) -> Option<String> {
@@ -128,8 +130,8 @@ impl Ctx {
         });
     }
 
-    /// Records an inbound packet. The frontend receives it (decoded) through the batched debug
-    /// stream, which is also the hook for future widget feedback.
+    /// Records an inbound packet, and hands it to input mapping if a widget listens on this
+    /// endpoint and the packet didn't come from this app (or a sync peer app) itself.
     pub fn packet_in(
         &self,
         bytes: &[u8],
@@ -143,7 +145,14 @@ impl Ctx {
             s.stats.last_activity_micros = Some(now_micros());
         });
         let (decoded, decode_error) = split(decode_packet(bytes));
-        self.debug.push(DebugEvent {
+        let origin = self.input.origin(remote);
+        let for_input = match &decoded {
+            Some(view) if origin.is_none() && self.input.accepts(&self.desk, &self.id) => {
+                Some(view.clone())
+            }
+            _ => None,
+        };
+        let seq = self.debug.push(DebugEvent {
             direction: Some(Direction::In),
             local: addr(local),
             remote: Some(remote.to_string()),
@@ -151,8 +160,12 @@ impl Ctx {
             wire_len: wire_len.map(|n| n as u32),
             decoded,
             decode_error,
+            origin,
             ..self.event(DebugKind::Packet)
         });
+        if let Some(view) = for_input {
+            self.input.offer(seq, &self.desk, &self.id, remote, &view);
+        }
     }
 }
 

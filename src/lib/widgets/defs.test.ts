@@ -3,7 +3,16 @@
 import { describe, expect, it } from 'vitest';
 import { WidgetSchema } from '../model/preset';
 import { isRecord } from '../osc/value';
-import { channelsFor, DEFS, gateFor, initialValue, newWidget, WIDGET_TYPES } from './defs';
+import {
+  channelsFor,
+  DEFS,
+  gateFor,
+  initialValue,
+  inputValue,
+  isValueFor,
+  newWidget,
+  WIDGET_TYPES,
+} from './defs';
 
 const rect = { x: 0, y: 0, w: 2, h: 2 };
 
@@ -57,5 +66,94 @@ describe('widget defs', () => {
     expect(gateFor(knob)).toEqual({ kind: 'merge', maxHz: knob.props.maxRateHz });
     expect(initialValue(knob)).toEqual({ value: knob.props.defaultValue, delta: 0 });
     expect(channelsFor(knob).map((c) => c.id)).toEqual(['value', 'delta']);
+  });
+});
+
+describe('what received values set (WidgetDef.input)', () => {
+  const nothing = {};
+  it('switch: the nearer of on/off; buttons fire on a bare message only in trigger mode', () => {
+    const sw = newWidget('switch', rect, []);
+    sw.props = { onValue: 127, offValue: 0 };
+    expect(inputValue(sw, { value: 120 }, 0)).toBe(127);
+    expect(inputValue(sw, { value: 'off' }, 127)).toBe(0);
+    const btn = newWidget('button', rect, []);
+    expect(inputValue(btn, nothing, 0)).toBeNull();
+    btn.props.mode = 'trigger';
+    expect(inputValue(btn, nothing, 0)).toBe(btn.props.onValue);
+  });
+
+  it('pads: by number or by row and column, set (never flipped), and in range only', () => {
+    const pads = newWidget('pads', rect, []);
+    pads.props.mode = 'toggle';
+    expect(inputValue(pads, { row: 2, col: 3, on: 0 }, initialValue(pads))).toEqual({
+      number: 7,
+      row: 2,
+      col: 3,
+      on: false,
+    });
+    expect(inputValue(pads, { number: '5' }, initialValue(pads))).toMatchObject({
+      number: 5,
+      on: true,
+    });
+    expect(inputValue(pads, { number: 17 }, initialValue(pads))).toBeNull();
+    expect(inputValue(pads, { number: 2.5 }, initialValue(pads))).toBeNull();
+  });
+
+  it('list: by index, then value, then label (underscores read as spaces, any case)', () => {
+    const list = newWidget('list', rect, []);
+    list.props.options = [
+      { label: 'Big Room', value: 'scene-a' },
+      { label: 'Small', value: '2' },
+    ];
+    const current = initialValue(list);
+    expect(inputValue(list, { index: 1 }, current)).toMatchObject({ index: 1 });
+    expect(inputValue(list, { index: 2 }, current)).toBeNull();
+    expect(inputValue(list, { value: 2 }, current)).toMatchObject({ index: 1 });
+    expect(inputValue(list, { value: 'scene-a' }, current)).toMatchObject({ index: 0 });
+    expect(inputValue(list, { label: 'Big_Room' }, current)).toMatchObject({ index: 0 });
+    expect(inputValue(list, { label: 'small' }, current)).toMatchObject({ index: 1 });
+    expect(inputValue(list, { label: 'nope' }, current)).toBeNull();
+  });
+
+  it('graph: sets the axes present, each clamped to its own range', () => {
+    const g = newWidget('graph', rect, []);
+    expect(inputValue(g, { y: 5 }, { x: 0.25, y: 0.5 })).toEqual({ x: 0.25, y: 1 });
+    expect(inputValue(g, {}, { x: 0.25, y: 0.5 })).toBeNull();
+  });
+});
+
+describe('what a peer may set (WidgetDef.isValue)', () => {
+  it('accepts every widget type’s own values', () => {
+    for (const type of WIDGET_TYPES) {
+      const w = newWidget(type, rect, []);
+      expect(isValueFor(w, initialValue(w)), type).toBe(true);
+    }
+    const pads = newWidget('pads', rect, []);
+    expect(isValueFor(pads, inputValue(pads, { number: 5 }, initialValue(pads)))).toBe(true);
+    const list = newWidget('list', rect, []);
+    expect(isValueFor(list, inputValue(list, { index: 1 }, initialValue(list)))).toBe(true);
+  });
+
+  it('refuses the wrong shape, out-of-range values and extra fields', () => {
+    const slider = newWidget('slider', rect, []);
+    expect(isValueFor(slider, 2)).toBe(false);
+    expect(isValueFor(slider, '0.5')).toBe(false);
+    expect(isValueFor(slider, Number.NaN)).toBe(false);
+    const button = newWidget('button', rect, []);
+    expect(isValueFor(button, 0.5)).toBe(false);
+    const graph = newWidget('graph', rect, []);
+    expect(isValueFor(graph, { x: 0.5, y: 0.5 })).toBe(true);
+    expect(isValueFor(graph, { x: 0.5, y: 0.5, z: 1 })).toBe(false);
+    expect(isValueFor(graph, { x: 0.5 })).toBe(false);
+    const pads = newWidget('pads', rect, []);
+    expect(isValueFor(pads, { number: 2, row: 1, col: 1, on: true })).toBe(false);
+    expect(isValueFor(pads, { number: 99, row: 9, col: 9, on: true })).toBe(false);
+    const list = newWidget('list', rect, []);
+    expect(isValueFor(list, { index: 0, label: 'forged', value: 1 })).toBe(false);
+    expect(isValueFor(list, { index: 99, label: '', value: '' })).toBe(false);
+    const knob = newWidget('knob', rect, []);
+    knob.props.mode = 'endless';
+    expect(isValueFor(knob, { value: 3, delta: 1 })).toBe(true);
+    expect(isValueFor(knob, 3)).toBe(false);
   });
 });

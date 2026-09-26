@@ -9,11 +9,16 @@
   //   hold:   press and keep holding for holdMs while a fill steps up the key; it fires
   //           when full. Letting go early cancels.
   // Nothing is sent until it fires.
+  //
+  // Driven from outside (incoming OSC, a sync peer), it only shows state: a momentary button
+  // lights while its value is the on value, and a trigger button flashes once per fire. That
+  // never arms, fires or sends anything here.
   import type { ButtonWidget } from '../../model/preset';
-  import { emitValue } from '../../osc/sender';
+  import { emitValue } from '../../osc/flow';
   import { tapHaptic } from '../../platform/haptics';
-  import { fitsIn } from '../../ui/textfit';
+  import { feedback } from '../../state/feedback.svelte';
   import { numberValue } from '../../state/values.svelte';
+  import { fitsIn } from '../../ui/textfit';
   import Keycap from '../Keycap.svelte';
   import WidgetFrame from '../WidgetFrame.svelte';
 
@@ -33,6 +38,13 @@
 
   const p = $derived(widget.props);
   const shown = $derived(numberValue(widget.id, p.offValue));
+  /** A momentary button held down elsewhere (its value is the on value, not pressed here). */
+  const remoteOn = $derived(
+    p.mode === 'momentary' && !pressed && p.onValue !== p.offValue && shown === p.onValue,
+  );
+  /** Restarts the release dissolve: local releases plus fires from outside. */
+  const flashKey = $derived(releases + (feedback.flash[widget.id] ?? 0));
+  const lit = $derived(fired || armed || holding || remoteOn);
   const ARMED_HINT = '[ TAP TO FIRE ]';
 
   function fire() {
@@ -135,7 +147,7 @@
   title={widget.label}
   color={widget.color}
   {status}
-  active={fired || armed || holding}
+  active={lit}
   role="button"
   aria-label={widget.label}
   tabindex={live ? 0 : -1}
@@ -148,10 +160,13 @@
   {#snippet children({ w })}
     <!-- The name sits in the border like every other widget's. Inside is a key cap standing
          out of the panel towards you; pressing sinks it back. -->
-    <div class="key" class:lit={fired || armed || holding}>
-      <Keycap depth={16} down={pressed}>
-        {#key releases}
-          <span class="fill" class:on={pressed && fired} class:dissolve={!fired && releases > 0}
+    <div class="key" class:lit>
+      <Keycap depth={16} down={pressed || remoteOn}>
+        {#key flashKey}
+          <span
+            class="fill"
+            class:on={(pressed && fired) || remoteOn}
+            class:dissolve={!fired && !remoteOn && flashKey > 0}
           ></span>
         {/key}
         {#if armed}<span class="armed" aria-hidden="true"></span>{/if}
