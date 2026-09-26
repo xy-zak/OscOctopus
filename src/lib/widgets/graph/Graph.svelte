@@ -3,30 +3,26 @@
   // each have their own range/step/curve (see Axis in model/preset.ts); messages pick a channel
   // per argument. The cursor is a pixel block with dashed crosshairs; while held, corner
   // brackets lock on around it, and it leaves a trail of fading pixels.
-  import { clamp } from '../grid/engine';
-  import type { GraphWidget } from '../model/preset';
-  import {
-    formatValue,
-    initialValue,
-    isRecord,
-    sliderPosition,
-    sliderValue,
-    type XY,
-  } from '../osc/mapping';
-  import { emitValue } from '../osc/sender';
-  import { tapHaptic } from '../platform/haptics';
-  import { values } from '../state/values.svelte';
-  import WidgetFrame from './WidgetFrame.svelte';
+  import type { GraphWidget } from '../../model/preset';
+  import { sliderPosition, sliderValue } from '../../osc/curves';
+  import { formatValue } from '../../osc/format';
+  import { emitValue } from '../../osc/sender';
+  import { isRecord, type XY } from '../../osc/value';
+  import { tapHaptic } from '../../platform/haptics';
+  import { values } from '../../state/values.svelte';
+  import { clamp } from '../../util';
+  import { doubleTap, dragScale, keyStep } from '../interaction';
+  import WidgetFrame from '../WidgetFrame.svelte';
+  import { graphDef } from './def';
 
   let { widget, live }: { widget: GraphWidget; live: boolean } = $props();
 
   const TRAIL = 24;
   const p = $derived(widget.props);
+  const home = $derived(graphDef.initialValue(widget) as XY);
   const value = $derived.by((): XY => {
     const v = values[widget.id];
-    return isRecord(v) && typeof v.x === 'number' && typeof v.y === 'number'
-      ? (v as XY)
-      : (initialValue(widget) as XY);
+    return isRecord(v) && typeof v.x === 'number' && typeof v.y === 'number' ? (v as XY) : home;
   });
   // Normalised 0..1 position; y is 1 at the top.
   const nx = $derived(sliderPosition(value.x, p.x));
@@ -46,7 +42,7 @@
   let trailN = 0;
   let fading = $state(false);
   let fadeTimer: ReturnType<typeof setTimeout> | undefined;
-  let lastTap = 0;
+  const isDoubleTap = doubleTap();
 
   function setPos(x: number, y: number, final = false) {
     const cx = clamp(x, 0, 1);
@@ -69,13 +65,10 @@
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     const rect = plot.getBoundingClientRect();
     tapHaptic('light');
-    const now = performance.now();
-    if (now - lastTap < 300) {
-      lastTap = 0;
-      emitValue(widget.id, initialValue(widget), true);
+    if (isDoubleTap()) {
+      emitValue(widget.id, home, true);
       return;
     }
-    lastTap = now;
     clearTimeout(fadeTimer);
     fading = false;
     trail = [];
@@ -89,10 +82,10 @@
       setPos(...fromPointer(e, drag.rect));
       return;
     }
-    const fine = e.shiftKey ? 0.2 : 1;
+    const scale = dragScale(e);
     setPos(
-      drag.nx0 + ((e.clientX - drag.x0) / drag.rect.width) * fine,
-      drag.ny0 - ((e.clientY - drag.y0) / drag.rect.height) * fine,
+      drag.nx0 + ((e.clientX - drag.x0) / drag.rect.width) * scale,
+      drag.ny0 - ((e.clientY - drag.y0) / drag.rect.height) * scale,
     );
   }
 
@@ -110,12 +103,13 @@
 
   function onkeydown(e: KeyboardEvent) {
     if (!live) return;
-    const d = e.shiftKey ? 0.1 : 0.01;
+    const dx = keyStep(p.x, e.shiftKey);
+    const dy = keyStep(p.y, e.shiftKey);
     const moves: Record<string, [number, number]> = {
-      ArrowLeft: [-d, 0],
-      ArrowRight: [d, 0],
-      ArrowUp: [0, d],
-      ArrowDown: [0, -d],
+      ArrowLeft: [-dx, 0],
+      ArrowRight: [dx, 0],
+      ArrowUp: [0, dy],
+      ArrowDown: [0, -dy],
     };
     const m = moves[e.key];
     if (!m) return;

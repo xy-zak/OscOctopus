@@ -1,26 +1,10 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use serde::Serialize;
-use ts_rs::TS;
-
 use super::status::{key, EndpointKey, EndpointKind, EndpointState, StatusBoard};
 use super::Transport;
 use crate::debug::{now_micros, DebugEvent, DebugHub, DebugKind, Direction};
-use crate::osc::{decode_packet, OscPacketView};
-
-/// A successfully decoded inbound packet, forwarded to the frontend for widget feedback.
-#[derive(Debug, Clone, Serialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct IncomingOsc {
-    pub desk: String,
-    pub endpoint_id: String,
-    pub remote: Option<String>,
-    pub packet: OscPacketView,
-}
-
-pub type IncomingListener = Arc<dyn Fn(IncomingOsc) + Send + Sync>;
+use crate::osc::decode_packet;
 
 /// Everything an endpoint task needs to report what it is doing.
 #[derive(Clone)]
@@ -32,7 +16,6 @@ pub(crate) struct Ctx {
     pub transport: Transport,
     pub board: Arc<StatusBoard>,
     pub debug: Arc<DebugHub>,
-    pub incoming: IncomingListener,
 }
 
 fn addr(a: Option<SocketAddr>) -> Option<String> {
@@ -145,7 +128,8 @@ impl Ctx {
         });
     }
 
-    /// Records an inbound packet and forwards it to the frontend if it decodes.
+    /// Records an inbound packet. The frontend receives it (decoded) through the batched debug
+    /// stream, which is also the hook for future widget feedback.
     pub fn packet_in(
         &self,
         bytes: &[u8],
@@ -159,14 +143,6 @@ impl Ctx {
             s.stats.last_activity_micros = Some(now_micros());
         });
         let (decoded, decode_error) = split(decode_packet(bytes));
-        if let Some(packet) = &decoded {
-            (self.incoming)(IncomingOsc {
-                desk: self.desk.clone(),
-                endpoint_id: self.id.clone(),
-                remote: Some(remote.to_string()),
-                packet: packet.clone(),
-            });
-        }
         self.debug.push(DebugEvent {
             direction: Some(Direction::In),
             local: addr(local),

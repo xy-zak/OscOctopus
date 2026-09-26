@@ -19,7 +19,7 @@
 
   function openDeskNetwork(id: string) {
     presetStore.activate(id);
-    showDesk('io');
+    showDesk('network');
   }
 </script>
 

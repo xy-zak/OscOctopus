@@ -2,12 +2,12 @@
   // Live-mode side panel content: read-only view of the widget touched last: what it is, the
   // messages it sends right now, and what happened on the wire. No editing here.
   import type { Widget } from '../../lib/model/preset';
-  import { formatValue, initialValue } from '../../lib/osc/mapping';
+  import { formatValue } from '../../lib/osc/format';
   import { ui } from '../../lib/state/ui.svelte';
   import { values } from '../../lib/state/values.svelte';
   import { colorVars } from '../../lib/theme/palettes';
   import Icon from '../../lib/ui/Icon.svelte';
-  import { WIDGETS } from '../../lib/widgets/registry';
+  import { DEFS, initialValue } from '../../lib/widgets/defs';
   import WidgetActivity from './WidgetActivity.svelte';
   import WidgetPreview from './WidgetPreview.svelte';
 
@@ -22,7 +22,7 @@
 <div class="info">
   <header>
     <div class="head">
-      <span class="kind">{widget ? WIDGETS[widget.type].label.toUpperCase() : 'INFO'}</span>
+      <span class="kind">{widget ? DEFS[widget.type].label.toUpperCase() : 'INFO'}</span>
       {#if widget}<span class="name">{widget.label}</span>{/if}
     </div>
     <div class="actions">

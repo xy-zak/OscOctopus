@@ -8,7 +8,6 @@ export type { EndpointKind } from './bindings/EndpointKind';
 export type { EndpointState } from './bindings/EndpointState';
 export type { EndpointStats } from './bindings/EndpointStats';
 export type { EndpointStatus } from './bindings/EndpointStatus';
-export type { IncomingOsc } from './bindings/IncomingOsc';
 export type { InputConfig } from './bindings/InputConfig';
 export type { NetInterface } from './bindings/NetInterface';
 export type { NetworkConfig } from './bindings/NetworkConfig';

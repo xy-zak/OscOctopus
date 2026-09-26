@@ -2,7 +2,7 @@
   import Icon from '../lib/ui/Icon.svelte';
   import { networkStore } from '../lib/state/network.svelte';
   import { presetStore } from '../lib/state/preset.svelte';
-  import { confirmAction, showSystem } from '../lib/state/ui.svelte';
+  import { confirmAction, showGlobal } from '../lib/state/ui.svelte';
   import Lockable from '../lib/ui/Lockable.svelte';
   import InputCard from './network/InputCard.svelte';
   import OutputCard from './network/OutputCard.svelte';
@@ -24,20 +24,19 @@
     presetStore.removeOutput(id);
   }
 
-  const lastApplied = $derived(
-    networkStore.lastAppliedAt ? new Date(networkStore.lastAppliedAt).toLocaleTimeString() : null,
-  );
+  const apply = $derived(networkStore.applyState(presetStore.current.id));
+  const lastApplied = $derived(apply.at ? new Date(apply.at).toLocaleTimeString() : null);
 </script>
 
 <div class="network scroll">
   <Lockable>
     <div class="bar">
       <div class="apply">
-        {#if networkStore.applying}
+        {#if apply.applying}
           <span class="pill starting">applying</span>
-        {:else if networkStore.lastApplyError}
+        {:else if apply.error}
           <span class="pill error">apply failed</span>
-          <span class="mono err">{networkStore.lastApplyError}</span>
+          <span class="mono err">{apply.error}</span>
         {:else if lastApplied}
           <span class="pill ready">applied</span><span class="faint">at {lastApplied}</span>
         {/if}
@@ -90,7 +89,7 @@
           />
         {:else}
           <p class="faint">
-            No inputs. Incoming OSC (and replies to outputs) still appear in Debug.
+            No inputs. Incoming OSC (and replies to outputs) still appears in TRAFFIC.
           </p>
         {/each}
       </section>
@@ -100,7 +99,7 @@
   <p class="faint">
     Device interfaces and every desk's endpoints at a glance: <button
       class="link"
-      onclick={() => showSystem('device')}>GLOBAL SETTINGS › NETWORK</button
+      onclick={() => showGlobal('network')}>GLOBAL SETTINGS › NETWORK</button
     >
   </p>
 </div>

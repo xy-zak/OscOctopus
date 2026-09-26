@@ -4,27 +4,21 @@
   // it like a folder tab, and shares its colour, so what's inside the frame visibly belongs to
   // that tab. Desks run at the same time; the tab only chooses which one you see.
   //
-  // Adding or removing a desk always asks first. When LOCKED, tabs can still be switched
-  // (that's performing) but not added or removed.
+  // Adding or removing a desk always asks first (see deskActions.ts). When LOCKED, tabs can
+  // still be switched (that's performing) but not added or removed.
   import { networkStore } from '../lib/state/network.svelte';
   import { presetStore } from '../lib/state/preset.svelte';
-  import {
-    confirmAction,
-    errorText,
-    showDesk,
-    showSystem,
-    toast,
-    ui,
-  } from '../lib/state/ui.svelte';
+  import { showDesk, showGlobal, ui } from '../lib/state/ui.svelte';
   import { colorVars } from '../lib/theme/palettes';
   import Icon from '../lib/ui/Icon.svelte';
+  import { addDesk, duplicateDesk, openDesk, removeDesk } from './deskActions';
 
   let menuOpen = $state(false);
 
   const closedPresets = $derived(
     presetStore.summaries.filter((s) => !s.error && !presetStore.isOpen(s.id)),
   );
-  const systemFailing = $derived(
+  const globalFailing = $derived(
     Object.values(networkStore.statuses).filter((s) => s.state === 'error').length,
   );
 
@@ -40,80 +34,10 @@
     showDesk();
   }
 
-  const endpointsText = (outputs: number, inputs: number) =>
-    `${outputs} output${outputs === 1 ? '' : 's'} and ${inputs} input${inputs === 1 ? '' : 's'}`;
-
-  async function run(what: string, fn: () => Promise<unknown>) {
+  /** Closes the menu, runs a menu action, and shows the resulting desk's controls. */
+  async function fromMenu(action: () => Promise<boolean>) {
     menuOpen = false;
-    try {
-      await fn();
-      showDesk('controls');
-    } catch (e) {
-      toast(`${what} failed: ${errorText(e)}`, 'error');
-    }
-  }
-
-  async function addBlank() {
-    menuOpen = false;
-    const name = `Desk ${presetStore.desks.length + 1}`;
-    const ok = await confirmAction({
-      title: 'Add desk',
-      message: `Create a new blank desk "${name}"?`,
-      details: [
-        'It gets one UDP output to 127.0.0.1:9000 and starts immediately, alongside the open desks.',
-        'It is saved as a new preset; rename it in the desk’s PRESET section.',
-      ],
-      confirmLabel: 'Add desk',
-    });
-    if (ok) await run('Add desk', () => presetStore.newDesk(name));
-  }
-
-  async function duplicate() {
-    menuOpen = false;
-    const src = presetStore.current;
-    const name = `${src.name} copy`;
-    const ok = await confirmAction({
-      title: 'Duplicate desk',
-      message: `Open a copy of "${src.name}" as a new desk "${name}"?`,
-      details: [
-        `Its ${endpointsText(src.network.outputs.length, src.network.inputs.length)} start immediately.`,
-        'Inputs on the same ports as the original will fail to bind; its NETWORK section will say so.',
-      ],
-      confirmLabel: 'Duplicate',
-    });
-    if (ok) await run('Duplicate desk', () => presetStore.duplicateDesk(name));
-  }
-
-  async function openSaved(id: string, name: string) {
-    menuOpen = false;
-    const ok = await confirmAction({
-      title: 'Open desk',
-      message: `Open saved preset "${name}" as a new desk?`,
-      details: ['Its outputs and inputs start immediately, alongside the open desks.'],
-      confirmLabel: 'Open desk',
-    });
-    if (ok) await run('Open desk', () => presetStore.openDesk(id));
-  }
-
-  async function close(id: string) {
-    const desk = presetStore.desks.find((d) => d.id === id);
-    if (!desk) return;
-    const ok = await confirmAction({
-      title: 'Remove desk',
-      message: `Remove desk "${desk.name}" from the workspace?`,
-      details: [
-        `Its ${endpointsText(desk.network.outputs.length, desk.network.inputs.length)} stop and their sockets close.`,
-        'The preset stays saved: reopen it from + or GLOBAL SETTINGS › LIBRARY.',
-      ],
-      confirmLabel: 'Remove desk',
-      danger: true,
-    });
-    if (!ok) return;
-    try {
-      await presetStore.closeDesk(id);
-    } catch (e) {
-      toast(`Remove desk failed: ${errorText(e)}`, 'error');
-    }
+    if (await action()) showDesk('controls');
   }
 
   // Alt+1…9: desk N · Alt+0: GLOBAL SETTINGS · Alt+[ / Alt+]: previous / next desk.
@@ -122,7 +46,7 @@
     const digit = /^Digit([0-9])$/.exec(e.code);
     if (digit) {
       const n = Number(digit[1]);
-      if (n === 0) showSystem();
+      if (n === 0) showGlobal();
       else if (presetStore.desks[n - 1]) pick(presetStore.desks[n - 1]!.id);
       else return;
     } else if (e.key === '[' || e.key === ']') {
@@ -137,7 +61,7 @@
 
 <svelte:window {onkeydown} />
 
-<div class="tabs" role="tablist" aria-label="Desks and system">
+<div class="tabs" role="tablist" aria-label="Desks and global settings">
   {#each presetStore.desks as d, i (d.id)}
     {@const h = health(d.id)}
     {@const c = colorVars(d.color)}
@@ -152,7 +76,7 @@
       >
         <span class="chip" aria-hidden="true"></span>
         <span class="name">{d.name}</span>
-        <span class="dot {h}" title="Network: {h}">●</span>{#if presetStore.dirtyIds[d.id]}<span
+        <span class="dot {h}" title="Network: {h}">●</span>{#if presetStore.isDirty(d.id)}<span
             class="dirty"
             title="Unsaved (autosaving)">+</span
           >{/if}
@@ -162,7 +86,7 @@
           class="x"
           title="Remove desk"
           aria-label="Remove desk {d.name}"
-          onclick={() => close(d.id)}><Icon name="close" /></button
+          onclick={() => removeDesk(d.id)}><Icon name="close" /></button
         >
       {/if}
     </div>
@@ -179,14 +103,20 @@
       >
       {#if menuOpen}
         <div class="menu" role="menu">
-          <button role="menuitem" onclick={addBlank}><Icon name="file" /> NEW BLANK DESK</button>
-          <button role="menuitem" onclick={duplicate}
+          <button
+            role="menuitem"
+            onclick={() => fromMenu(() => addDesk(`Desk ${presetStore.desks.length + 1}`))}
+            ><Icon name="file" /> NEW BLANK DESK</button
+          >
+          <button role="menuitem" onclick={() => fromMenu(duplicateDesk)}
             ><Icon name="copy" /> DUPLICATE “{presetStore.current.name}”</button
           >
           {#if closedPresets.length}
             <span class="sep faint">── OPEN SAVED ──</span>
             {#each closedPresets as s (s.id)}
-              <button role="menuitem" onclick={() => openSaved(s.id, s.name)}>▸ {s.name}</button>
+              <button role="menuitem" onclick={() => fromMenu(() => openDesk(s.id, s.name))}
+                >▸ {s.name}</button
+              >
             {/each}
           {/if}
         </div>
@@ -198,17 +128,17 @@
   <span class="gap"></span>
 
   <!-- GLOBAL SETTINGS is not a desk: it's set apart at the end, neutral white, never numbered. -->
-  <div class="tab system" class:on={ui.view === 'system'} role="presentation">
+  <div class="tab global" class:on={ui.view === 'global'} role="presentation">
     <button
       class="pick"
       role="tab"
-      aria-selected={ui.view === 'system'}
+      aria-selected={ui.view === 'global'}
       title="GLOBAL SETTINGS: traffic of all desks, this device, preset library, look (Alt+0)"
-      onclick={() => showSystem()}
+      onclick={() => showGlobal()}
     >
       <Icon name="grid" />
-      <span class="name">GLOBAL<span class="long">SETTINGS</span></span>{#if systemFailing > 0}<span
-          class="badge">{systemFailing}!</span
+      <span class="name">GLOBAL<span class="long">SETTINGS</span></span>{#if globalFailing > 0}<span
+          class="badge">{globalFailing}!</span
         >{/if}
     </button>
   </div>
@@ -253,7 +183,7 @@
   .tab.desk {
     border-color: color-mix(in srgb, var(--tc) 35%, transparent);
   }
-  .tab.system {
+  .tab.global {
     --tc: var(--fg);
     border-color: var(--line-strong);
   }

@@ -2,13 +2,14 @@
   // A fader, built like the Switch: a narrow dithered track in the widget colour that fills
   // with ACTIVE green dots, and a solid cap wider than the track, like a real fader knob, that
   // tracks the exact value 1:1 under the finger. Scale marks sit either side of the track.
-  import { clamp } from '../grid/engine';
-  import type { SliderWidget } from '../model/preset';
-  import { sliderPosition, sliderValue } from '../osc/mapping';
-  import { emitValue } from '../osc/sender';
-  import { tapHaptic, tickHaptic } from '../platform/haptics';
-  import { numberValue } from '../state/values.svelte';
-  import WidgetFrame from './WidgetFrame.svelte';
+  import type { SliderWidget } from '../../model/preset';
+  import { sliderPosition, sliderValue } from '../../osc/curves';
+  import { emitValue } from '../../osc/sender';
+  import { tapHaptic, tickHaptic } from '../../platform/haptics';
+  import { numberValue } from '../../state/values.svelte';
+  import { clamp } from '../../util';
+  import { decimalsFor, doubleTap, dragScale, keyStep } from '../interaction';
+  import WidgetFrame from '../WidgetFrame.svelte';
 
   let { widget, live }: { widget: SliderWidget; live: boolean } = $props();
 
@@ -16,9 +17,7 @@
   const vertical = $derived(p.orientation === 'vertical');
   const value = $derived(numberValue(widget.id, p.defaultValue));
   const pos = $derived(sliderPosition(value, p));
-  const decimals = $derived(
-    p.step >= 1 ? 0 : p.step > 0 ? Math.min(4, String(p.step).split('.')[1]?.length ?? 0) : 3,
-  );
+  const decimals = $derived(decimalsFor(p.step));
 
   /** The track: pointer positions are measured against it, so the cap centres on the finger. */
   let meter = $state<HTMLDivElement>();
@@ -30,7 +29,7 @@
     startPos: number;
   }
   let drag = $state<Drag | null>(null);
-  let lastTap = 0;
+  const isDoubleTap = doubleTap();
 
   const coord = (e: PointerEvent) => (vertical ? e.clientY : e.clientX);
 
@@ -52,14 +51,10 @@
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     const rect = meter.getBoundingClientRect();
     tapHaptic('light');
-    const now = performance.now();
-    if (now - lastTap < 300) {
-      // Double tap: back to default.
-      lastTap = 0;
+    if (isDoubleTap()) {
       emitValue(widget.id, p.defaultValue, true);
       return;
     }
-    lastTap = now;
     drag = { id: e.pointerId, rect, startCoord: coord(e), startPos: pos };
     if (p.touch === 'absolute') setPos(absolutePos(e, rect));
   }
@@ -71,10 +66,8 @@
       return;
     }
     const len = vertical ? drag.rect.height : drag.rect.width;
-    const delta = (coord(e) - drag.startCoord) / len;
-    // Shift (desktop) gives 5x finer control.
-    const fine = e.shiftKey ? 0.2 : 1;
-    setPos(drag.startPos + (vertical ? -delta : delta) * fine);
+    const delta = ((coord(e) - drag.startCoord) / len) * dragScale(e);
+    setPos(drag.startPos + (vertical ? -delta : delta));
   }
 
   function onpointerup(e: PointerEvent) {
@@ -86,13 +79,12 @@
 
   function onkeydown(e: KeyboardEvent) {
     if (!live) return;
-    const stepN = p.step > 0 ? p.step / Math.abs(p.max - p.min || 1) : 0.01;
-    const big = e.shiftKey ? 10 : 1;
+    const step = keyStep(p, e.shiftKey);
     const moves: Record<string, number> = {
-      ArrowUp: stepN * big,
-      ArrowRight: stepN * big,
-      ArrowDown: -stepN * big,
-      ArrowLeft: -stepN * big,
+      ArrowUp: step,
+      ArrowRight: step,
+      ArrowDown: -step,
+      ArrowLeft: -step,
     };
     if (e.key in moves) setPos(pos + moves[e.key]!, true);
     else if (e.key === 'Home') setPos(0, true);
@@ -157,7 +149,7 @@
     height: var(--track);
     translate: 0 -50%;
     border: 1px solid var(--c);
-    background: conic-gradient(at 2px 2px, transparent 75%, var(--c) 0) 0 0 / 4px 4px;
+    background: var(--dither-25-c);
     transition: border-color var(--t-ui) steps(2);
   }
   .vertical .track {
@@ -177,9 +169,7 @@
   .lit {
     position: absolute;
     inset: 0;
-    background:
-      repeating-conic-gradient(var(--act) 0 25%, transparent 0 50%) 0 0 / 4px 4px,
-      var(--w-bg);
+    background: var(--dither-50-act), var(--w-bg);
     clip-path: inset(0 calc((1 - var(--pos)) * 100%) 0 0);
     transition: clip-path var(--t-release) var(--ease-out);
   }

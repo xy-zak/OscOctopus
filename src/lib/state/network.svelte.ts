@@ -3,8 +3,8 @@
 import { net } from '../ipc/commands';
 import { onNetStatus } from '../ipc/events';
 import type { EndpointStatus, NetInterface, NetworkConfig } from '../ipc/types';
+import { errorText } from '../util';
 import { debugStore } from './debug.svelte';
-import { errorText } from './ui.svelte';
 
 export interface Rates {
   txPps: number;
@@ -14,6 +14,14 @@ export interface Rates {
 }
 
 const POLL_MS = 1000;
+
+/** How applying a desk's network config went. */
+export interface ApplyState {
+  applying: boolean;
+  error: string | null;
+  at: number | null;
+}
+const NOT_APPLIED: ApplyState = { applying: false, error: null, at: null };
 
 /** Status-map key for an endpoint of a desk. */
 export const epKey = (desk: string, id: string) => `${desk}\u0000${id}`;
@@ -25,11 +33,11 @@ class NetworkStore {
   interfaces: NetInterface[] = $state.raw([]);
   /** Global output gate, mirrored from Rust (which enforces it). */
   paused = $state(false);
-  applying = $state(false);
-  lastApplyError: string | null = $state(null);
-  lastAppliedAt: number | null = $state(null);
+  /** Per desk. */
+  applyStates: Record<string, ApplyState> = $state({});
 
   private applyTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private applying = new Map<string, number>();
   private prev: { at: number; stats: Record<string, EndpointStatus['stats']> } | null = null;
   private started = false;
 
@@ -95,22 +103,27 @@ class NetworkStore {
     }
   }
 
+  applyState(desk: string): ApplyState {
+    return this.applyStates[desk] ?? NOT_APPLIED;
+  }
+
   async apply(desk: string, config: NetworkConfig) {
     clearTimeout(this.applyTimers.get(desk));
-    this.applying = true;
+    // Applies of one desk can overlap (Rust runs them in order); count them per desk.
+    this.applying.set(desk, (this.applying.get(desk) ?? 0) + 1);
+    const prev = this.applyState(desk);
+    this.applyStates[desk] = { ...prev, applying: true };
     try {
       this.setAll(await net.applyConfig(desk, config));
-      this.lastApplyError = null;
-      this.lastAppliedAt = Date.now();
+      this.applyStates[desk] = { applying: true, error: null, at: Date.now() };
     } catch (e) {
-      this.lastApplyError = errorText(e);
-      debugStore.local(
-        `applying network config failed: ${this.lastApplyError}`,
-        undefined,
-        'network',
-      );
+      const error = errorText(e);
+      this.applyStates[desk] = { ...this.applyState(desk), error };
+      debugStore.local(`applying network config failed: ${error}`, undefined, 'network');
     } finally {
-      this.applying = false;
+      const left = (this.applying.get(desk) ?? 1) - 1;
+      this.applying.set(desk, left);
+      this.applyStates[desk] = { ...this.applyState(desk), applying: left > 0 };
     }
   }
 
@@ -125,6 +138,9 @@ class NetworkStore {
 
   async closeDesk(desk: string) {
     clearTimeout(this.applyTimers.get(desk));
+    this.applyTimers.delete(desk);
+    this.applying.delete(desk);
+    delete this.applyStates[desk];
     try {
       this.setAll(await net.closeDesk(desk));
     } catch (e) {

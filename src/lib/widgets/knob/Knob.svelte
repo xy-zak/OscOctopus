@@ -5,14 +5,16 @@
   //            Value: a number.
   //   endless: an encoder on a full ring. Every `detentPx` of drag is one detent: it sends
   //            {value, delta} with delta = ±deltaStep. A short trail shows the direction.
-  import { clamp } from '../grid/engine';
-  import type { KnobWidget } from '../model/preset';
-  import { isRecord, sliderPosition, sliderValue } from '../osc/mapping';
-  import { emitValue } from '../osc/sender';
-  import { tapHaptic, tickHaptic } from '../platform/haptics';
-  import { values } from '../state/values.svelte';
+  import type { KnobWidget } from '../../model/preset';
+  import { sliderPosition, sliderValue } from '../../osc/curves';
+  import { emitValue } from '../../osc/sender';
+  import { isRecord } from '../../osc/value';
+  import { tapHaptic, tickHaptic } from '../../platform/haptics';
+  import { values } from '../../state/values.svelte';
+  import { clamp } from '../../util';
+  import { decimalsFor, decimalsOf, doubleTap, dragScale, keyStep } from '../interaction';
+  import WidgetFrame from '../WidgetFrame.svelte';
   import { buildRing, capPaths } from './ring';
-  import WidgetFrame from './WidgetFrame.svelte';
 
   let { widget, live }: { widget: KnobWidget; live: boolean } = $props();
 
@@ -67,23 +69,13 @@
   const decimals = $derived(
     endless
       ? // Enough for both the step and the value itself (it may start off the step grid).
-        Math.min(
-          4,
-          Math.max(
-            String(p.deltaStep).split('.')[1]?.length ?? 0,
-            String(value).split('.')[1]?.length ?? 0,
-          ),
-        )
-      : p.step >= 1
-        ? 0
-        : p.step > 0
-          ? Math.min(4, String(p.step).split('.')[1]?.length ?? 0)
-          : 3,
+        Math.max(decimalsOf(p.deltaStep), decimalsOf(value))
+      : decimalsFor(p.step),
   );
 
   let drag = $state<{ id: number; y0: number; pos0: number; acc: number } | null>(null);
   let flash = $state(0);
-  let lastTap = 0;
+  const isDoubleTap = doubleTap();
 
   function setPos(n: number, final = false) {
     const v = sliderValue(clamp(n, 0, 1), p);
@@ -105,20 +97,16 @@
     if (!live || drag) return;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     tapHaptic('light');
-    const now = performance.now();
-    if (now - lastTap < 300) {
-      lastTap = 0;
+    if (isDoubleTap()) {
       emitValue(widget.id, endless ? { value: p.defaultValue, delta: 0 } : p.defaultValue, true);
       return;
     }
-    lastTap = now;
     drag = { id: e.pointerId, y0: e.clientY, pos0: pos, acc: 0 };
   }
 
   function onpointermove(e: PointerEvent) {
     if (!drag || e.pointerId !== drag.id) return;
-    const fine = e.shiftKey ? 0.2 : 1;
-    const dy = (drag.y0 - e.clientY) * fine; // up = more
+    const dy = (drag.y0 - e.clientY) * dragScale(e); // up = more
     if (!endless) {
       setPos(drag.pos0 + dy / RANGE_PX);
       return;
@@ -147,12 +135,8 @@
           : 0;
     if (!dir) return;
     e.preventDefault();
-    const big = e.shiftKey ? 10 : 1;
-    if (endless) turn(dir * big);
-    else {
-      const stepN = p.step > 0 ? p.step / Math.abs(p.max - p.min || 1) : 0.01;
-      setPos(pos + dir * stepN * big, true);
-    }
+    if (endless) turn(dir * (e.shiftKey ? 10 : 1));
+    else setPos(pos + dir * keyStep(p, e.shiftKey), true);
   }
 </script>
 

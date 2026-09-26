@@ -1,6 +1,6 @@
 // Live widget values (not saved in presets). Keyed by widget id; fine-grained reactive, so a
 // fader move only re-renders what reads that fader's value.
-import type { WidgetValue } from '../osc/mapping';
+import type { WidgetValue } from '../osc/value';
 
 export const values: Record<string, WidgetValue> = $state({});
 

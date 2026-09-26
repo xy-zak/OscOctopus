@@ -1,9 +1,11 @@
 // The global look: one palette and accent shared by every desk (a device setting, not part of
 // any preset). Widgets store palette *indices*, so switching palette recolours all desks.
 import { ThemeSchema, type Theme } from '../model/preset';
-import { getSetting, setSetting } from '../platform/settings';
+import { getSetting } from '../platform/settings';
+import { DEFAULT_ACCENT } from '../theme/palettes';
+import { persistSetting } from './persist';
 
-export const DEFAULT_THEME: Theme = { palette: 'rainbow', accent: 5, mode: 'dark' };
+export const DEFAULT_THEME: Theme = { palette: 'rainbow', accent: DEFAULT_ACCENT, mode: 'dark' };
 
 class AppearanceStore {
   theme: Theme = $state({ ...DEFAULT_THEME });
@@ -28,7 +30,7 @@ class AppearanceStore {
   }
 
   private async save() {
-    await setSetting('theme', $state.snapshot(this.theme)).catch(() => {});
+    await persistSetting('theme', $state.snapshot(this.theme));
   }
 }
 

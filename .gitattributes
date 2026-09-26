@@ -1,0 +1,6 @@
+# LF everywhere, so Prettier, rustfmt and generated bindings agree on every OS.
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.icns binary
+*.woff2 binary

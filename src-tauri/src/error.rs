@@ -22,6 +22,9 @@ pub enum AppError {
     #[error("preset error: {0}")]
     Preset(String),
 
+    #[error("{0}")]
+    InvalidPath(String),
+
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
 

@@ -4,7 +4,7 @@
   import { presetStore } from '../lib/state/preset.svelte';
   import { toggleEditMode, ui } from '../lib/state/ui.svelte';
   import Icon from '../lib/ui/Icon.svelte';
-  import { WIDGET_TYPES, WIDGETS } from '../lib/widgets/registry';
+  import { DEFS, WIDGET_TYPES } from '../lib/widgets/defs';
   import DeskPanel from './DeskPanel.svelte';
   import Inspector from './Inspector.svelte';
   import WidgetInfo from './widget/WidgetInfo.svelte';
@@ -59,7 +59,7 @@
       <span class="faint">ADD</span>
       {#each WIDGET_TYPES as t (t)}
         <button class="btn" onclick={() => presetStore.addWidget(t)}
-          ><Icon name="plus" /> {WIDGETS[t].label}</button
+          ><Icon name="plus" /> {DEFS[t].label}</button
         >
       {/each}
       <span class="hint faint"

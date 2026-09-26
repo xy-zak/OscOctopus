@@ -1,6 +1,7 @@
 pub mod commands;
 pub mod debug;
 pub mod error;
+pub mod files;
 pub mod net;
 pub mod osc;
 pub mod presets;
@@ -58,14 +59,10 @@ pub fn run() {
 
             let debug = Arc::new(DebugHub::new(DEBUG_HISTORY, DEBUG_PENDING));
             let status_handle = app.handle().clone();
-            let incoming_handle = app.handle().clone();
             let net = Arc::new(NetworkManager::new(
                 debug.clone(),
                 Arc::new(move |status| {
                     let _ = status_handle.emit("net://status", status);
-                }),
-                Arc::new(move |incoming| {
-                    let _ = incoming_handle.emit("osc://incoming", incoming);
                 }),
             ));
 
@@ -112,8 +109,23 @@ pub fn run() {
             commands::preset_delete,
             commands::preset_read_file,
             commands::preset_export,
-            commands::presets_dir,
+            commands::preset_dir,
         ])
         .run(tauri::generate_context!())
         .expect("error while running OscOctopus");
+}
+
+#[cfg(test)]
+mod tests {
+    /// package.json is the version source (tauri.conf.json points at it); Cargo.toml must match.
+    #[test]
+    fn version_matches_package_json() {
+        let pkg: serde_json::Value =
+            serde_json::from_str(include_str!("../../package.json")).unwrap();
+        assert_eq!(
+            pkg["version"],
+            env!("CARGO_PKG_VERSION"),
+            "bump the version in package.json and src-tauri/Cargo.toml together"
+        );
+    }
 }

@@ -1,10 +1,12 @@
 <script lang="ts">
   // Edit-mode panel when no widget is selected: desk-wide settings and a widget list.
   import { presetStore } from '../lib/state/preset.svelte';
-  import { showSystem, ui } from '../lib/state/ui.svelte';
+  import { LIMITS } from '../lib/model/preset';
+  import { showGlobal, ui } from '../lib/state/ui.svelte';
+  import { colorVars } from '../lib/theme/palettes';
   import Field from '../lib/ui/Field.svelte';
   import NumberInput from '../lib/ui/NumberInput.svelte';
-  import { WIDGETS } from '../lib/widgets/registry';
+  import { DEFS } from '../lib/widgets/defs';
 
   const preset = $derived(presetStore.current);
 </script>
@@ -22,8 +24,7 @@
       <NumberInput
         value={preset.grid.cols}
         integer
-        min={1}
-        max={48}
+        {...LIMITS.gridSide}
         onchange={(cols) => presetStore.setGrid({ cols })}
       />
     </Field>
@@ -31,16 +32,14 @@
       <NumberInput
         value={preset.grid.rows}
         integer
-        min={1}
-        max={48}
+        {...LIMITS.gridSide}
         onchange={(rows) => presetStore.setGrid({ rows })}
       />
     </Field>
     <Field label="Gap px">
       <NumberInput
         value={preset.grid.gap}
-        min={0}
-        max={48}
+        {...LIMITS.gridGap}
         onchange={(gap) => presetStore.setGrid({ gap })}
       />
     </Field>
@@ -48,7 +47,7 @@
 
   <p class="faint">
     Palette and accent are shared by every desk:
-    <button class="link" onclick={() => showSystem('look')}>GLOBAL SETTINGS › LOOK</button>
+    <button class="link" onclick={() => showGlobal('look')}>GLOBAL SETTINGS › LOOK</button>
   </p>
 
   <h2>Widgets</h2>
@@ -56,11 +55,8 @@
     {#each preset.widgets as w (w.id)}
       <li>
         <button class="row" onclick={() => (ui.selectedId = w.id)}>
-          <span
-            class="sw"
-            style:background={w.color === null ? 'var(--accent)' : `var(--p${w.color})`}
-          ></span>
-          <span class="type faint">{WIDGETS[w.type].label.padEnd(6)}</span>
+          <span class="sw" style:background={colorVars(w.color).c}></span>
+          <span class="type faint">{DEFS[w.type].label.padEnd(6)}</span>
           <span class="name">{w.label}</span>
           <span class="faint">{w.x},{w.y} {w.w}×{w.h}</span>
         </button>

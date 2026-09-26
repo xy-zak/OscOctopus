@@ -88,6 +88,27 @@ describe('workspace', () => {
     expect((files.get(deskId) as Preset).name).toBe('Imported desk'); // saved
   });
 
+  it('closing a desk right after an edit still saves the edit', async () => {
+    await presetStore.init();
+    await presetStore.newDesk('Second');
+    const id = presetStore.current.id;
+    presetStore.current.name = 'Renamed';
+    presetStore.touch(); // autosave is still waiting out its debounce
+    expect(await presetStore.closeDesk(id)).toBe(true);
+    expect((files.get(id) as Preset).name).toBe('Renamed');
+  });
+
+  it('flushAll writes pending edits before the app goes away', async () => {
+    await presetStore.init();
+    const id = presetStore.current.id;
+    presetStore.current.name = 'Edited just before quitting';
+    presetStore.touch();
+    expect(presetStore.isDirty(id)).toBe(true);
+    await presetStore.flushAll();
+    expect((files.get(id) as Preset).name).toBe('Edited just before quitting');
+    expect(presetStore.isDirty(id)).toBe(false);
+  });
+
   it('never opens the same preset twice', async () => {
     const p = newPreset('Twice');
     files.set(p.id, p);

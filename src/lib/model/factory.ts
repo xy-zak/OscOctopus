@@ -1,215 +1,22 @@
-// Constructors for new objects with sensible, visible defaults.
+// Constructors for new endpoints and presets with sensible, visible defaults. (Widgets are
+// created by their defs: `newWidget` in widgets/defs.ts.)
+import { INPUT_DEFAULTS, OUTPUT_DEFAULTS } from '../ipc/defaults';
 import type { InputConfig, OutputConfig } from '../ipc/types';
-import {
-  CURRENT_SCHEMA_VERSION,
-  type Axis,
-  type Binding,
-  type ButtonWidget,
-  type GraphWidget,
-  type KnobWidget,
-  type ListWidget,
-  type PadsWidget,
-  type Preset,
-  type SliderWidget,
-  type SwitchWidget,
-  type Widget,
-  type WidgetType,
-} from './preset';
-
-/** Short random id, valid for IdSchema. */
-export function uid(prefix = ''): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(6));
-  const s = Array.from(bytes, (b) => b.toString(36).padStart(2, '0'))
-    .join('')
-    .slice(0, 10);
-  return prefix ? `${prefix}-${s}` : s;
-}
+import { DEFAULT_ACCENT } from '../theme/palettes';
+import { newWidget } from '../widgets/defs';
+import { uid } from './parts';
+import { CURRENT_SCHEMA_VERSION, type Preset, type Widget } from './preset';
 
 export function newOutput(overrides: Partial<OutputConfig> = {}): OutputConfig {
-  return {
-    id: uid('out'),
-    name: 'New output',
-    enabled: true,
-    transport: 'udp',
-    host: '127.0.0.1',
-    port: 9000,
-    mode: 'unicast',
-    bindAddress: '0.0.0.0',
-    localPort: 0,
-    multicastTtl: 1,
-    multicastLoop: true,
-    framing: 'slip',
-    reconnectMs: 1000,
-    ...overrides,
-  };
+  return { ...OUTPUT_DEFAULTS, id: uid('out'), name: 'New output', ...overrides };
 }
 
 export function newInput(overrides: Partial<InputConfig> = {}): InputConfig {
-  return {
-    id: uid('in'),
-    name: 'New input',
-    enabled: true,
-    transport: 'udp',
-    bindAddress: '0.0.0.0',
-    port: 9001,
-    multicastGroup: null,
-    framing: 'slip',
-    ...overrides,
-  };
+  return { ...INPUT_DEFAULTS, id: uid('in'), name: 'New input', ...overrides };
 }
-
-export function newBinding(address: string, outputIds: string[]): Binding {
-  return {
-    id: uid('b'),
-    enabled: true,
-    outputIds,
-    address,
-    args: [{ kind: 'value', type: 'f' }],
-  };
-}
-
-export function newWidget(
-  type: WidgetType,
-  rect: { x: number; y: number; w: number; h: number },
-  outputIds: string[],
-  n = 1,
-): Widget {
-  const base = { id: uid('w'), ...rect, color: null };
-  const intArg = [{ kind: 'value' as const, type: 'i' as const }];
-  switch (type) {
-    case 'button':
-      return {
-        ...base,
-        type: 'button',
-        label: `Button ${n}`,
-        bindings: [{ ...newBinding(`/octopus/button/${n}`, outputIds), args: intArg }],
-        props: {
-          mode: 'momentary',
-          onValue: 1,
-          offValue: 0,
-          arm: 'none',
-          armTimeoutMs: 3000,
-          holdMs: 800,
-        },
-      } satisfies ButtonWidget;
-    case 'switch':
-      return {
-        ...base,
-        type: 'switch',
-        label: `Switch ${n}`,
-        bindings: [{ ...newBinding(`/octopus/switch/${n}`, outputIds), args: intArg }],
-        props: { onValue: 1, offValue: 0 },
-      } satisfies SwitchWidget;
-    case 'slider':
-      return {
-        ...base,
-        type: 'slider',
-        label: `Fader ${n}`,
-        bindings: [newBinding(`/octopus/fader/${n}`, outputIds)],
-        props: {
-          orientation: rect.h >= rect.w ? 'vertical' : 'horizontal',
-          min: 0,
-          max: 1,
-          step: 0,
-          curve: 'linear',
-          touch: 'relative',
-          defaultValue: 0,
-          maxRateHz: 60,
-        },
-      } satisfies SliderWidget;
-    case 'graph': {
-      const axis = (label: string): Axis => ({
-        label,
-        min: 0,
-        max: 1,
-        step: 0,
-        curve: 'linear',
-        defaultValue: 0.5,
-      });
-      // One message per axis by default; a single `,ff x y` message is one click away.
-      const perAxis = (c: 'x' | 'y') => ({
-        ...newBinding(`/octopus/graph/${n}/${c}`, outputIds),
-        args: [{ kind: 'value' as const, type: 'f' as const, channel: c }],
-      });
-      return {
-        ...base,
-        type: 'graph',
-        label: `Graph ${n}`,
-        bindings: [perAxis('x'), perAxis('y')],
-        props: { x: axis('X'), y: axis('Y'), touch: 'absolute', trail: true, maxRateHz: 60 },
-      } satisfies GraphWidget;
-    }
-    case 'knob':
-      return {
-        ...base,
-        type: 'knob',
-        label: `Knob ${n}`,
-        bindings: [newBinding(`/octopus/knob/${n}`, outputIds)],
-        props: {
-          mode: 'bounded',
-          min: 0,
-          max: 1,
-          step: 0,
-          curve: 'linear',
-          defaultValue: 0,
-          deltaStep: 1,
-          detentPx: 12,
-          maxRateHz: 60,
-        },
-      } satisfies KnobWidget;
-    case 'pads':
-      // One message per hit: which pad, and whether it went on or off.
-      return {
-        ...base,
-        type: 'pads',
-        label: `Pads ${n}`,
-        bindings: [
-          {
-            ...newBinding(`/octopus/pads/${n}`, outputIds),
-            args: [
-              { kind: 'value', type: 'i', channel: 'number' },
-              { kind: 'value', type: 'i', channel: 'on' },
-            ],
-          },
-        ],
-        props: { rows: 4, cols: 4, mode: 'momentary' },
-      } satisfies PadsWidget;
-    case 'list':
-      return {
-        ...base,
-        type: 'list',
-        label: `List ${n}`,
-        bindings: [
-          {
-            ...newBinding(`/octopus/list/${n}`, outputIds),
-            args: [{ kind: 'value', type: 'i', channel: 'index' }],
-          },
-        ],
-        props: {
-          options: [
-            { label: 'One', value: '1' },
-            { label: 'Two', value: '2' },
-            { label: 'Three', value: '3' },
-          ],
-          defaultIndex: 0,
-          layout: 'auto',
-        },
-      } satisfies ListWidget;
-  }
-}
-
-export const DEFAULT_SIZE: Record<WidgetType, { w: number; h: number }> = {
-  button: { w: 2, h: 2 },
-  switch: { w: 2, h: 1 },
-  slider: { w: 1, h: 4 },
-  knob: { w: 2, h: 2 },
-  graph: { w: 4, h: 4 },
-  pads: { w: 4, h: 4 },
-  list: { w: 2, h: 3 },
-};
 
 /**
- * First-run preset: one loopback output and a loopback input on the same port, so the Debug
+ * First-run preset: one loopback output and a loopback input on the same port, so the Traffic
  * view immediately shows each packet leaving and arriving. Nothing listens on the LAN.
  * Extra desks pass `loopbackInput: false`: a second listener on the same port would only
  * fail to bind.
@@ -236,7 +43,7 @@ export function newPreset(
   const widgets = layout.map(([w, color]) => ({ ...w, color }));
   return {
     schemaVersion: CURRENT_SCHEMA_VERSION,
-    color: opts.color ?? 5,
+    color: opts.color ?? DEFAULT_ACCENT,
     id: uid('p'),
     name,
     createdAt: now,

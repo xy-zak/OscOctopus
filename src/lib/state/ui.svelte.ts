@@ -1,20 +1,43 @@
 /**
  * Navigation is two-level and scoped by containment:
- * - `view` picks the container: the active desk, or GLOBAL SETTINGS (things that belong to no desk).
- * - each container has its own sections, with names that never repeat across the two.
+ * - `view` picks the container: the active desk, or GLOBAL SETTINGS (things that belong to no
+ *   desk).
+ * - each container has its own sections. Ids are the lower-case UI labels. NETWORK and
+ *   TRAFFIC exist in both containers; the frame colour tells them apart on screen.
  */
-export type View = 'desk' | 'system';
-/** Sections of a desk (shown as CONTROLS · NETWORK · TRAFFIC · PRESET). */
-export type DeskView = 'controls' | 'io' | 'monitor' | 'preset';
-/** Sections of GLOBAL SETTINGS: all traffic, this device's network, the preset library, the look. */
-/** Shown as NETWORK (id 'device') · TRAFFIC · LIBRARY · LOOK. */
-export type SystemView = 'device' | 'traffic' | 'library' | 'look';
+export type View = 'desk' | 'global';
+/** Sections of a desk. */
+export type DeskView = 'controls' | 'network' | 'traffic' | 'preset';
+/** Sections of GLOBAL SETTINGS. */
+export type GlobalView = 'network' | 'traffic' | 'library' | 'look';
 export type Mode = 'live' | 'edit';
+
+export interface Section<Id extends string> {
+  id: Id;
+  label: string;
+  hint: string;
+}
+
+/** In F-key order (F1…F4). */
+export const DESK_SECTIONS: readonly Section<DeskView>[] = [
+  { id: 'controls', label: 'CONTROLS', hint: 'This desk’s widgets: play them, or EDIT them' },
+  { id: 'network', label: 'NETWORK', hint: 'This desk’s OSC outputs and inputs' },
+  { id: 'traffic', label: 'TRAFFIC', hint: 'Traffic of this desk only' },
+  { id: 'preset', label: 'PRESET', hint: 'This desk’s name, colour and preset file' },
+];
+
+/** In F-key order (F1…F4). */
+export const GLOBAL_SECTIONS: readonly Section<GlobalView>[] = [
+  { id: 'network', label: 'NETWORK', hint: 'This device’s interfaces, and every desk’s endpoints' },
+  { id: 'traffic', label: 'TRAFFIC', hint: 'Traffic of all desks together' },
+  { id: 'library', label: 'LIBRARY', hint: 'All saved desk presets on this device' },
+  { id: 'look', label: 'LOOK', hint: 'Background, palette and accent, shared by every desk' },
+];
 
 export const ui = $state({
   view: 'desk' as View,
   deskView: 'controls' as DeskView,
-  systemView: 'device' as SystemView,
+  globalView: 'network' as GlobalView,
   mode: 'live' as Mode,
   /** Edit mode: the widget open in the Inspector. */
   selectedId: null as string | null,
@@ -43,10 +66,6 @@ export function toast(text: string, kind: 'info' | 'error' = 'info') {
   ui.toast = { id: ++toastId, text, kind };
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => (ui.toast = null), kind === 'error' ? 8000 : 2500);
-}
-
-export function errorText(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
 }
 
 export interface ConfirmRequest {
@@ -101,7 +120,28 @@ export function showDesk(section: DeskView = ui.deskView) {
 }
 
 /** Go to a GLOBAL SETTINGS section. */
-export function showSystem(section: SystemView = ui.systemView) {
-  ui.view = 'system';
-  ui.systemView = section;
+export function showGlobal(section: GlobalView = ui.globalView) {
+  ui.view = 'global';
+  ui.globalView = section;
+}
+
+/** The sections of the container on screen. */
+export function currentSections(): readonly Section<DeskView | GlobalView>[] {
+  return ui.view === 'desk' ? DESK_SECTIONS : GLOBAL_SECTIONS;
+}
+
+/** The section shown in the container on screen. */
+export function currentSection(): DeskView | GlobalView {
+  return ui.view === 'desk' ? ui.deskView : ui.globalView;
+}
+
+/** Shows section `i` (F1 = 0) of the container on screen. */
+export function showSectionAt(i: number) {
+  if (ui.view === 'desk') {
+    const s = DESK_SECTIONS[i];
+    if (s) ui.deskView = s.id;
+  } else {
+    const s = GLOBAL_SECTIONS[i];
+    if (s) ui.globalView = s.id;
+  }
 }

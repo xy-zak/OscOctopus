@@ -3,13 +3,13 @@
   //   {number, row, col, on}     (row and col count from 1 at the top-left)
   // through the ordered queue, so fast rolls never lose a hit.
   // Multi-touch: each finger owns the pad it landed on.
-  import type { PadsWidget } from '../model/preset';
-  import { padEvent } from '../osc/mapping';
-  import { emitValue } from '../osc/sender';
-  import { tapHaptic } from '../platform/haptics';
-  import { charWidth } from '../ui/textfit';
-  import Keycap from './Keycap.svelte';
-  import WidgetFrame from './WidgetFrame.svelte';
+  import type { PadsWidget } from '../../model/preset';
+  import { padEvent } from '../../osc/value';
+  import { emitValue } from '../../osc/sender';
+  import { tapHaptic } from '../../platform/haptics';
+  import { charWidth } from '../../ui/textfit';
+  import Keycap from '../Keycap.svelte';
+  import WidgetFrame from '../WidgetFrame.svelte';
 
   let { widget, live }: { widget: PadsWidget; live: boolean } = $props();
 
@@ -129,10 +129,10 @@
       background: var(--act);
     }
     33% {
-      background: repeating-conic-gradient(var(--act) 0 25%, transparent 0 50%) 0 0 / 4px 4px;
+      background: var(--dither-50-act);
     }
     66% {
-      background: conic-gradient(at 2px 2px, transparent 75%, var(--act) 0) 0 0 / 4px 4px;
+      background: var(--dither-25-act);
     }
     100% {
       background: transparent;

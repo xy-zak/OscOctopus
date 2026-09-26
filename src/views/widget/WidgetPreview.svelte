@@ -1,16 +1,12 @@
 <script lang="ts">
   // The exact messages a widget sends at its current value, and where they go.
   import type { Widget } from '../../lib/model/preset';
-  import {
-    buildMessages,
-    formatArg,
-    formatValue,
-    initialValue,
-    typetags,
-  } from '../../lib/osc/mapping';
+  import { formatArg, formatValue, typetags } from '../../lib/osc/format';
+  import { buildMessages } from '../../lib/osc/mapping';
   import { networkStore } from '../../lib/state/network.svelte';
   import { presetStore } from '../../lib/state/preset.svelte';
   import { values } from '../../lib/state/values.svelte';
+  import { initialValue } from '../../lib/widgets/defs';
 
   let { widget }: { widget: Widget } = $props();
 

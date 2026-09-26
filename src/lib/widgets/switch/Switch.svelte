@@ -1,12 +1,12 @@
 <script lang="ts">
   // A slide switch in a frame: a solid block that sits on one half of a dithered track.
   // Tap to flip; or drag the block, which follows the finger and settles on the nearer side.
-  import { clamp } from '../grid/engine';
-  import type { SwitchWidget } from '../model/preset';
-  import { emitValue } from '../osc/sender';
-  import { tapHaptic, tickHaptic } from '../platform/haptics';
-  import { numberValue } from '../state/values.svelte';
-  import WidgetFrame from './WidgetFrame.svelte';
+  import { clamp } from '../../util';
+  import type { SwitchWidget } from '../../model/preset';
+  import { emitValue } from '../../osc/sender';
+  import { tapHaptic, tickHaptic } from '../../platform/haptics';
+  import { numberValue } from '../../state/values.svelte';
+  import WidgetFrame from '../WidgetFrame.svelte';
 
   let { widget, live }: { widget: SwitchWidget; live: boolean } = $props();
 
@@ -117,12 +117,12 @@
     inset: 0;
     border: 1px solid var(--c);
     /* Dithered groove in the widget colour; ACTIVE green when on. */
-    background: conic-gradient(at 2px 2px, transparent 75%, var(--c) 0) 0 0 / 4px 4px;
+    background: var(--dither-25-c);
     transition: border-color var(--t-ui) steps(2);
   }
   .track.on {
     border-color: var(--act);
-    background: conic-gradient(at 2px 2px, transparent 75%, var(--act) 0) 0 0 / 4px 4px;
+    background: var(--dither-25-act);
   }
   .legend {
     position: absolute;

@@ -8,7 +8,7 @@ use tokio::net::UdpSocket;
 
 use super::ctx::Ctx;
 use super::status::EndpointState;
-use super::util::{bind_for, parse_ip, resolve, TaskGroup};
+use super::util::{bind_for, parse_ip, TaskGroup};
 use super::{InputConfig, OutputConfig, UdpMode};
 
 /// Largest possible UDP payload.
@@ -47,12 +47,14 @@ fn into_tokio(socket: Socket) -> std::io::Result<UdpSocket> {
     UdpSocket::from_std(socket.into())
 }
 
-pub(crate) async fn start_output(
+/// Binds an output socket for an already-resolved `target`. The manager resolves hostnames
+/// before it takes the endpoint lock, so this never waits on the network.
+pub(crate) fn start_output(
     cfg: &OutputConfig,
+    target: SocketAddr,
     ctx: &Ctx,
     tasks: &mut TaskGroup,
 ) -> Result<UdpOutput, String> {
-    let target = resolve(&cfg.host, cfg.port).await?;
     let bind_ip = parse_ip("bind address", &cfg.bind_address)?;
     let bind = bind_for(bind_ip, &target, cfg.local_port);
 
@@ -155,7 +157,7 @@ async fn reply_loop(
     }
 }
 
-pub(crate) async fn start_input(
+pub(crate) fn start_input(
     cfg: &InputConfig,
     ctx: &Ctx,
     tasks: &mut TaskGroup,

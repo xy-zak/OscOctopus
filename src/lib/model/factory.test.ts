@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { WIDGET_TYPES } from '../widgets/registry';
-import { newPreset, newWidget, withFreshWidgetIds } from './factory';
+import { newWidget, WIDGET_TYPES } from '../widgets/defs';
+import { newPreset, withFreshWidgetIds } from './factory';
 import { PresetSchema } from './preset';
 
 describe('newPreset', () => {

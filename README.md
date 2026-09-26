@@ -2,7 +2,7 @@
 
 A flexible OSC control desk. Build a dashboard of buttons, switches, faders and XY graphs on a
 grid, bind each one to OSC messages, and send them over UDP (unicast / broadcast / multicast) or TCP (SLIP or
-length-prefix framing). Dashboards are saved as presets. A Debug view shows the exact bytes of
+length-prefix framing). Dashboards are saved as presets. The TRAFFIC view shows the exact bytes of
 every packet sent and received.
 
 **Stack:** Tauri 2 (Rust core) · Svelte 5 + TypeScript · Vite.
@@ -22,23 +22,28 @@ npm run tauri build    # release installer(s) in src-tauri/target/release/bundle
 ```
 
 On first launch you get a demo desk with a **loopback** setup: an output sending to
-`127.0.0.1:9000` and an input listening on `127.0.0.1:9000`. Move a fader, then open **Debug** to
-see each packet leave (`OUT`) and arrive (`IN`) with identical bytes.
+`127.0.0.1:9000` and an input listening on `127.0.0.1:9000`. Move a fader, then open **TRAFFIC**
+(F3) to see each packet leave (`OUT`) and arrive (`IN`) with identical bytes.
 
 ## Scripts
 
 | Command            | What it does                                                        |
 | ------------------ | ------------------------------------------------------------------- |
 | `npm run tauri dev` | Desktop app in dev mode                                            |
-| `npm test`         | Frontend unit tests (Vitest): grid engine, value mapping, throttle, presets, formatting |
+| `npm run verify`   | Every check CI runs: formatting, types, all tests, Rust fmt and clippy |
+| `npm test`         | Frontend unit tests (Vitest): widget defs, grid engine, value mapping, throttle, autosave, presets, formatting |
 | `npm run check`    | Type-check Svelte + TS (`svelte-check`)                            |
-| `npm run bindings` | Regenerate TS types from Rust (`src/lib/ipc/bindings/`, via ts-rs) |
-| `npm run format`   | Prettier                                                           |
-| `cd src-tauri && cargo test` | Rust unit tests + real-socket loopback tests (UDP, TCP SLIP, TCP length-prefix) |
-| `cd src-tauri && cargo clippy --all-targets` | Rust lints                                 |
+| `npm run lint`     | Prettier check + type-check                                        |
+| `npm run bindings` | Regenerate TS types and endpoint defaults from Rust (`src/lib/ipc/bindings/`, via ts-rs) |
+| `npm run format`   | Prettier (write)                                                   |
+| `cd src-tauri && cargo test` | Rust unit tests + real-socket loopback tests (UDP, TCP SLIP / length-prefix, timeouts, client cap) |
+| `cd src-tauri && cargo clippy --all-targets -- -D warnings` | Rust lints                  |
 
-Change a Rust type that crosses IPC → run `npm run bindings` → `npm run check`. Generated files
-in `src/lib/ipc/bindings/` are committed and must not be edited by hand.
+Change a Rust type (or an endpoint default) that crosses IPC → run `npm run bindings` →
+`npm run check`. Generated files in `src/lib/ipc/bindings/` are committed and must not be edited
+by hand; CI fails if they are stale. The version lives in `package.json` (`tauri.conf.json` reads
+it); bump `src-tauri/Cargo.toml` with it (a Rust test checks they match). Changes are listed in
+[CHANGELOG.md](CHANGELOG.md).
 
 ## Using it
 
@@ -110,13 +115,10 @@ The screen always shows **where you are**, by containment:
 - Alt+E edit, Alt+P pause, Alt+L lock.
 - In edit mode: arrows nudge, Del removes, Esc deselects.
 
-## Platform notes
+## Platforms
 
-- **Linux:** needs `webkit2gtk-4.1` and friends. See Tauri's Linux prerequisites.
-  Binding to ports below 1024 requires privileges; use higher ports.
-- **Windows:** the first time the app listens on a non-loopback address, Windows Firewall asks
-  whether to allow it. Say yes for private networks, or inputs will receive nothing from the LAN.
-- **Android:** see [docs/ANDROID.md](docs/ANDROID.md).
-- **macOS / iOS:** see [docs/APPLE.md](docs/APPLE.md).
+What works where, per feature, with setup notes for every OS:
+[docs/PLATFORMS.md](docs/PLATFORMS.md). Mobile setup: [docs/ANDROID.md](docs/ANDROID.md),
+[docs/APPLE.md](docs/APPLE.md).
 
-Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Architecture, conventions, and how to add a widget type: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

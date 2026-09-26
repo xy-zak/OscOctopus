@@ -1,0 +1,27 @@
+{
+  "input": {
+    "bindAddress": "0.0.0.0",
+    "enabled": true,
+    "framing": "slip",
+    "id": "",
+    "multicastGroup": null,
+    "name": "",
+    "port": 9001,
+    "transport": "udp"
+  },
+  "output": {
+    "bindAddress": "0.0.0.0",
+    "enabled": true,
+    "framing": "slip",
+    "host": "127.0.0.1",
+    "id": "",
+    "localPort": 0,
+    "mode": "unicast",
+    "multicastLoop": true,
+    "multicastTtl": 1,
+    "name": "",
+    "port": 9000,
+    "reconnectMs": 1000,
+    "transport": "udp"
+  }
+}

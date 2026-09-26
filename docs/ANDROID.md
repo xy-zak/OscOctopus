@@ -61,7 +61,7 @@ catching broadcast replies, won't work until it is held.
 Plan: a small Tauri mobile plugin (Kotlin) exposing `acquire_multicast_lock` /
 `release_multicast_lock`. `NetworkManager::apply` would call it whenever any enabled input has a
 `multicastGroup` (or listens on 0.0.0.0), and show "multicast lock held" in the endpoint
-status. Until then, the Debug view simply shows nothing arriving, which is the honest signal.
+status. Until then, TRAFFIC simply shows nothing arriving, which is the honest signal.
 
 ## 5. Device notes
 

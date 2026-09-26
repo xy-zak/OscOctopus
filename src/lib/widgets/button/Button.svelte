@@ -9,13 +9,13 @@
   //   hold:   press and keep holding for holdMs while a fill steps up the key; it fires
   //           when full. Letting go early cancels.
   // Nothing is sent until it fires.
-  import type { ButtonWidget } from '../model/preset';
-  import { emitValue } from '../osc/sender';
-  import { tapHaptic } from '../platform/haptics';
-  import { fitsIn } from '../ui/textfit';
-  import { numberValue } from '../state/values.svelte';
-  import Keycap from './Keycap.svelte';
-  import WidgetFrame from './WidgetFrame.svelte';
+  import type { ButtonWidget } from '../../model/preset';
+  import { emitValue } from '../../osc/sender';
+  import { tapHaptic } from '../../platform/haptics';
+  import { fitsIn } from '../../ui/textfit';
+  import { numberValue } from '../../state/values.svelte';
+  import Keycap from '../Keycap.svelte';
+  import WidgetFrame from '../WidgetFrame.svelte';
 
   let { widget, live }: { widget: ButtonWidget; live: boolean } = $props();
 
@@ -91,6 +91,11 @@
       clearTimeout(holdTimer);
       holding = false;
     }
+  });
+  // A removed widget must not fire from a pending hold or arm timer.
+  $effect(() => () => {
+    clearTimeout(armTimer);
+    clearTimeout(holdTimer);
   });
 
   const status = $derived(
@@ -178,7 +183,7 @@
   .armed {
     position: absolute;
     inset: 0;
-    background: repeating-conic-gradient(var(--act) 0 25%, transparent 0 50%) 0 0 / 4px 4px;
+    background: var(--dither-50-act);
     animation: armed-blink 0.6s steps(1) infinite;
   }
   @keyframes armed-blink {
@@ -222,10 +227,10 @@
       background: var(--act);
     }
     33% {
-      background: repeating-conic-gradient(var(--act) 0 25%, transparent 0 50%) 0 0 / 4px 4px;
+      background: var(--dither-50-act);
     }
     66% {
-      background: conic-gradient(at 2px 2px, transparent 75%, var(--act) 0) 0 0 / 4px 4px;
+      background: var(--dither-25-act);
     }
     100% {
       background: transparent;

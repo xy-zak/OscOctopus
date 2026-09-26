@@ -63,7 +63,7 @@ pub struct OscMessage {
     pub args: Vec<OscArg>,
 }
 
-/// A decoded packet, as shown in the debug view.
+/// A decoded packet, as shown in the Traffic view.
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 #[ts(export)]

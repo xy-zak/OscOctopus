@@ -1,6 +1,7 @@
 <script lang="ts">
   import Icon from '../../lib/ui/Icon.svelte';
   import type { OutputConfig } from '../../lib/ipc/types';
+  import { EDITOR_LIMITS, LIMITS } from '../../lib/model/preset';
   import { networkStore } from '../../lib/state/network.svelte';
   import { presetStore } from '../../lib/state/preset.svelte';
   import Field from '../../lib/ui/Field.svelte';
@@ -120,7 +121,7 @@
       </datalist>
     </Field>
     <Field label="Port">
-      <NumberInput bind:value={output.port} integer min={1} max={65535} {onchange} />
+      <NumberInput bind:value={output.port} integer {...EDITOR_LIMITS.knownPort} {onchange} />
     </Field>
     <Field label="Send from (bind)" hint="0.0.0.0 = OS picks interface">
       <input class="input mono" list={bindListId} bind:value={output.bindAddress} {onchange} />
@@ -131,11 +132,11 @@
       </datalist>
     </Field>
     <Field label="Source port" hint="0 = ephemeral">
-      <NumberInput bind:value={output.localPort} integer min={0} max={65535} {onchange} />
+      <NumberInput bind:value={output.localPort} integer {...LIMITS.port} {onchange} />
     </Field>
     {#if output.transport === 'udp' && output.mode === 'multicast'}
       <Field label="TTL / hops">
-        <NumberInput bind:value={output.multicastTtl} integer min={0} max={255} {onchange} />
+        <NumberInput bind:value={output.multicastTtl} integer {...LIMITS.multicastTtl} {onchange} />
       </Field>
       <Field label="Loopback" hint="Receive own packets on this host">
         <Toggle bind:checked={output.multicastLoop} label="Multicast loopback" {onchange} />
@@ -143,7 +144,12 @@
     {/if}
     {#if output.transport === 'tcp'}
       <Field label="Reconnect (ms)">
-        <NumberInput bind:value={output.reconnectMs} integer min={100} max={600000} {onchange} />
+        <NumberInput
+          bind:value={output.reconnectMs}
+          integer
+          {...EDITOR_LIMITS.reconnectMs}
+          {onchange}
+        />
       </Field>
     {/if}
   </div>

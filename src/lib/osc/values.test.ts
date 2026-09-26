@@ -1,19 +1,10 @@
 // The v6 value model: records, lists, note events, placeholders and the new argument types.
 import { describe, expect, it } from 'vitest';
-import { newWidget } from '../model/factory';
 import type { ArgTemplate, Widget } from '../model/preset';
-import {
-  buildArgs,
-  buildMessages,
-  channelValue,
-  fillAddress,
-  formatArg,
-  initialValue,
-  listValue,
-  mergeDeltas,
-  padEvent,
-  typetags,
-} from './mapping';
+import { initialValue, newWidget } from '../widgets/defs';
+import { formatArg, typetags } from './format';
+import { buildArgs, buildMessages, fillAddress } from './mapping';
+import { channelValue, listValue, mergeDeltas, padEvent } from './value';
 
 const val = (
   type: Extract<ArgTemplate, { kind: 'value' }>['type'],

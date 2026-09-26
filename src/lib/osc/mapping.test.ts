@@ -1,18 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { newWidget } from '../model/factory';
-import {
-  buildArg,
-  buildMessages,
-  channelValue,
-  formatArg,
-  formatValue,
-  initialValue,
-  shape,
-  sliderPosition,
-  sliderValue,
-  typetags,
-  unshape,
-} from './mapping';
+import type { ArgTemplate } from '../model/preset';
+import { initialValue, newWidget } from '../widgets/defs';
+import { shape, sliderPosition, sliderValue, unshape } from './curves';
+import { formatArg, formatValue, typetags } from './format';
+import { buildArgs, buildMessages } from './mapping';
+import { channelValue, type WidgetValue } from './value';
+
+/** The single argument a template makes (every type but `...` makes exactly one). */
+const buildArg = (t: ArgTemplate, v: WidgetValue) => buildArgs(t, v)[0];
 
 describe('curves', () => {
   it.each(['linear', 'exp', 'log'] as const)(

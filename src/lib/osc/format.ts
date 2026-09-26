@@ -1,6 +1,59 @@
-// Formatting for the debug view. Pure; tested in format.test.ts.
-import type { OscPacketView } from '../ipc/types';
-import { formatArg } from './mapping';
+// Human-readable text for values, arguments and packets (Traffic view, previews, widget
+// info). Pure; tested in format.test.ts.
+import type { OscArg, OscPacketView } from '../ipc/types';
+import { isList, isRecord, type Scalar, type ValueList, type WidgetValue } from './value';
+
+/** A widget value, e.g. `x 0.5 · y 1` for a record. */
+export function formatValue(v: WidgetValue): string {
+  const one = (x: Scalar | ValueList): string =>
+    isList(x)
+      ? `[${x.map(one).join(' ')}]`
+      : typeof x === 'number'
+        ? String(Number(x.toFixed(4)))
+        : typeof x === 'string'
+          ? JSON.stringify(x)
+          : String(x);
+  if (isRecord(v))
+    return Object.entries(v)
+      .map(([k, x]) => `${k} ${one(x)}`)
+      .join(' · ');
+  return one(v);
+}
+
+/** The typetag string a message will carry, e.g. ",fi". Mirrors OscArg::typetag in Rust. */
+export function typetags(args: OscArg[]): string {
+  const tag = (a: OscArg): string => (a.type === '[' ? `[${a.value.map(tag).join('')}]` : a.type);
+  return ',' + args.map(tag).join('');
+}
+
+export function formatArg(a: OscArg): string {
+  switch (a.type) {
+    case 'f':
+    case 'd':
+      return Number.isInteger(a.value)
+        ? a.value.toFixed(1)
+        : String(Number(a.value.toPrecision(7)));
+    case 's':
+      return JSON.stringify(a.value);
+    case 'c':
+      return `'${a.value}'`;
+    case 'b':
+      return `<blob ${a.value.length}B>`;
+    case 'r':
+      return '#' + a.value.toString(16).padStart(8, '0');
+    case 'm':
+      return `midi(${a.value.map((b) => b.toString(16).padStart(2, '0')).join(' ')})`;
+    case 't':
+      return `time(${a.value.seconds}.${a.value.fractional})`;
+    case '[':
+      return `[${a.value.map(formatArg).join(' ')}]`;
+    case 'i':
+    case 'h':
+      return String(a.value);
+    default:
+      return a.type;
+  }
+}
 
 export interface HexLine {
   offset: string;
@@ -21,10 +74,6 @@ export function hexDump(bytes: readonly number[], width = 16): HexLine[] {
     lines.push({ offset: i.toString(16).padStart(4, '0'), hex, ascii });
   }
   return lines;
-}
-
-export function hexString(bytes: readonly number[]): string {
-  return bytes.map((b) => b.toString(16).padStart(2, '0')).join(' ');
 }
 
 /** HH:MM:SS.mmm local time, plus the microsecond remainder for precise inter-packet timing. */

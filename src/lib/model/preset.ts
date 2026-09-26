@@ -7,6 +7,41 @@ import { PALETTE_IDS, PALETTE_SIZE } from '../theme/palettes';
 
 export const CURRENT_SCHEMA_VERSION = 7;
 
+/**
+ * Every numeric range the schema enforces. The zod schemas below and the editor fields
+ * (`NumberInput min/max`) both read these, so a limit is changed in exactly one place.
+ */
+export const LIMITS = {
+  port: { min: 0, max: 65535 },
+  multicastTtl: { min: 0, max: 255 },
+  reconnectMs: { min: 100 },
+  armTimeoutMs: { min: 300, max: 20000 },
+  holdMs: { min: 200, max: 5000 },
+  detentPx: { min: 2, max: 200 },
+  /** Rows and columns of a pads widget. */
+  padsSide: { min: 1, max: 8 },
+  listOptions: { min: 1, max: 64 },
+  /** Columns and rows of a desk's grid. */
+  gridSide: { min: 1, max: 48 },
+  gridGap: { min: 0, max: 48 },
+} as const;
+
+/**
+ * Editor-only ranges: sensible bounds for typing a value, deliberately not enforced on saved
+ * presets (tightening the schema would reject presets that are valid today).
+ */
+export const EDITOR_LIMITS = {
+  /** A port others must know (an output's target, an input's listen port): 0 would mean "any". */
+  knownPort: { min: 1, max: LIMITS.port.max },
+  reconnectMs: { ...LIMITS.reconnectMs, max: 600_000 },
+  maxRateHz: { min: 0, max: 1000 },
+  deltaStep: { min: 0.000001 },
+} as const;
+
+type Range = { readonly min: number; readonly max?: number };
+const inRange = (n: z.ZodNumber, r: Range) =>
+  r.max === undefined ? n.min(r.min) : n.min(r.min).max(r.max);
+
 export const IdSchema = z
   .string()
   .regex(/^[A-Za-z0-9_-]{1,64}$/, 'ids use 1-64 of A-Z a-z 0-9 - _');
@@ -15,7 +50,7 @@ export const IdSchema = z
 
 const Transport = z.enum(['udp', 'tcp']);
 const TcpFraming = z.enum(['slip', 'lengthPrefix']);
-const Port = z.number().int().min(0).max(65535);
+const Port = inRange(z.number().int(), LIMITS.port);
 
 export const OutputConfigSchema = z.object({
   id: IdSchema,
@@ -27,10 +62,10 @@ export const OutputConfigSchema = z.object({
   mode: z.enum(['unicast', 'broadcast', 'multicast']),
   bindAddress: z.string(),
   localPort: Port,
-  multicastTtl: z.number().int().min(0).max(255),
+  multicastTtl: inRange(z.number().int(), LIMITS.multicastTtl),
   multicastLoop: z.boolean(),
   framing: TcpFraming,
-  reconnectMs: z.number().int().min(100),
+  reconnectMs: inRange(z.number().int(), LIMITS.reconnectMs),
 }) satisfies z.ZodType<OutputConfig>;
 
 export const InputConfigSchema = z.object({
@@ -118,8 +153,8 @@ export const ButtonPropsSchema = z.object({
    * armTimeoutMs), a second press fires · hold: fires only after holding for holdMs.
    */
   arm: z.enum(['none', 'double', 'hold']),
-  armTimeoutMs: z.number().int().min(300).max(20000),
-  holdMs: z.number().int().min(200).max(5000),
+  armTimeoutMs: inRange(z.number().int(), LIMITS.armTimeoutMs),
+  holdMs: inRange(z.number().int(), LIMITS.holdMs),
 });
 export type ButtonProps = z.infer<typeof ButtonPropsSchema>;
 
@@ -176,7 +211,7 @@ export const KnobPropsSchema = z.object({
   /** Endless: size of one detent's delta (sent as channel `delta`). */
   deltaStep: z.number().positive(),
   /** Endless: drag distance in px per detent. */
-  detentPx: z.number().min(2).max(200),
+  detentPx: inRange(z.number(), LIMITS.detentPx),
   maxRateHz: z.number().min(0),
 });
 export type KnobProps = z.infer<typeof KnobPropsSchema>;
@@ -186,8 +221,8 @@ export type KnobProps = z.infer<typeof KnobPropsSchema>;
  * {number, row, col, on}; row and col count from 1 at the top-left.
  */
 export const PadsPropsSchema = z.object({
-  rows: z.number().int().min(1).max(8),
-  cols: z.number().int().min(1).max(8),
+  rows: inRange(z.number().int(), LIMITS.padsSide),
+  cols: inRange(z.number().int(), LIMITS.padsSide),
   /** momentary: on while held · toggle: flips per hit · trigger: on only. */
   mode: z.enum(['momentary', 'toggle', 'trigger']),
 });
@@ -198,7 +233,7 @@ export type ListOption = z.infer<typeof ListOptionSchema>;
 
 /** Pick one of N options. Sends {index, label, value}. */
 export const ListPropsSchema = z.object({
-  options: z.array(ListOptionSchema).min(1).max(64),
+  options: z.array(ListOptionSchema).min(LIMITS.listOptions.min).max(LIMITS.listOptions.max),
   defaultIndex: z.number().int().min(0),
   layout: z.enum(['auto', 'vertical', 'horizontal']),
 });
@@ -255,10 +290,10 @@ export type WidgetType = Widget['type'];
 // ---- Preset ---------------------------------------------------------------------------------
 
 export const GridSchema = z.object({
-  cols: z.number().int().min(1).max(48),
-  rows: z.number().int().min(1).max(48),
+  cols: inRange(z.number().int(), LIMITS.gridSide),
+  rows: inRange(z.number().int(), LIMITS.gridSide),
   /** Gap between cells in CSS px. */
-  gap: z.number().min(0).max(48),
+  gap: inRange(z.number(), LIMITS.gridGap),
 });
 export type Grid = z.infer<typeof GridSchema>;
 

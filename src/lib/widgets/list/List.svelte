@@ -5,13 +5,13 @@
   // the current one is marked quietly (bold, ▸, and n/N in the border). Long vertical lists
   // scroll; selection is on click, so a scroll gesture never selects by accident (the browser
   // cancels the press, which just unlights it). Arrow keys step through the options.
-  import { clamp } from '../grid/engine';
-  import type { ListWidget } from '../model/preset';
-  import { isRecord, listValue } from '../osc/mapping';
-  import { emitValue } from '../osc/sender';
-  import { tapHaptic } from '../platform/haptics';
-  import { values } from '../state/values.svelte';
-  import WidgetFrame from './WidgetFrame.svelte';
+  import { clamp } from '../../util';
+  import type { ListWidget } from '../../model/preset';
+  import { isRecord, listValue } from '../../osc/value';
+  import { emitValue } from '../../osc/sender';
+  import { tapHaptic } from '../../platform/haptics';
+  import { values } from '../../state/values.svelte';
+  import WidgetFrame from '../WidgetFrame.svelte';
 
   let { widget, live }: { widget: ListWidget; live: boolean } = $props();
 
@@ -143,10 +143,10 @@
       background: var(--act);
     }
     33% {
-      background: repeating-conic-gradient(var(--act) 0 25%, transparent 0 50%) 0 0 / 4px 4px;
+      background: var(--dither-50-act);
     }
     66% {
-      background: conic-gradient(at 2px 2px, transparent 75%, var(--act) 0) 0 0 / 4px 4px;
+      background: var(--dither-25-act);
     }
     100% {
       background: transparent;

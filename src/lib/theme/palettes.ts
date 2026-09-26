@@ -14,6 +14,9 @@ export type PaletteId = (typeof PALETTE_IDS)[number];
 
 export const PALETTE_SIZE = 10;
 
+/** Palette index of the default accent, also the first desk's identity colour. */
+export const DEFAULT_ACCENT = 5;
+
 export const PALETTES: Record<PaletteId, { name: string; colors: readonly string[] }> = {
   rainbow: {
     name: 'RAINBOW',

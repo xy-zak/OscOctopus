@@ -49,5 +49,5 @@ export const presets = {
   remove: (id: string) => invoke<void>('preset_delete', { id }),
   readFile: (path: string) => invoke<unknown>('preset_read_file', { path }),
   exportTo: (id: string, path: string) => invoke<void>('preset_export', { id, path }),
-  dir: () => invoke<string>('presets_dir'),
+  dir: () => invoke<string>('preset_dir'),
 };

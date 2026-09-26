@@ -6,16 +6,21 @@
 
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 
 use serde::Serialize;
 use serde_json::Value;
 use ts_rs::TS;
 
 use crate::error::{AppError, AppResult};
+use crate::files::{read_json, require_json, write_atomic};
 use crate::net::NetworkConfig;
 
 /// Refuse to read files larger than this; presets are small.
 const MAX_PRESET_BYTES: u64 = 16 * 1024 * 1024;
+
+/// Saves and deletes run one at a time, so the rename of one save can never race another.
+static WRITE_LOCK: Mutex<()> = Mutex::new(());
 
 #[derive(Debug, Clone, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -50,19 +55,8 @@ fn path_for(dir: &Path, id: &str) -> AppResult<PathBuf> {
     Ok(dir.join(format!("{id}.json")))
 }
 
-fn read_json(path: &Path) -> AppResult<Value> {
-    let len = fs::metadata(path)?.len();
-    if len > MAX_PRESET_BYTES {
-        return Err(AppError::Preset(format!(
-            "{} is {len} bytes; presets are limited to {MAX_PRESET_BYTES}",
-            path.display()
-        )));
-    }
-    Ok(serde_json::from_str(&fs::read_to_string(path)?)?)
-}
-
-/// Checks the fields Rust relies on and returns (id, name).
-fn check_preset(preset: &Value) -> AppResult<(String, String)> {
+/// Checks the fields Rust relies on and summarises the preset.
+fn summary(preset: &Value) -> AppResult<PresetSummary> {
     let obj = preset
         .as_object()
         .ok_or_else(|| AppError::Preset("preset must be a JSON object".into()))?;
@@ -79,19 +73,14 @@ fn check_preset(preset: &Value) -> AppResult<(String, String)> {
         serde_json::from_value::<NetworkConfig>(network.clone())
             .map_err(|e| AppError::Preset(format!("invalid network config: {e}")))?;
     }
-    Ok((id.to_string(), name.to_string()))
-}
-
-fn summary(preset: &Value, file_name: String) -> AppResult<PresetSummary> {
-    let (id, name) = check_preset(preset)?;
     Ok(PresetSummary {
-        id,
-        name,
-        updated_at: preset
+        id: id.to_string(),
+        name: name.to_string(),
+        updated_at: obj
             .get("updatedAt")
             .and_then(Value::as_str)
             .map(str::to_string),
-        file_name,
+        file_name: format!("{id}.json"),
         error: None,
     })
 }
@@ -113,8 +102,12 @@ pub fn list(dir: &Path) -> AppResult<Vec<PresetSummary>> {
             .map(|s| s.to_string_lossy().into_owned())
             .unwrap_or_default();
         out.push(
-            read_json(&path)
-                .and_then(|v| summary(&v, file_name.clone()))
+            read_json(&path, MAX_PRESET_BYTES)
+                .and_then(|v| summary(&v))
+                .map(|s| PresetSummary {
+                    file_name: file_name.clone(),
+                    ..s
+                })
                 .unwrap_or_else(|e| PresetSummary {
                     id: stem.clone(),
                     name: stem,
@@ -129,30 +122,31 @@ pub fn list(dir: &Path) -> AppResult<Vec<PresetSummary>> {
 }
 
 pub fn load(dir: &Path, id: &str) -> AppResult<Value> {
-    read_json(&path_for(dir, id)?)
+    read_json(&path_for(dir, id)?, MAX_PRESET_BYTES)
 }
 
-/// Atomic save: write a temp file, then rename over the old one, so a crash mid-write can
-/// never leave a truncated preset behind.
+/// Validates, then writes atomically and durably (see [`write_atomic`]), so a crash mid-write
+/// can never leave a truncated preset behind.
 pub fn save(dir: &Path, preset: &Value) -> AppResult<PresetSummary> {
-    let (id, _) = check_preset(preset)?;
+    let summary = summary(preset)?;
+    let bytes = serde_json::to_vec_pretty(preset)?;
+    let _serialised = WRITE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     fs::create_dir_all(dir)?;
-    let path = path_for(dir, &id)?;
-    let tmp = path.with_extension("json.tmp");
-    fs::write(&tmp, serde_json::to_vec_pretty(preset)?)?;
-    fs::rename(&tmp, &path)?;
-    summary(preset, format!("{id}.json"))
+    write_atomic(&path_for(dir, &summary.id)?, &bytes)?;
+    Ok(summary)
 }
 
 pub fn delete(dir: &Path, id: &str) -> AppResult<()> {
+    let _serialised = WRITE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     fs::remove_file(path_for(dir, id)?)?;
     Ok(())
 }
 
-/// Reads a preset from an arbitrary user-chosen file (import). Not saved until the frontend
-/// has validated/migrated it and calls `save`.
+/// Reads a preset from a user-chosen `.json` file (import). Not saved until the frontend has
+/// validated/migrated it and calls `save`.
 pub fn read_external(path: &Path) -> AppResult<Value> {
-    let value = read_json(path)?;
+    require_json(path)?;
+    let value = read_json(path, MAX_PRESET_BYTES)?;
     if !value.is_object() {
         return Err(AppError::Preset(
             "file does not contain a JSON object".into(),
@@ -161,7 +155,9 @@ pub fn read_external(path: &Path) -> AppResult<Value> {
     Ok(value)
 }
 
+/// Copies a saved preset to a user-chosen `.json` file.
 pub fn export(dir: &Path, id: &str, dest: &Path) -> AppResult<()> {
+    require_json(dest)?;
     fs::copy(path_for(dir, id)?, dest)?;
     Ok(())
 }
@@ -182,7 +178,11 @@ mod tests {
     fn save_list_load_delete() {
         let dir = temp_dir("crud");
         let preset = json!({ "id": "abc", "name": "Stage", "updatedAt": "2026-01-01T00:00:00Z", "network": { "outputs": [], "inputs": [] } });
-        save(&dir, &preset).unwrap();
+        let saved = save(&dir, &preset).unwrap();
+        assert_eq!(
+            (saved.id.as_str(), saved.file_name.as_str()),
+            ("abc", "abc.json")
+        );
         fs::write(dir.join("broken.json"), "{ not json").unwrap();
 
         let listed = list(&dir).unwrap();
@@ -205,5 +205,43 @@ mod tests {
             &json!({ "id": "ok", "name": "n", "network": { "outputs": [{ "port": "nope" }] } })
         )
         .is_err());
+    }
+
+    #[test]
+    fn import_and_export_only_touch_json_files() {
+        let dir = temp_dir("json-only");
+        save(&dir, &json!({ "id": "p", "name": "n" })).unwrap();
+        assert!(export(&dir, "p", &dir.join("out.txt")).is_err());
+        assert!(read_external(&dir.join("p.txt")).is_err());
+        export(&dir, "p", &dir.join("out.json")).unwrap();
+        assert_eq!(read_external(&dir.join("out.json")).unwrap()["id"], "p");
+        fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn concurrent_saves_of_one_preset_always_leave_valid_json() {
+        let dir = temp_dir("concurrent");
+        let writers: Vec<_> = (0..8)
+            .map(|t| {
+                let dir = dir.clone();
+                std::thread::spawn(move || {
+                    for i in 0..25 {
+                        let name = format!("writer {t} save {i} {}", "x".repeat(2000));
+                        save(&dir, &json!({ "id": "same", "name": name })).unwrap();
+                    }
+                })
+            })
+            .collect();
+        for w in writers {
+            w.join().unwrap();
+        }
+        let saved = load(&dir, "same").unwrap();
+        assert!(saved["name"].as_str().unwrap().starts_with("writer "));
+        assert_eq!(
+            fs::read_dir(&dir).unwrap().count(),
+            1,
+            "temp files left behind"
+        );
+        fs::remove_dir_all(dir).unwrap();
     }
 }

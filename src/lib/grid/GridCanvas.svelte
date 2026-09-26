@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import type { Preset } from '../model/preset';
-  import { componentFor } from '../widgets/registry';
+  import { viewsOf } from '../widgets/registry';
   import GridItem from './GridItem.svelte';
   import { metrics as computeMetrics, editCell, toPx, withEditCell, type Rect } from './engine';
 
@@ -118,7 +118,7 @@
 
   {#if width > 0}
     {#each preset.widgets as w (w.id)}
-      {@const Widget = componentFor(w)}
+      {@const Widget = viewsOf(w).component}
       <GridItem
         id={w.id}
         rect={{ x: w.x, y: w.y, w: w.w, h: w.h }}

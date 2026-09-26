@@ -3,5 +3,11 @@
   "identifier": "default",
   "description": "Permissions for the main window on every platform",
   "windows": ["main"],
-  "permissions": ["core:default", "log:default", "store:default", "dialog:default"]
+  "permissions": [
+    "core:default",
+    "core:window:allow-destroy",
+    "log:default",
+    "store:default",
+    "dialog:default"
+  ]
 }

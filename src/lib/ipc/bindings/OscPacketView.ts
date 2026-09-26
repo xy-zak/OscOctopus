@@ -3,7 +3,7 @@ import type { OscArg } from "./OscArg";
 import type { OscTimeTag } from "./OscTimeTag";
 
 /**
- * A decoded packet, as shown in the debug view.
+ * A decoded packet, as shown in the Traffic view.
  */
 export type OscPacketView = { "kind": "message", address: string, 
 /**

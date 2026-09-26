@@ -8,10 +8,12 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
+    "lint": "prettier --check . && svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --write .",
     "bindings": "cd src-tauri && cargo test export_bindings",
+    "verify": "npm run lint && npm test && cd src-tauri && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test",
     "tauri": "tauri"
   },
   "dependencies": {

@@ -40,7 +40,7 @@ describe('Throttle', () => {
   it('sends immediately, then rate limits and always delivers the last value', async () => {
     const { clock, advance } = fakeClock();
     const sent: number[] = [];
-    const th = new Throttle<number>(async (v) => void sent.push(v), 10, clock);
+    const th = new Throttle<number>(async (v) => void sent.push(v), { maxHz: 10, clock });
     th.push(1);
     await advance(0);
     th.push(2);
@@ -67,8 +67,7 @@ describe('Throttle', () => {
           }),
         );
       },
-      0,
-      clock,
+      { maxHz: 0, clock },
     );
     th.push(1);
     th.push(2);
@@ -84,7 +83,7 @@ describe('Throttle', () => {
   it('flush bypasses the rate limit for the final value', async () => {
     const { clock, advance } = fakeClock();
     const sent: number[] = [];
-    const th = new Throttle<number>(async (v) => void sent.push(v), 1, clock);
+    const th = new Throttle<number>(async (v) => void sent.push(v), { maxHz: 1, clock });
     th.push(1);
     await advance(0);
     th.push(2);
@@ -95,7 +94,7 @@ describe('Throttle', () => {
 
   it('counts failures', async () => {
     const { clock, advance } = fakeClock();
-    const th = new Throttle<number>(() => Promise.reject(new Error('x')), 0, clock);
+    const th = new Throttle<number>(() => Promise.reject(new Error('x')), { maxHz: 0, clock });
     th.push(1);
     await advance(0);
     expect(th.stats.failed).toBe(1);
@@ -106,13 +105,11 @@ describe('Throttle with merge', () => {
   it('merges held-back values instead of replacing them', async () => {
     const { clock, advance } = fakeClock();
     const sent: number[] = [];
-    const t = new Throttle<number>(
-      async (v) => void sent.push(v),
-      10,
+    const t = new Throttle<number>(async (v) => void sent.push(v), {
+      maxHz: 10,
       clock,
-      undefined,
-      (a, b) => a + b,
-    );
+      merge: (a, b) => a + b,
+    });
     t.push(1); // immediate
     t.push(1);
     t.push(1);

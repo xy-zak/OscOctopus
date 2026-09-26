@@ -1,8 +1,7 @@
 <script lang="ts">
   // What actually happened on the wire for this widget, newest first, straight from the debug
   // log (so errors are the OS's own text), plus the throttle's counters.
-  import { formatTime } from '../../lib/osc/format';
-  import { summarize } from '../../lib/osc/format';
+  import { formatTime, summarize } from '../../lib/osc/format';
   import { debugStore } from '../../lib/state/debug.svelte';
   import { showDesk } from '../../lib/state/ui.svelte';
 
@@ -15,7 +14,7 @@
 <section>
   <div class="head">
     <h2>Activity</h2>
-    <button class="btn ghost" onclick={() => showDesk('monitor')}>Traffic</button>
+    <button class="btn ghost" onclick={() => showDesk('traffic')}>Traffic</button>
   </div>
   {#if stats}
     <p class="mono muted stats">

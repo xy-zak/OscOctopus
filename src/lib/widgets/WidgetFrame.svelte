@@ -8,7 +8,7 @@
   import type { Snippet } from 'svelte';
   import type { HTMLAttributes } from 'svelte/elements';
   import { colorVars } from '../theme/palettes';
-  import { charWidth, fitsIn } from '../ui/textfit';
+  import { charWidth, fitsIn, orientFor } from '../ui/textfit';
 
   interface Props extends Omit<HTMLAttributes<HTMLDivElement>, 'color' | 'children' | 'title'> {
     title?: string;
@@ -46,8 +46,9 @@
     const sLen = status ? Array.from(status).length + 2 : 0;
     let titlePos: 'top' | 'left' | 'none' = 'none';
     if (title) {
-      if (fitsIn(title, across, ch)) titlePos = 'top';
-      else if (fitsIn(title, down, ch)) titlePos = 'left';
+      const o = orientFor(title, across, down, ch);
+      if (o === 'horizontal') titlePos = 'top';
+      else if (o === 'vertical') titlePos = 'left';
       else if (across >= 6 * ch) titlePos = 'top'; // truncated with an ellipsis
     }
     let statusPos: 'top' | 'bottom' | 'right' | 'none' = 'none';
@@ -90,7 +91,11 @@
        --c-text   --c used as text (darkened in light mode, see tokens.css --accent-text)
        --w-bg     the widget's background: a neutral grey, whatever its colour
        --act      the app-wide ACTIVE green: pressed, on, filled, held
-       --act-ink  text on an --act fill */
+       --act-ink  text on an --act fill
+     Dither fills (the pixel "tints", see tokens.css), resolved per widget:
+       --dither-50-act  every other pixel ACTIVE green
+       --dither-25-act  one pixel in four ACTIVE green
+       --dither-25-c    one pixel in four in the widget colour (grooves, tracks) */
   .frame {
     --c-text: var(--c);
     --w-bg: color-mix(in srgb, var(--fg) 8%, var(--bg-2));
@@ -98,6 +103,9 @@
     --c-ink: var(--fg);
     --act: var(--active);
     --act-ink: var(--active-ink);
+    --dither-50-act: repeating-conic-gradient(var(--act) 0 25%, transparent 0 50%) 0 0 / 4px 4px;
+    --dither-25-act: conic-gradient(at 2px 2px, transparent 75%, var(--act) 0) 0 0 / 4px 4px;
+    --dither-25-c: conic-gradient(at 2px 2px, transparent 75%, var(--c) 0) 0 0 / 4px 4px;
     position: relative;
     width: 100%;
     height: 100%;

@@ -1,6 +1,7 @@
 <script lang="ts">
   import Icon from '../../lib/ui/Icon.svelte';
   import type { InputConfig } from '../../lib/ipc/types';
+  import { EDITOR_LIMITS } from '../../lib/model/preset';
   import { networkStore } from '../../lib/state/network.svelte';
   import { presetStore } from '../../lib/state/preset.svelte';
   import Field from '../../lib/ui/Field.svelte';
@@ -61,7 +62,7 @@
       </datalist>
     </Field>
     <Field label="Port">
-      <NumberInput bind:value={input.port} integer min={1} max={65535} {onchange} />
+      <NumberInput bind:value={input.port} integer {...EDITOR_LIMITS.knownPort} {onchange} />
     </Field>
     {#if input.transport === 'udp'}
       <Field

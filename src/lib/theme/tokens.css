@@ -158,10 +158,12 @@
   --t-release: 180ms;
   --t-ui: 120ms;
 
-  /* Dither patterns are written inline where used (a var() inside a custom property would be
-     resolved at :root, not per widget):
+  /* Dither patterns (colour C):
        50%: repeating-conic-gradient(C 0 25%, transparent 0 50%) 0 0 / 4px 4px
-       25%: conic-gradient(at 2px 2px, transparent 75%, C 0) 0 0 / 4px 4px */
+       25%: conic-gradient(at 2px 2px, transparent 75%, C 0) 0 0 / 4px 4px
+     A var() inside a custom property resolves where the property is declared, so the widget
+     versions (--dither-50-act, --dither-25-act, --dither-25-c) are declared on each widget's
+     .frame in WidgetFrame.svelte, not here. */
 
   color-scheme: dark;
   transition:

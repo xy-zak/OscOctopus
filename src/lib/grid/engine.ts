@@ -3,6 +3,7 @@
 // The desk is a fixed cols × rows grid that stretches to fill the viewport. Widgets are placed
 // freely; nothing ever moves on its own (no gravity / compaction), because a control surface
 // that rearranges itself breaks muscle memory.
+import { clamp } from '../util';
 
 export interface Rect {
   x: number;
@@ -27,8 +28,6 @@ export interface Metrics {
   cellH: number;
   gap: number;
 }
-
-export const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 export function overlaps(a: Rect, b: Rect): boolean {
   return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;

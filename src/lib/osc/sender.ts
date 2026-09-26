@@ -1,70 +1,77 @@
 // Connects widget interaction to the wire: value → gate → messages → osc_send.
 //
-// Two kinds of gate, chosen by widget type:
-//   - continuous widgets (fader, graph, knob) go through a rate-limited Throttle: under a
-//     fast drag only the newest value matters, and the resting value always goes out.
-//   - discrete widgets (button, switch, pads, list) go through an OrderedQueue: every press,
-//     pad hit or selection is sent, in order, never merged away.
-// The endless knob is continuous but its deltas must add up, so its throttle *merges*
-// held-back values (+1 +1 +1 → +3) instead of replacing them.
+// Each widget's def says how its values travel (`Gate` in widgets/types.ts):
+//   - queue: discrete events (button, switch, pads, list) go through an OrderedQueue: every
+//     press, hit or selection is sent, in order, never merged away.
+//   - throttle: continuous values (fader, graph, bounded knob) go through a rate-limited
+//     Throttle: under a fast drag only the newest value matters, and the resting value
+//     always goes out.
+//   - merge: the endless knob's Throttle merges held-back values (+1 +1 +1 → +3) instead of
+//     replacing them, so no turns are lost.
 import { osc } from '../ipc/commands';
 import type { Widget } from '../model/preset';
 import { debugStore } from '../state/debug.svelte';
 import { presetStore } from '../state/preset.svelte';
-import { errorText } from '../state/ui.svelte';
 import { values } from '../state/values.svelte';
-import { buildMessages, mergeDeltas, type WidgetValue } from './mapping';
+import { errorText } from '../util';
+import { gateFor } from '../widgets/defs';
+import type { Gate } from '../widgets/types';
+import { buildMessages } from './mapping';
 import { OrderedQueue, Throttle, type ThrottleStats } from './throttle';
+import { mergeDeltas, type WidgetValue } from './value';
 
-type Gate = Throttle<WidgetValue> | OrderedQueue<WidgetValue>;
-const gates = new Map<string, Gate>();
+type GateImpl = Throttle<WidgetValue> | OrderedQueue<WidgetValue>;
+const gates = new Map<string, { kind: Gate['kind']; gate: GateImpl }>();
+
+/** Forgets a widget's gate and counters once the widget is gone. */
+function dispose(widgetId: string) {
+  gates.delete(widgetId);
+  delete debugStore.throttle[widgetId];
+}
 
 async function sendNow(widgetId: string, value: WidgetValue) {
   // Look the widget up at send time so edits to its bindings apply immediately. Widgets can
   // live on any open desk; each desk's outputs are its own.
   const found = presetStore.findWidget(widgetId);
-  if (!found) return;
+  if (!found) return dispose(widgetId);
   const { desk, widget } = found;
-  await Promise.all(
+  // Wait for every message of this value before the gate releases, so none of them can be
+  // overtaken by the next value's messages.
+  const results = await Promise.allSettled(
     buildMessages(widget, value).map(({ outputIds, message }) =>
-      osc.send(desk.id, outputIds, message, widgetId).catch((e) => {
+      osc.send(desk.id, outputIds, message, widgetId).catch((e: unknown) => {
         // Rust already logged encode errors; this catches IPC-level failures too.
         debugStore.local(`send ${message.address} failed: ${errorText(e)}`, widgetId);
         throw e;
       }),
     ),
   );
+  const failed = results.find((r) => r.status === 'rejected');
+  if (failed) throw failed.reason;
 }
 
-/** Continuous widgets' rate limit (messages per second), or undefined for discrete ones. */
-export function continuousRate(w: Widget | undefined): number | undefined {
-  if (w?.type === 'slider' || w?.type === 'graph' || w?.type === 'knob') return w.props.maxRateHz;
-  return undefined;
-}
-
-function gateFor(widgetId: string, widget: Widget | undefined): Gate {
-  const rate = continuousRate(widget);
-  const endless = widget?.type === 'knob' && widget.props.mode === 'endless';
-  let gate = gates.get(widgetId);
-  const wantThrottle = rate !== undefined;
-  // Recreate if the widget's kind changed (e.g. a knob switched to endless).
-  const kind = wantThrottle ? (endless ? 'merge' : 'throttle') : 'queue';
-  if (!gate || (gate as Gate & { kind?: string }).kind !== kind) {
-    const onStats = (stats: ThrottleStats) => (debugStore.throttle[widgetId] = { ...stats });
-    gate = wantThrottle
-      ? new Throttle<WidgetValue>(
-          (v) => sendNow(widgetId, v),
-          rate,
-          undefined,
-          onStats,
-          endless ? mergeDeltas : undefined,
-        )
-      : new OrderedQueue<WidgetValue>((v) => sendNow(widgetId, v), onStats);
-    (gate as Gate & { kind?: string }).kind = kind;
-    gates.set(widgetId, gate);
+/** The widget's gate, recreated when its kind changes (e.g. a knob switched to endless). */
+function gateImpl(widgetId: string, widget: Widget): GateImpl {
+  const spec = gateFor(widget);
+  let entry = gates.get(widgetId);
+  if (!entry || entry.kind !== spec.kind) {
+    const send = (v: WidgetValue) => sendNow(widgetId, v);
+    const onStats = (stats: ThrottleStats) => {
+      if (gates.has(widgetId)) debugStore.throttle[widgetId] = { ...stats };
+    };
+    const gate =
+      spec.kind === 'queue'
+        ? new OrderedQueue<WidgetValue>(send, onStats)
+        : new Throttle<WidgetValue>(send, {
+            maxHz: spec.maxHz,
+            onStats,
+            merge: spec.kind === 'merge' ? mergeDeltas : undefined,
+          });
+    entry = { kind: spec.kind, gate };
+    gates.set(widgetId, entry);
   }
-  if (gate instanceof Throttle && rate !== undefined) gate.maxHz = rate;
-  return gate;
+  if (spec.kind !== 'queue' && entry.gate instanceof Throttle) entry.gate.maxHz = spec.maxHz;
+  return entry.gate;
 }
 
 /**
@@ -72,8 +79,10 @@ function gateFor(widgetId: string, widget: Widget | undefined): Gate {
  * which bypasses the rate limit so the resting value always goes out promptly.
  */
 export function emitValue(widgetId: string, value: WidgetValue, final = false) {
+  const widget = presetStore.findWidget(widgetId)?.widget;
+  if (!widget) return;
   values[widgetId] = value;
-  const gate = gateFor(widgetId, presetStore.findWidget(widgetId)?.widget);
+  const gate = gateImpl(widgetId, widget);
   gate.push(value);
   if (final) gate.flush();
 }

@@ -1,4 +1,5 @@
 //! IPC surface. Thin wrappers only: all logic lives in `net`, `debug` and `presets`.
+//! Commands are named `<area>_<verb>`.
 
 use std::path::PathBuf;
 
@@ -8,11 +9,19 @@ use tauri::{State, Webview};
 
 use crate::debug::{DebugBatch, DebugEvent};
 use crate::error::AppResult;
+use crate::files::{require_json, write_atomic};
 use crate::net::interfaces::{self, NetInterface};
 use crate::net::{EndpointStatus, NetworkConfig};
 use crate::osc::OscMessage;
 use crate::presets::{self, PresetSummary};
 use crate::AppState;
+
+/// Runs blocking file I/O on the blocking pool instead of an async worker thread.
+async fn blocking<T: Send + 'static>(
+    f: impl FnOnce() -> AppResult<T> + Send + 'static,
+) -> AppResult<T> {
+    tauri::async_runtime::spawn_blocking(f).await?
+}
 
 /// Applies one desk's network config. Other desks keep running untouched.
 #[tauri::command]
@@ -84,17 +93,19 @@ pub fn debug_subscribe(
     state.debug.history()
 }
 
-/// Writes the debug history Rust holds (not the UI's filtered view) to a JSON file.
+/// Writes the debug history Rust holds (not the UI's filtered view) to a `.json` file.
 #[tauri::command]
 pub async fn debug_export(state: State<'_, AppState>, path: PathBuf) -> AppResult<usize> {
+    require_json(&path)?;
     let events = state.debug.history();
+    let count = events.len();
     let doc = serde_json::json!({
         "exportedAt": crate::debug::now_micros(),
         "totalDropped": state.debug.total_dropped(),
         "events": events,
     });
-    std::fs::write(&path, serde_json::to_vec_pretty(&doc)?)?;
-    Ok(events.len())
+    blocking(move || write_atomic(&path, &serde_json::to_vec_pretty(&doc)?)).await?;
+    Ok(count)
 }
 
 #[tauri::command]
@@ -104,35 +115,40 @@ pub fn debug_clear(state: State<'_, AppState>) {
 
 #[tauri::command]
 pub async fn preset_list(state: State<'_, AppState>) -> AppResult<Vec<PresetSummary>> {
-    presets::list(&state.presets_dir)
+    let dir = state.presets_dir.clone();
+    blocking(move || presets::list(&dir)).await
 }
 
 #[tauri::command]
 pub async fn preset_load(state: State<'_, AppState>, id: String) -> AppResult<Value> {
-    presets::load(&state.presets_dir, &id)
+    let dir = state.presets_dir.clone();
+    blocking(move || presets::load(&dir, &id)).await
 }
 
 #[tauri::command]
 pub async fn preset_save(state: State<'_, AppState>, preset: Value) -> AppResult<PresetSummary> {
-    presets::save(&state.presets_dir, &preset)
+    let dir = state.presets_dir.clone();
+    blocking(move || presets::save(&dir, &preset)).await
 }
 
 #[tauri::command]
 pub async fn preset_delete(state: State<'_, AppState>, id: String) -> AppResult<()> {
-    presets::delete(&state.presets_dir, &id)
+    let dir = state.presets_dir.clone();
+    blocking(move || presets::delete(&dir, &id)).await
 }
 
 #[tauri::command]
 pub async fn preset_read_file(path: PathBuf) -> AppResult<Value> {
-    presets::read_external(&path)
+    blocking(move || presets::read_external(&path)).await
 }
 
 #[tauri::command]
 pub async fn preset_export(state: State<'_, AppState>, id: String, path: PathBuf) -> AppResult<()> {
-    presets::export(&state.presets_dir, &id, &path)
+    let dir = state.presets_dir.clone();
+    blocking(move || presets::export(&dir, &id, &path)).await
 }
 
 #[tauri::command]
-pub fn presets_dir(state: State<'_, AppState>) -> String {
+pub fn preset_dir(state: State<'_, AppState>) -> String {
     state.presets_dir.display().to_string()
 }

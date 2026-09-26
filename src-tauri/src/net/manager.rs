@@ -1,15 +1,17 @@
 use std::collections::{HashMap, HashSet};
+use std::net::SocketAddr;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use tokio::sync::{Mutex, RwLock};
+use tokio::task::JoinSet;
 
-use super::ctx::{Ctx, IncomingListener};
+use super::ctx::Ctx;
 use super::status::{
     key, EndpointKey, EndpointKind, EndpointState, EndpointStats, EndpointStatus, StatusBoard,
     StatusListener,
 };
-use super::util::TaskGroup;
+use super::util::{system_resolver, Resolver, TaskGroup};
 use super::{tcp, udp, InputConfig, NetworkConfig, OutputConfig, Transport};
 use crate::debug::{DebugEvent, DebugHub, DebugKind};
 use crate::error::{AppError, AppResult};
@@ -37,32 +39,50 @@ struct Endpoints {
     inputs: HashMap<EndpointKey, TaskGroup>,
 }
 
+impl Endpoints {
+    /// An endpoint is kept only if its config is identical and it is either disabled or
+    /// actually running; failed endpoints are retried on every apply.
+    fn keeps_output(&self, desk: &str, cfg: &OutputConfig) -> bool {
+        let k = key(desk, &cfg.id);
+        self.output_cfgs.get(&k) == Some(cfg) && (!cfg.enabled || self.outputs.contains_key(&k))
+    }
+
+    fn keeps_input(&self, desk: &str, cfg: &InputConfig) -> bool {
+        let k = key(desk, &cfg.id);
+        self.input_cfgs.get(&k) == Some(cfg) && (!cfg.enabled || self.inputs.contains_key(&k))
+    }
+}
+
 /// Owns every socket. For each desk the frontend describes the desired `NetworkConfig`;
 /// `apply` reconciles that desk's running endpoints against it, restarting only what changed.
 pub struct NetworkManager {
     debug: Arc<DebugHub>,
     board: Arc<StatusBoard>,
-    incoming: IncomingListener,
+    resolver: Resolver,
     endpoints: RwLock<Endpoints>,
+    /// Serialises `apply` calls. The endpoint map itself is write-locked only for the final,
+    /// synchronous commit, so sends keep flowing while an apply waits on DNS.
     apply_lock: Mutex<()>,
     /// Global output gate: when set, nothing is written to any output socket.
     paused: AtomicBool,
 }
 
 impl NetworkManager {
-    pub fn new(
-        debug: Arc<DebugHub>,
-        on_status: StatusListener,
-        incoming: IncomingListener,
-    ) -> Self {
+    pub fn new(debug: Arc<DebugHub>, on_status: StatusListener) -> Self {
         Self {
             debug,
             board: Arc::new(StatusBoard::new(on_status)),
-            incoming,
+            resolver: system_resolver(),
             endpoints: RwLock::new(Endpoints::default()),
             apply_lock: Mutex::new(()),
             paused: AtomicBool::new(false),
         }
+    }
+
+    /// Replaces the hostname resolver (tests use this to simulate slow or failing DNS).
+    pub fn with_resolver(mut self, resolver: Resolver) -> Self {
+        self.resolver = resolver;
+        self
     }
 
     pub fn status(&self) -> Vec<EndpointStatus> {
@@ -114,7 +134,6 @@ impl NetworkManager {
             transport,
             board: self.board.clone(),
             debug: self.debug.clone(),
-            incoming: self.incoming.clone(),
         }
     }
 
@@ -138,56 +157,60 @@ impl NetworkManager {
     }
 
     /// Reconciles one desk's endpoints; other desks are untouched. Returns every status.
+    ///
+    /// Three phases, all under `apply_lock` so no other apply can interleave:
+    /// 1. plan (read lock): which endpoints stay exactly as they are;
+    /// 2. resolve (no endpoint lock): hostnames of UDP outputs about to start, concurrently
+    ///    and with a timeout, so a slow lookup never blocks sends on any desk;
+    /// 3. commit (write lock): stop what was removed or changed, start what is new. Nothing
+    ///    in this phase waits on the network.
     pub async fn apply(&self, desk: &str, config: NetworkConfig) -> AppResult<Vec<EndpointStatus>> {
         validate(desk, &config)?;
         let _serialised = self.apply_lock.lock().await;
+
+        let (keep_out, keep_in): (HashSet<String>, HashSet<String>) = {
+            let eps = self.endpoints.read().await;
+            (
+                config
+                    .outputs
+                    .iter()
+                    .filter(|c| eps.keeps_output(desk, c))
+                    .map(|c| c.id.clone())
+                    .collect(),
+                config
+                    .inputs
+                    .iter()
+                    .filter(|c| eps.keeps_input(desk, c))
+                    .map(|c| c.id.clone())
+                    .collect(),
+            )
+        };
+        let start_outputs: Vec<&OutputConfig> = config
+            .outputs
+            .iter()
+            .filter(|c| !keep_out.contains(&c.id))
+            .collect();
+        let start_inputs: Vec<&InputConfig> = config
+            .inputs
+            .iter()
+            .filter(|c| !keep_in.contains(&c.id))
+            .collect();
+
+        let mut targets = self.resolve_udp_targets(&start_outputs).await;
+
         let mut eps = self.endpoints.write().await;
-
-        // A config is kept only if it is identical and either disabled or actually running;
-        // failed endpoints are retried on every apply.
-        let keep_output = |eps: &Endpoints, cfg: &OutputConfig| {
-            let k = key(desk, &cfg.id);
-            eps.output_cfgs.get(&k) == Some(cfg) && (!cfg.enabled || eps.outputs.contains_key(&k))
-        };
-        let keep_input = |eps: &Endpoints, cfg: &InputConfig| {
-            let k = key(desk, &cfg.id);
-            eps.input_cfgs.get(&k) == Some(cfg) && (!cfg.enabled || eps.inputs.contains_key(&k))
-        };
-        let wanted_outputs: Vec<&OutputConfig> = config
-            .outputs
-            .iter()
-            .filter(|c| !keep_output(&eps, c))
-            .collect();
-        let wanted_inputs: Vec<&InputConfig> = config
-            .inputs
-            .iter()
-            .filter(|c| !keep_input(&eps, c))
-            .collect();
-
-        // 1. Stop everything of this desk that was removed or changed first, so its ports are
-        //    free for the new config.
-        let keep_out: HashSet<&str> = config
-            .outputs
-            .iter()
-            .filter(|c| keep_output(&eps, c))
-            .map(|c| c.id.as_str())
-            .collect();
-        let keep_in: HashSet<&str> = config
-            .inputs
-            .iter()
-            .filter(|c| keep_input(&eps, c))
-            .map(|c| c.id.as_str())
-            .collect();
+        // Stop everything of this desk that was removed or changed first, so its ports are
+        // free for the new config.
         let stop_out: Vec<EndpointKey> = eps
             .output_cfgs
             .keys()
-            .filter(|(d, id)| d == desk && !keep_out.contains(id.as_str()))
+            .filter(|(d, id)| d == desk && !keep_out.contains(id))
             .cloned()
             .collect();
         let stop_in: Vec<EndpointKey> = eps
             .input_cfgs
             .keys()
-            .filter(|(d, id)| d == desk && !keep_in.contains(id.as_str()))
+            .filter(|(d, id)| d == desk && !keep_in.contains(id))
             .cloned()
             .collect();
         for k in stop_out {
@@ -205,8 +228,7 @@ impl NetworkManager {
             self.board.remove(&k);
         }
 
-        // 2. Start new or changed endpoints.
-        for cfg in wanted_outputs {
+        for cfg in start_outputs {
             let k = key(desk, &cfg.id);
             eps.output_cfgs.insert(k.clone(), cfg.clone());
             let ctx = self.ctx(
@@ -222,26 +244,28 @@ impl NetworkManager {
             }
             let mut tasks = TaskGroup::default();
             let started = match cfg.transport {
-                Transport::Udp => udp::start_output(cfg, &ctx, &mut tasks)
-                    .await
+                Transport::Udp => targets
+                    .remove(&cfg.id)
+                    .unwrap_or_else(|| Err("hostname lookup did not complete".into()))
+                    .and_then(|target| udp::start_output(cfg, target, &ctx, &mut tasks))
                     .map(Sender::Udp),
-                Transport::Tcp => tcp::start_output(cfg, &ctx, &mut tasks).map(Sender::Tcp),
+                Transport::Tcp => {
+                    tcp::start_output(cfg, &ctx, &mut tasks, self.resolver.clone()).map(Sender::Tcp)
+                }
             };
             match started {
                 Ok(sender) => {
-                    eps.outputs.insert(
-                        k,
-                        Arc::new(RunningOutput {
-                            ctx,
-                            sender,
-                            _tasks: tasks,
-                        }),
-                    );
+                    let running = RunningOutput {
+                        ctx,
+                        sender,
+                        _tasks: tasks,
+                    };
+                    eps.outputs.insert(k, Arc::new(running));
                 }
                 Err(e) => fail(&ctx, e),
             }
         }
-        for cfg in wanted_inputs {
+        for cfg in start_inputs {
             let k = key(desk, &cfg.id);
             eps.input_cfgs.insert(k.clone(), cfg.clone());
             let ctx = self.ctx(desk, &cfg.id, &cfg.name, EndpointKind::Input, cfg.transport);
@@ -251,8 +275,8 @@ impl NetworkManager {
             }
             let mut tasks = TaskGroup::default();
             let started = match cfg.transport {
-                Transport::Udp => udp::start_input(cfg, &ctx, &mut tasks).await,
-                Transport::Tcp => tcp::start_input(cfg, &ctx, &mut tasks).await,
+                Transport::Udp => udp::start_input(cfg, &ctx, &mut tasks),
+                Transport::Tcp => tcp::start_input(cfg, &ctx, &mut tasks),
             };
             match started {
                 Ok(()) => {
@@ -263,6 +287,29 @@ impl NetworkManager {
         }
         drop(eps);
         Ok(self.board.snapshot())
+    }
+
+    /// Resolves the targets of the enabled UDP outputs that are about to start, concurrently.
+    /// (TCP outputs resolve inside their own reconnect loop.)
+    async fn resolve_udp_targets(
+        &self,
+        outputs: &[&OutputConfig],
+    ) -> HashMap<String, Result<SocketAddr, String>> {
+        let mut lookups = JoinSet::new();
+        for cfg in outputs
+            .iter()
+            .filter(|c| c.enabled && c.transport == Transport::Udp)
+        {
+            let (id, lookup) = (cfg.id.clone(), (self.resolver)(cfg.host.clone(), cfg.port));
+            lookups.spawn(async move { (id, lookup.await) });
+        }
+        let mut targets = HashMap::new();
+        while let Some(done) = lookups.join_next().await {
+            if let Ok((id, target)) = done {
+                targets.insert(id, target);
+            }
+        }
+        targets
     }
 
     /// Stops every endpoint of a desk (the desk was closed).
@@ -314,32 +361,35 @@ impl NetworkManager {
                     Sender::Udp(u) => u.send(&out.ctx, &bytes, source).await,
                     Sender::Tcp(t) => t.send(&out.ctx, &bytes, source).await,
                 },
-                None => {
-                    let status = self.board.get(&k);
-                    let reason = match &status {
-                        Some(s) if s.state == EndpointState::Disabled => {
-                            "output is disabled; packet not sent".into()
-                        }
-                        Some(s) => format!(
-                            "output is not running ({}); packet not sent",
-                            s.detail.clone().unwrap_or_else(|| format!("{:?}", s.state))
-                        ),
-                        None => "no output with this id on this desk; packet not sent".into(),
-                    };
-                    self.debug.push(DebugEvent {
-                        kind: DebugKind::Error,
-                        desk: Some(k.0.clone()),
-                        endpoint_id: k.1.clone(),
-                        endpoint_name: status.map(|s| s.name).unwrap_or_default(),
-                        bytes: bytes.clone(),
-                        error: Some(reason),
-                        source: source.map(str::to_string),
-                        ..Default::default()
-                    });
-                }
+                None => self.not_running(&k, &bytes, source),
             }
         }
         Ok(())
+    }
+
+    /// Records a packet addressed to an output that isn't running, and why.
+    fn not_running(&self, k: &EndpointKey, bytes: &[u8], source: Option<&str>) {
+        let status = self.board.get(k);
+        let reason = match &status {
+            Some(s) if s.state == EndpointState::Disabled => {
+                "output is disabled; packet not sent".into()
+            }
+            Some(s) => format!(
+                "output is not running ({}); packet not sent",
+                s.detail.clone().unwrap_or_else(|| format!("{:?}", s.state))
+            ),
+            None => "no output with this id on this desk; packet not sent".into(),
+        };
+        self.debug.push(DebugEvent {
+            kind: DebugKind::Error,
+            desk: Some(k.0.clone()),
+            endpoint_id: k.1.clone(),
+            endpoint_name: status.map(|s| s.name).unwrap_or_default(),
+            bytes: bytes.to_vec(),
+            error: Some(reason),
+            source: source.map(str::to_string),
+            ..Default::default()
+        });
     }
 
     fn lifecycle(&self, k: &EndpointKey, name: Option<String>, message: &str) {

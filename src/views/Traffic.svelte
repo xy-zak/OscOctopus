@@ -3,15 +3,15 @@
   import { save } from '@tauri-apps/plugin-dialog';
   import { debug as debugIpc } from '../lib/ipc/commands';
   import type { DebugEvent } from '../lib/ipc/types';
-  import { formatBytes, formatTime, hexDump, summarize } from '../lib/osc/format';
-  import { formatArg } from '../lib/osc/mapping';
+  import { formatArg, formatBytes, formatTime, hexDump, summarize } from '../lib/osc/format';
   import { debugStore } from '../lib/state/debug.svelte';
   import { networkStore } from '../lib/state/network.svelte';
   import { presetStore } from '../lib/state/preset.svelte';
-  import { errorText, toast } from '../lib/state/ui.svelte';
+  import { toast } from '../lib/state/ui.svelte';
   import Segmented from '../lib/ui/Segmented.svelte';
   import Toggle from '../lib/ui/Toggle.svelte';
   import VirtualList from '../lib/ui/VirtualList.svelte';
+  import { errorText } from '../lib/util';
 
   type Dir = 'all' | 'out' | 'in';
   type Kind = 'all' | 'packets' | 'lifecycle' | 'errors' | 'blocked';
@@ -20,8 +20,8 @@
   let kind: Kind = $state('all');
   let endpoint = $state('');
   /**
-   * Desk this log is scoped to (a desk's own DEBUG view), or undefined for the global DEBUG
-   * view, which shows every desk plus app-wide events.
+   * Desk this log is scoped to (a desk's own TRAFFIC section), or undefined for GLOBAL
+   * SETTINGS › TRAFFIC, which shows every desk plus app-wide events.
    */
   let { scope }: { scope?: string } = $props();
   let chosenDesk = $state('');
@@ -36,7 +36,7 @@
   // raw: events are plain objects from Rust; a deep proxy would break `===` row matching.
   let selected = $state.raw<DebugEvent | null>(null);
 
-  // The debug log is app-wide: it shows every desk. Endpoint filters are desk-qualified,
+  // The debug log is app-wide: it holds every desk's events. Endpoint filters are desk-qualified,
   // because two desks may reuse the same endpoint id.
   const deskName = (id: string | null) =>
     id ? (presetStore.desks.find((d) => d.id === id)?.name ?? 'closed desk') : '';
@@ -98,6 +98,13 @@
     } catch (e) {
       toast(`Export failed: ${errorText(e)}`, 'error');
     }
+  }
+
+  function copyJson(e: DebugEvent) {
+    navigator.clipboard.writeText(JSON.stringify(e, null, 2)).then(
+      () => toast('Event copied as JSON'),
+      (err: unknown) => toast(`Copy failed: ${errorText(err)}`, 'error'),
+    );
   }
 
   const totalRates = $derived(
@@ -204,11 +211,7 @@
       <aside class="detail scroll">
         <div class="detail-head">
           <h2>Event #{e.seq || 'local'}</h2>
-          <button
-            class="btn ghost"
-            onclick={() => navigator.clipboard.writeText(JSON.stringify(e, null, 2))}
-            >Copy JSON</button
-          >
+          <button class="btn ghost" onclick={() => copyJson(e)}>Copy JSON</button>
         </div>
         <dl class="mono">
           <dt>time</dt>
@@ -239,7 +242,8 @@
           {/if}
           {#if e.source}<dt>widget</dt>
             <dd>
-              {presetStore.widget(e.source)?.label ?? '?'} <span class="faint">{e.source}</span>
+              {presetStore.findWidget(e.source)?.widget.label ?? 'removed widget'}
+              <span class="faint">{e.source}</span>
             </dd>{/if}
           {#if e.message}<dt>note</dt>
             <dd>{e.message}</dd>{/if}

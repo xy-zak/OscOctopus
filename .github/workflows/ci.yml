@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Formatting and types
+        run: npm run lint
+      - name: Unit tests
+        run: npm test
+
+  rust:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: WebKitGTK and friends
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev \
+            librsvg2-dev libxdo-dev libssl-dev
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      # The Rust build embeds the built frontend (tauri.conf.json › frontendDist).
+      - name: Build the frontend
+        run: npm ci && npm run build
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Formatting
+        working-directory: src-tauri
+        run: cargo fmt --check
+      - name: Lints
+        working-directory: src-tauri
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Unit and real-socket loopback tests
+        working-directory: src-tauri
+        run: cargo test
+      # `cargo test` regenerates src/lib/ipc/bindings; committed files must match.
+      - name: Generated bindings are up to date
+        run: git diff --exit-code -- src/lib/ipc/bindings

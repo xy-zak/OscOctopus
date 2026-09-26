@@ -1,5 +1,5 @@
 import { collisions, editCell } from '../grid/engine';
-import { nearestIndex } from '../theme/palettes';
+import { nearestIndex, PALETTE_SIZE } from '../theme/palettes';
 import { CURRENT_SCHEMA_VERSION, GridSchema, PresetSchema, type Preset } from './preset';
 
 type Raw = Record<string, unknown>;
@@ -99,7 +99,7 @@ export class PresetError extends Error {}
 export function colorFromId(id: string): number {
   let h = 0x811c9dc5;
   for (const c of id) h = Math.imul(h ^ c.charCodeAt(0), 0x01000193);
-  return (h >>> 0) % 10;
+  return (h >>> 0) % PALETTE_SIZE;
 }
 
 /** Migrates any known older version to the current schema and validates it. */

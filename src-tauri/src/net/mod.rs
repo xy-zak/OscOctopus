@@ -12,11 +12,12 @@ mod tcp;
 mod udp;
 mod util;
 
-pub use ctx::{IncomingListener, IncomingOsc};
 pub use manager::NetworkManager;
 pub use status::{
     EndpointKind, EndpointState, EndpointStats, EndpointStatus, StatusBoard, StatusListener,
 };
+pub use tcp::{MAX_TCP_CLIENTS, WRITE_TIMEOUT};
+pub use util::{system_resolver, ResolveFuture, Resolver, RESOLVE_TIMEOUT};
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -139,4 +140,24 @@ impl Default for InputConfig {
 pub struct NetworkConfig {
     pub outputs: Vec<OutputConfig>,
     pub inputs: Vec<InputConfig>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Endpoint defaults are owned here, like the types. `npm run bindings` writes them next to
+    /// the generated TS types, and `newOutput()` / `newInput()` in the frontend start from
+    /// them, so the two sides can't drift.
+    #[test]
+    fn export_bindings_network_defaults() {
+        let dir =
+            std::env::var("TS_RS_EXPORT_DIR").unwrap_or_else(|_| "../src/lib/ipc/bindings".into());
+        let defaults = serde_json::json!({
+            "output": OutputConfig::default(),
+            "input": InputConfig::default(),
+        });
+        let text = serde_json::to_string_pretty(&defaults).unwrap() + "\n";
+        std::fs::write(std::path::Path::new(&dir).join("defaults.json"), text).unwrap();
+    }
 }

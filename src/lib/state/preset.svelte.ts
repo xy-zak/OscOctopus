@@ -1,7 +1,8 @@
 // The workspace: every open desk is a preset (layout, widgets, network config), shown
-// as a sub-tab. All open desks' networks run at the same time; editing always happens on the
+// as a tab. All open desks' networks run at the same time; editing always happens on the
 // active desk (`current`). Every mutation goes through `touch()`, which marks the desk dirty,
-// autosaves it, and (for network edits) re-applies that desk's network config.
+// autosaves it (see autosave.svelte.ts), and (for network edits) re-applies that desk's
+// network config.
 import { presets as presetIpc } from '../ipc/commands';
 import type { PresetSummary } from '../ipc/types';
 import {
@@ -12,17 +13,9 @@ import {
   withEditCell,
   type Rect,
 } from '../grid/engine';
-import {
-  DEFAULT_SIZE,
-  newInput,
-  newOutput,
-  newPreset,
-  newWidget,
-  uid,
-  withFreshWidgetIds,
-} from '../model/factory';
+import { newInput, newOutput, newPreset, withFreshWidgetIds } from '../model/factory';
 import { migratePreset } from '../model/migrations';
-import { initialValue } from '../osc/mapping';
+import { uid } from '../model/parts';
 import {
   PresetSchema,
   type Grid,
@@ -30,10 +23,15 @@ import {
   type Widget,
   type WidgetType,
 } from '../model/preset';
-import { getSetting, setSetting } from '../platform/settings';
+import { getSetting } from '../platform/settings';
+import { PALETTE_SIZE } from '../theme/palettes';
+import { errorText } from '../util';
+import { DEFS, initialValue, newWidget } from '../widgets/defs';
 import { appearance } from './appearance.svelte';
+import { Autosave } from './autosave.svelte';
 import { networkStore } from './network.svelte';
-import { errorText, toast, ui } from './ui.svelte';
+import { persistSetting } from './persist';
+import { toast, ui } from './ui.svelte';
 import { values } from './values.svelte';
 
 const AUTOSAVE_MS = 600;
@@ -44,13 +42,11 @@ class PresetStore {
   activeId = $state('');
   summaries: PresetSummary[] = $state.raw([]);
   dir = $state('');
-  /** Desk ids with unsaved changes. */
-  dirtyIds: Record<string, boolean> = $state({});
-  saving = $state(false);
   lastSavedAt: number | null = $state(null);
   saveError: string | null = $state(null);
 
-  private saveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private savesInFlight = $state(0);
+  private autosave = new Autosave((id) => this.writeDesk(id), AUTOSAVE_MS);
   private initialised: Promise<void> | null = null;
   /** A pre-v4 preset's per-desk theme, used once to seed the global palette. */
   private legacyTheme: unknown;
@@ -61,8 +57,17 @@ class PresetStore {
   }
   private placeholder = newPreset('…');
 
+  get saving(): boolean {
+    return this.savesInFlight > 0;
+  }
+
+  /** Whether the active desk has unsaved changes. */
   get dirty(): boolean {
-    return !!this.dirtyIds[this.current.id];
+    return this.isDirty(this.current.id);
+  }
+
+  isDirty(id: string): boolean {
+    return !!this.autosave.dirty[id];
   }
 
   isOpen(id: string): boolean {
@@ -127,28 +132,27 @@ class PresetStore {
 
   /**
    * Adds a desk to the workspace. Widget ids must be unique across open desks (live values
-   * are keyed by widget id), so a desk whose ids collide with an open one gets fresh ids.
+   * are keyed by widget id), so a desk whose ids collide with an open one gets fresh ids
+   * (and is saved with them).
    */
   private register(preset: Preset): Preset {
     const open = this.desks.find((d) => d.id === preset.id);
     if (open) return open;
     const taken = new Set(this.desks.flatMap((d) => d.widgets.map((w) => w.id)));
-    if (preset.widgets.some((w) => taken.has(w.id))) {
-      preset = withFreshWidgetIds(preset);
-      this.dirtyIds[preset.id] = true;
-    }
+    const collides = preset.widgets.some((w) => taken.has(w.id));
+    if (collides) preset = withFreshWidgetIds(preset);
     this.desks.push(preset);
     for (const w of preset.widgets) values[w.id] = initialValue(w);
-    if (this.dirtyIds[preset.id]) this.scheduleSave(preset.id);
+    if (collides) this.autosave.touch(preset.id);
     return preset;
   }
 
   private async persistOpen() {
-    await setSetting(
+    await persistSetting(
       'openDesks',
       this.desks.map((d) => d.id),
-    ).catch(() => {});
-    await setSetting('activeDesk', this.activeId).catch(() => {});
+    );
+    await persistSetting('activeDesk', this.activeId);
   }
 
   activate(id: string) {
@@ -169,8 +173,8 @@ class PresetStore {
   /** First identity colour not used by an open desk, so tabs stay distinguishable. */
   nextDeskColor(): number {
     const used = new Set(this.desks.map((d) => d.color));
-    for (let i = 0; i < 10; i++) if (!used.has(i)) return i;
-    return this.desks.length % 10;
+    for (let i = 0; i < PALETTE_SIZE; i++) if (!used.has(i)) return i;
+    return this.desks.length % PALETTE_SIZE;
   }
 
   async newDesk(name: string) {
@@ -198,11 +202,11 @@ class PresetStore {
   async closeDesk(id: string): Promise<boolean> {
     const i = this.desks.findIndex((d) => d.id === id);
     if (i < 0 || this.desks.length <= 1) return false;
-    await this.flush(id);
+    await this.autosave.flush(id);
     await networkStore.closeDesk(id);
     for (const w of this.desks[i]!.widgets) delete values[w.id];
     this.desks.splice(i, 1);
-    delete this.dirtyIds[id];
+    this.autosave.forget(id);
     if (this.activeId === id) {
       this.activeId = this.desks[Math.min(i, this.desks.length - 1)]!.id;
       ui.selectedId = ui.focusedId = null;
@@ -214,22 +218,19 @@ class PresetStore {
   /** Marks the active desk changed. Pass `network: true` when its network config changed. */
   touch(opts: { network?: boolean } = {}) {
     const desk = this.current;
-    this.dirtyIds[desk.id] = true;
     desk.updatedAt = new Date().toISOString();
-    this.scheduleSave(desk.id);
+    this.autosave.touch(desk.id);
     if (opts.network) networkStore.scheduleApply(desk.id, () => this.snapshot(desk.id).network);
   }
 
-  private scheduleSave(id: string) {
-    clearTimeout(this.saveTimers.get(id));
-    this.saveTimers.set(
-      id,
-      setTimeout(() => void this.save(id), AUTOSAVE_MS),
-    );
+  /** Saves a desk now (after any save of it already in progress). */
+  save(id = this.current.id): Promise<void> {
+    return this.autosave.save(id);
   }
 
-  async flush(id = this.current.id) {
-    if (this.dirtyIds[id]) await this.save(id);
+  /** Writes every pending change of every desk (before the app closes or is backgrounded). */
+  flushAll(): Promise<void> {
+    return this.autosave.flushAll();
   }
 
   /** Validates and writes a preset that is not (yet) open. */
@@ -239,28 +240,29 @@ class PresetStore {
     await this.refreshList();
   }
 
-  async save(id = this.current.id) {
-    clearTimeout(this.saveTimers.get(id));
-    if (!this.isOpen(id)) return;
+  /** The autosave's writer: validates, then writes one open desk. */
+  private async writeDesk(id: string): Promise<boolean> {
+    if (!this.isOpen(id)) return false;
     const snap = this.snapshot(id);
     // Validate before writing: an editor bug must never corrupt a saved preset.
     const check = PresetSchema.safeParse(snap);
     if (!check.success) {
       const issue = check.error.issues[0];
       this.saveError = `${snap.name} not saved: ${issue?.path.join('.')}: ${issue?.message}`;
-      return;
+      return false;
     }
-    this.saving = true;
+    this.savesInFlight++;
     try {
       await presetIpc.save(snap);
-      delete this.dirtyIds[id];
       this.saveError = null;
       this.lastSavedAt = Date.now();
       await this.refreshList();
+      return true;
     } catch (e) {
       this.saveError = errorText(e);
+      return false;
     } finally {
-      this.saving = false;
+      this.savesInFlight--;
     }
   }
 
@@ -309,8 +311,8 @@ class PresetStore {
     for (const w of replaced.widgets) values[w.id] = initialValue(w);
     if (this.activeId === deskId) ui.selectedId = ui.focusedId = null;
     await networkStore.apply(deskId, this.snapshot(deskId).network);
-    this.dirtyIds[deskId] = true;
-    await this.save(deskId);
+    this.autosave.touch(deskId);
+    await this.autosave.save(deskId);
   }
 
   async exportTo(path: string) {
@@ -374,7 +376,7 @@ class PresetStore {
 
   addWidget(type: WidgetType) {
     const { grid, widgets } = this.current;
-    const spot = findFreeSpot(DEFAULT_SIZE[type], grid, withEditCell(widgets, grid));
+    const spot = findFreeSpot(DEFS[type].defaultSize, grid, withEditCell(widgets, grid));
     if (!spot) {
       toast('No free space on the grid: resize the grid or remove a widget', 'error');
       return;

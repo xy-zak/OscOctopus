@@ -12,19 +12,22 @@
   //
   // Everything inside the frame belongs to the tab it hangs from. NETWORK and TRAFFIC exist in
   // both a desk and GLOBAL SETTINGS; the frame's colour (the desk's own, or white) says which.
+  import { getCurrentWindow } from '@tauri-apps/api/window';
   import { onMount } from 'svelte';
   import { isTauri } from './lib/ipc/commands';
-  import { getSetting, setSetting } from './lib/platform/settings';
+  import { getSetting } from './lib/platform/settings';
   import { appearance } from './lib/state/appearance.svelte';
   import { debugStore } from './lib/state/debug.svelte';
   import { networkStore } from './lib/state/network.svelte';
+  import { persistSetting } from './lib/state/persist';
   import { presetStore } from './lib/state/preset.svelte';
   import {
-    errorText,
+    currentSection,
+    currentSections,
+    showGlobal,
+    showSectionAt,
     toggleEditMode,
     ui,
-    type DeskView,
-    type SystemView,
   } from './lib/state/ui.svelte';
   import { colorVars, paletteVars } from './lib/theme/palettes';
   import ConfirmDialog from './lib/ui/ConfirmDialog.svelte';
@@ -32,14 +35,15 @@
   import LockButton from './lib/ui/LockButton.svelte';
   import PixelLogo from './lib/ui/PixelLogo.svelte';
   import { measureCharWidth } from './lib/ui/textfit';
+  import { errorText } from './lib/util';
   import ContainerTabs from './views/ContainerTabs.svelte';
-  import Debug from './views/Debug.svelte';
   import Desk from './views/Desk.svelte';
+  import DeskNetwork from './views/DeskNetwork.svelte';
   import DeskPreset from './views/DeskPreset.svelte';
   import GlobalNetwork from './views/GlobalNetwork.svelte';
   import Library from './views/Library.svelte';
   import Look from './views/Look.svelte';
-  import Network from './views/Network.svelte';
+  import Traffic from './views/Traffic.svelte';
 
   let ready = $state(false);
   let fatal: string | null = $state(null);
@@ -68,18 +72,35 @@
     }
   });
 
+  // Edits autosave after a short pause; write whatever is still pending before the window
+  // closes, and whenever the app is hidden (a phone may kill a backgrounded app unasked).
+  // Closing waits for the flush, but never longer than FLUSH_ON_CLOSE_MS.
+  const FLUSH_ON_CLOSE_MS = 3000;
+  onMount(() => {
+    const flush = () => presetStore.flushAll().catch(() => {});
+    const flushBeforeClose = () =>
+      Promise.race([flush(), new Promise((r) => setTimeout(r, FLUSH_ON_CLOSE_MS))]).then(() => {});
+    const onHidden = () => document.hidden && void flush();
+    document.addEventListener('visibilitychange', onHidden);
+    const unlisten = isTauri() ? getCurrentWindow().onCloseRequested(flushBeforeClose) : null;
+    return () => {
+      document.removeEventListener('visibilitychange', onHidden);
+      void unlisten?.then((stop) => stop());
+    };
+  });
+
   // Remember per-device state: info panel, LOCK and PAUSE survive restarts.
   $effect(() => {
     const open = ui.infoOpen;
-    if (ready) void setSetting('infoOpen', open).catch(() => {});
+    if (ready) void persistSetting('infoOpen', open);
   });
   $effect(() => {
     const locked = ui.locked;
-    if (ready) void setSetting('locked', locked).catch(() => {});
+    if (ready) void persistSetting('locked', locked);
   });
   $effect(() => {
     const paused = networkStore.paused;
-    if (ready) void setSetting('paused', paused).catch(() => {});
+    if (ready) void persistSetting('paused', paused);
   });
 
   function setLocked(locked: boolean) {
@@ -108,23 +129,9 @@
   const allFailing = $derived(
     Object.values(networkStore.statuses).filter((s) => s.state === 'error').length,
   );
-
-  const deskSections: { id: DeskView; label: string; hint: string }[] = [
-    { id: 'controls', label: 'CONTROLS', hint: 'This desk’s widgets: play them, or EDIT them' },
-    { id: 'io', label: 'NETWORK', hint: 'This desk’s OSC outputs and inputs' },
-    { id: 'monitor', label: 'TRAFFIC', hint: 'Traffic of this desk only' },
-    { id: 'preset', label: 'PRESET', hint: 'This desk’s name, colour and preset file' },
-  ];
-  const systemSections: { id: SystemView; label: string; hint: string }[] = [
-    {
-      id: 'device',
-      label: 'NETWORK',
-      hint: 'This device’s interfaces, and every desk’s endpoints',
-    },
-    { id: 'traffic', label: 'TRAFFIC', hint: 'Traffic of all desks together' },
-    { id: 'library', label: 'LIBRARY', hint: 'All saved desk presets on this device' },
-    { id: 'look', label: 'LOOK', hint: 'Background, palette and accent, shared by every desk' },
-  ];
+  /** Failing endpoints to badge on a section: this desk's, or every desk's. */
+  const failing = (id: string) =>
+    id !== 'network' ? 0 : ui.view === 'desk' ? deskFailing : allFailing;
 
   // The frame takes the active container's colour: the desk's identity colour, or neutral
   // white for GLOBAL SETTINGS.
@@ -137,9 +144,7 @@
   function onkeydown(e: KeyboardEvent) {
     const f = /^F([1-4])$/.exec(e.key);
     if (f && !e.altKey && !e.ctrlKey && !e.metaKey) {
-      const i = Number(f[1]) - 1;
-      if (ui.view === 'desk') ui.deskView = deskSections[i]!.id;
-      else ui.systemView = systemSections[i]!.id;
+      showSectionAt(Number(f[1]) - 1);
       e.preventDefault();
       return;
     }
@@ -186,7 +191,7 @@
         class="net"
         class:bad={allFailing > 0}
         class:ok={allFailing === 0 && readyOutputs === outputs.length && outputs.length > 0}
-        onclick={() => ((ui.view = 'system'), (ui.systemView = 'device'))}
+        onclick={() => showGlobal('network')}
         title="Outputs ready / enabled across all desks · messages per second"
       >
         <span class="led">●</span>{readyOutputs}/{outputs.length} OUT<span class="rate"
@@ -211,20 +216,15 @@
   <section class="frame" aria-label={ui.view === 'desk' ? `Desk ${desk.name}` : 'Global settings'}>
     <div class="frame-head">
       <nav class="sections" aria-label="Sections">
-        {#each ui.view === 'desk' ? deskSections : systemSections as s, i (s.id)}
-          {@const on = (ui.view === 'desk' ? ui.deskView : ui.systemView) === s.id}
+        {#each currentSections() as s, i (s.id)}
+          {@const bad = failing(s.id)}
           <button
             class="section"
-            class:on
+            class:on={currentSection() === s.id}
             title="{s.hint} (F{i + 1})"
-            onclick={() => {
-              if (ui.view === 'desk') ui.deskView = s.id as DeskView;
-              else ui.systemView = s.id as SystemView;
-            }}
+            onclick={() => showSectionAt(i)}
             ><span class="fkey">F{i + 1}</span><span class="section-label">{s.label}</span
-            >{#if (s.id === 'io' && deskFailing > 0) || (s.id === 'device' && allFailing > 0)}<span
-                class="badge">{s.id === 'io' ? deskFailing : allFailing}!</span
-              >{/if}</button
+            >{#if bad > 0}<span class="badge">{bad}!</span>{/if}</button
           >
         {/each}
       </nav>
@@ -253,20 +253,20 @@
       {:else if ui.view === 'desk'}
         {#if ui.deskView === 'controls'}
           <Desk />
-        {:else if ui.deskView === 'io'}
-          <Network />
-        {:else if ui.deskView === 'monitor'}
+        {:else if ui.deskView === 'network'}
+          <DeskNetwork />
+        {:else if ui.deskView === 'traffic'}
           {#key desk.id}
-            <Debug scope={desk.id} />
+            <Traffic scope={desk.id} />
           {/key}
         {:else}
           <DeskPreset />
         {/if}
-      {:else if ui.systemView === 'traffic'}
-        <Debug />
-      {:else if ui.systemView === 'device'}
+      {:else if ui.globalView === 'network'}
         <GlobalNetwork />
-      {:else if ui.systemView === 'library'}
+      {:else if ui.globalView === 'traffic'}
+        <Traffic />
+      {:else if ui.globalView === 'library'}
         <Library />
       {:else}
         <Look />

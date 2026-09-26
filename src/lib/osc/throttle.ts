@@ -27,20 +27,36 @@ const realClock: Clock = {
   clearTimeout: (h) => clearTimeout(h as ReturnType<typeof setTimeout>),
 };
 
+export interface ThrottleOptions<T> {
+  /** Sends per second while values keep coming; 0 = no limit (still one in flight). */
+  maxHz: number;
+  /** Combines a held-back value with the next one instead of replacing it. */
+  merge?: (held: T, next: T) => T;
+  onStats?: (s: ThrottleStats) => void;
+  clock?: Clock;
+}
+
 export class Throttle<T> {
   readonly stats: ThrottleStats = { sent: 0, coalesced: 0, failed: 0 };
+  /** Can be changed at any time (the widget's rate setting was edited). */
+  maxHz: number;
   private pending: { value: T } | null = null;
   private inFlight = false;
   private lastSend = -Infinity;
   private timer: unknown = null;
+  private readonly clock: Clock;
+  private readonly merge?: (held: T, next: T) => T;
+  private readonly onStats?: (s: ThrottleStats) => void;
 
   constructor(
-    private send: (value: T) => Promise<unknown>,
-    public maxHz: number,
-    private clock: Clock = realClock,
-    private onStats?: (s: ThrottleStats) => void,
-    private merge?: (held: T, next: T) => T,
-  ) {}
+    private readonly send: (value: T) => Promise<unknown>,
+    opts: ThrottleOptions<T>,
+  ) {
+    this.maxHz = opts.maxHz;
+    this.clock = opts.clock ?? realClock;
+    this.merge = opts.merge;
+    this.onStats = opts.onStats;
+  }
 
   push(value: T): void {
     if (this.pending) {
