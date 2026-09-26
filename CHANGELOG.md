@@ -47,6 +47,8 @@ Scripts.
 - **The Inspector is in foldable sections:** VISUAL, INTERACTION, MESSAGES (with the preview)
   and ACTIVITY (folded by default). The LIVE info panel has the same look: VALUE, MESSAGES and
   ACTIVITY. Which ones are open is remembered per device.
+- **The app icon is the pixel octopus** from the UI, in the default accent on a transparent
+  background, drawn pixel-exact at every size (`scripts/make_icons.py`).
 - **The EDIT / LIVE switch is a toggle switch in one cell:** it takes only the top-right cell
   (it used to take two). Its bat lever flips left for LIVE (green) and right for EDIT. The lamp
   is gone.

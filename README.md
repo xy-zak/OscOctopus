@@ -40,6 +40,7 @@ On first launch you get a demo desk with a **loopback** setup: an output sending
 | `npm run lint`     | Prettier check + type-check                                        |
 | `npm run bindings` | Regenerate TS types and endpoint defaults from Rust (`src/lib/ipc/bindings/`, via ts-rs) |
 | `npm run format`   | Prettier (write)                                                   |
+| `python scripts/make_icons.py <dir>` | Re-render the app icons from the UI's pixel octopus (needs Pillow; see the script) |
 | `cd src-tauri && cargo test` | Rust unit tests + real-socket tests: loopback (UDP, TCP SLIP / length-prefix, timeouts, client cap), input mapping, and sync between two apps (auth, wrong key, duplicates, chunking, bans, rate limits) |
 | `cd src-tauri && cargo clippy --all-targets -- -D warnings` | Rust lints                  |
 
