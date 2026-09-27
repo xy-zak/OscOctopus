@@ -3,7 +3,7 @@
   //
   //   ▓ global banners (LOCKED / PAUSED): the whole app, full width, above everything
   //   ┌ top bar ────────────────────────────────────────────────────────────────────────┐
-  //   │ logo  [DESK A][DESK B][+]              [GLOBAL SETTINGS] │ out · PAUSE · LOCK             │
+  //   │ logo  [DESK A][DESK B][+]     [GLOBAL SETTINGS] │ out · OSC-IN · OSC-OUT · LOCK · PRESENT │
   //   └──────╥──────────────────────────────────────────────────────────────────────────┘
   //   ╔══════╝ frame in the active container's colour ═════════════════════════════════╗
   //   ║ F1 CONTROLS  F2 NETWORK  F3 TRAFFIC  F4 PRESET  F5 SYNC                           ║
@@ -12,6 +12,9 @@
   //
   // Everything inside the frame belongs to the tab it hangs from. NETWORK, TRAFFIC and SYNC exist
   // in both a desk and GLOBAL SETTINGS; the frame's colour (the desk's own, or white) says which.
+  //
+  // PRESENTING keeps only the desk tabs and the switches (OSC-IN · OSC-OUT · LOCK · PRESENT) in
+  // the top bar, exactly where they were, and the frame holds nothing but the desk's widgets.
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { onMount } from 'svelte';
   import { isTauri } from './lib/ipc/commands';
@@ -29,6 +32,7 @@
   import {
     currentSection,
     currentSections,
+    setPresenting,
     showGlobal,
     showSectionAt,
     toggleEditMode,
@@ -37,7 +41,7 @@
   import { applySkinSheets } from './lib/skins/sheets';
   import { colorVars, paletteVars } from './lib/theme/palettes';
   import ConfirmDialog from './lib/ui/ConfirmDialog.svelte';
-  import LockButton from './lib/ui/LockButton.svelte';
+  import HoldSwitch from './lib/ui/HoldSwitch.svelte';
   import PixelLogo from './lib/ui/PixelLogo.svelte';
   import { measureCharWidth } from './lib/ui/textfit';
   import { errorText } from './lib/util';
@@ -74,6 +78,7 @@
       await startReceiver();
       await inputStore.setEnabled((await getSetting('inputEnabled')) ?? true);
       ui.locked = (await getSetting('locked')) ?? false;
+      setPresenting((await getSetting('presenting')) ?? false);
       await presetStore.init();
       await skinStore.load();
       ui.infoOpen = (await getSetting('infoOpen')) ?? true;
@@ -106,7 +111,7 @@
     };
   });
 
-  // Remember per-device state: info panel, LOCK and PAUSE survive restarts.
+  // Remember per-device state: info panel, LOCK, PAUSE and PRESENTING survive restarts.
   $effect(() => {
     const open = ui.infoOpen;
     if (ready) void persistSetting('infoOpen', open);
@@ -114,6 +119,10 @@
   $effect(() => {
     const locked = ui.locked;
     if (ready) void persistSetting('locked', locked);
+  });
+  $effect(() => {
+    const presenting = ui.presenting;
+    if (ready) void persistSetting('presenting', presenting);
   });
   $effect(() => {
     const paused = networkStore.paused;
@@ -146,6 +155,31 @@
   // User skins' stylesheets (built-in skins are in app.css).
   $effect(() => applySkinSheets(skinStore.user));
 
+  // PRESENTING fills the screen: on desktop the window goes fullscreen with it, and back on
+  // EXIT unless it was fullscreen already (phones are full screen anyway). One call at a time,
+  // so a quick on-off-on still ends in the right state.
+  let madeFullscreen = false;
+  let fullscreenQueue = Promise.resolve();
+  async function followPresenting(on: boolean) {
+    const win = getCurrentWindow();
+    if (on && !(await win.isFullscreen())) {
+      await win.setFullscreen(true);
+      madeFullscreen = true;
+    } else if (!on && madeFullscreen) {
+      madeFullscreen = false;
+      await win.setFullscreen(false);
+    }
+  }
+  $effect(() => {
+    const on = ui.presenting;
+    if (!ready) return;
+    fullscreenQueue = fullscreenQueue
+      .then(() => followPresenting(on))
+      .catch((e: unknown) =>
+        debugStore.local(`could not ${on ? 'enter' : 'leave'} fullscreen: ${errorText(e)}`),
+      );
+  });
+
   const desk = $derived(presetStore.current);
   const deskFailing = $derived(
     networkStore.forDesk(desk.id).filter((s) => s.state === 'error').length,
@@ -163,21 +197,40 @@
     ui.view === 'desk' ? colorVars(desk.color) : { c: 'var(--fg)', ink: 'var(--bg)' },
   );
 
-  // F1…F5: sections of whatever container you're in. Alt+E edit, Alt+P pause, Alt+I input,
-  // Alt+L lock (unlocking needs the press-and-hold on LOCK, never a single keystroke).
+  // The hold-to-change switches, so their Alt shortcuts can hold them too.
+  let inSwitch: ReturnType<typeof HoldSwitch> | undefined = $state();
+  let outSwitch: ReturnType<typeof HoldSwitch> | undefined = $state();
+  let lockSwitch: ReturnType<typeof HoldSwitch> | undefined = $state();
+  /** The switch an Alt shortcut is holding, and that key's code. */
+  let held: { sw: ReturnType<typeof HoldSwitch>; code: string } | null = null;
+
+  // F1…F5: sections of whatever container you're in. F11 presents and back; Esc also stops
+  // presenting. Alt+E edit. Alt+I OSC-IN, Alt+P OSC-OUT and Alt+L LOCK are held like their
+  // switches: one second, on and off alike, never a single keystroke.
   function onkeydown(e: KeyboardEvent) {
+    const plain = !e.altKey && !e.ctrlKey && !e.metaKey;
     const f = /^F([1-5])$/.exec(e.key);
-    if (f && !e.altKey && !e.ctrlKey && !e.metaKey) {
+    if (f && plain) {
       showSectionAt(Number(f[1]) - 1);
+      e.preventDefault();
+      return;
+    }
+    // An Esc that closes a dialog (before or after this handler) is only for the dialog.
+    const stop = e.key === 'Escape' && ui.presenting && !ui.confirm && !e.defaultPrevented;
+    if (plain && (e.key === 'F11' || stop)) {
+      setPresenting(!ui.presenting);
       e.preventDefault();
       return;
     }
     if (!e.altKey || e.ctrlKey || e.metaKey) return;
     const k = e.key.toLowerCase();
-    if (k === 'e' && ui.view === 'desk') toggleEditMode();
-    else if (k === 'p') void networkStore.setPaused(!networkStore.paused);
-    else if (k === 'i') void inputStore.setEnabled(!inputStore.enabled);
-    else if (k === 'l' && !ui.locked) setLocked(true);
+    const sw = k === 'i' ? inSwitch : k === 'p' ? outSwitch : k === 'l' ? lockSwitch : undefined;
+    if (sw) {
+      if (!e.repeat && !held) {
+        held = { sw, code: e.code };
+        sw.press();
+      }
+    } else if (k === 'e' && ui.view === 'desk') toggleEditMode();
     else return;
     e.preventDefault();
   }
@@ -207,101 +260,138 @@
   const waiting = $derived(Object.values(sharedDesks.view).filter((v) => v.waiting).length);
 </script>
 
-<svelte:window {onkeydown} />
+<svelte:window
+  {onkeydown}
+  onkeyup={(e) => {
+    // Letting go of the key or of Alt ends the hold.
+    if (held && (e.code === held.code || e.key === 'Alt')) {
+      held.sw.release();
+      held = null;
+    }
+  }}
+  onblur={() => {
+    held?.sw.cancel();
+    held = null;
+  }}
+/>
 
 <div class="app" style:--scope={scope.c} style:--scope-ink={scope.ink}>
-  <!-- Whole-app states: full width, above everything, because they affect every desk. -->
-  {#if ui.locked}
+  <!-- Whole-app states: full width, above everything, because they affect every desk. While
+       presenting, the OSC-OUT and LOCK switches say it on their own. -->
+  {#if ui.locked && !ui.presenting}
     <div class="banner locked" role="status">
       ■ LOCKED · all desks frozen · press and hold LOCK for 1 second to unlock{waiting
         ? ` · edits from other devices on ${waiting} shared desk(s) are applied on unlock`
         : ''}
     </div>
   {/if}
-  {#if networkStore.paused}
+  {#if networkStore.paused && !ui.presenting}
     <div class="banner paused" role="status">
       ▓▓ OUTPUT PAUSED · all desks · nothing leaves the app · held packets are logged ▓▓
     </div>
   {/if}
 
   <header class="top">
-    <span class="brand" title="OscOctopus"><PixelLogo /></span>
+    {#if !ui.presenting}<span class="brand" title="OscOctopus"><PixelLogo /></span>{/if}
     {#if ready}<ContainerTabs />{:else}<span class="tabs-placeholder"></span>{/if}
     <!-- Master section: affects ALL desks, so it sits outside every tab and frame. -->
     <!-- The master bar affects every desk. Status first (click to open it), then the switches,
-         from least to most restrictive: IN gates incoming OSC, PAUSE outgoing, LOCK everything.
-         All five share one shape (.mbtn, app.css). -->
+         from least to most restrictive: OSC-IN lets incoming OSC in, OSC-OUT outgoing, LOCK
+         freezes everything. PRESENT is last: it changes the view, not what the app does. All six
+         share one shape (.mbtn, app.css); a switch fills with the accent while on. Presenting
+         hides only the status, so the switches never move. -->
     <div class="master" aria-label="All desks">
-      <button
-        class="mbtn"
-        onclick={() => showGlobal('network')}
-        title="Outputs ready / enabled across all desks · messages per second. Click for NETWORK"
-      >
-        <span class="lamp {outLamp}">●</span>{readyOutputs}/{outputs.length} OUT<span class="rate"
-          >{txRate.toFixed(0)}/s</span
+      {#if !ui.presenting}
+        <button
+          class="mbtn"
+          onclick={() => showGlobal('network')}
+          title="Outputs ready / enabled across all desks · messages per second. Click for NETWORK"
         >
-      </button>
-      <button
-        class="mbtn"
-        onclick={() => showGlobal('sync')}
-        title={syncSession.joined
-          ? `Session “${syncSession.status?.session}”: ${syncConnected} device(s) connected. Click for SYNC`
-          : 'Not sharing: click to join a session with other devices (GLOBAL SETTINGS › SYNC)'}
-      >
-        <span class="lamp {syncLamp}">{syncSession.joined ? '●' : '○'}</span>{syncSession.joined
-          ? `${syncConnected} SYNC`
-          : 'SYNC'}
-      </button>
-      <span class="sep" aria-hidden="true"></span>
-      <button
-        class="mbtn switch"
-        class:warn={!inputStore.enabled}
-        role="switch"
-        aria-checked={inputStore.enabled}
+          <span class="lamp {outLamp}">●</span>{readyOutputs}/{outputs.length} OUT<span class="rate"
+            >{txRate.toFixed(0)}/s</span
+          >
+        </button>
+        <button
+          class="mbtn"
+          onclick={() => showGlobal('sync')}
+          title={syncSession.joined
+            ? `Session “${syncSession.status?.session}”: ${syncConnected} device(s) connected. Click for SYNC`
+            : 'Not sharing: click to join a session with other devices (GLOBAL SETTINGS › SYNC)'}
+        >
+          <span class="lamp {syncLamp}">{syncSession.joined ? '●' : '○'}</span>{syncSession.joined
+            ? `${syncConnected} SYNC`
+            : 'SYNC'}
+        </button>
+        <span class="sep" aria-hidden="true"></span>
+      {/if}
+      <!-- OSC-IN, OSC-OUT and LOCK change only after a one-second hold, on and off alike. -->
+      <HoldSwitch
+        bind:this={inSwitch}
+        label="OSC-IN"
+        on={inputStore.enabled}
+        onchange={(on) => inputStore.setEnabled(on)}
         title={inputStore.enabled
-          ? 'OSC IN is on: incoming OSC drives widgets whose messages receive. Click to ignore all input (Alt+I)'
-          : 'OSC IN is off: incoming OSC is ignored (still shown in TRAFFIC). Click to let it drive widgets (Alt+I)'}
-        onclick={() => inputStore.setEnabled(!inputStore.enabled)}
-      >
-        <span class="box">[{inputStore.enabled ? '■' : '\u00a0'}]</span>{inputStore.enabled
-          ? 'IN ON'
-          : 'IN OFF'}
-      </button>
-      <button
-        class="mbtn switch"
-        class:danger={networkStore.paused}
-        role="switch"
-        aria-checked={networkStore.paused}
+          ? 'OSC-IN is on: incoming OSC drives widgets whose messages receive. Hold to ignore all input (Alt+I)'
+          : 'OSC-IN is off: incoming OSC is ignored (still shown in TRAFFIC). Hold to let it drive widgets (Alt+I)'}
+      />
+      <!-- OSC-OUT off is PAUSE: nothing leaves the app. Off is a safety state, so it is red. -->
+      <HoldSwitch
+        bind:this={outSwitch}
+        label="OSC-OUT"
+        wide
+        offTone="alarm"
+        blinkOff
+        on={!networkStore.paused}
+        onchange={(on) => networkStore.setPaused(!on)}
         title={networkStore.paused
-          ? 'Output of all desks is paused: nothing is sent. Click to resume (Alt+P)'
-          : 'Pause all outgoing OSC, on every desk (Alt+P)'}
-        onclick={() => networkStore.setPaused(!networkStore.paused)}
+          ? 'OSC-OUT is off: output of all desks is paused, nothing is sent. Hold to resume (Alt+P)'
+          : 'OSC-OUT is on: every desk sends. Hold to pause all outgoing OSC (Alt+P)'}
+      />
+      <HoldSwitch
+        bind:this={lockSwitch}
+        label="LOCK"
+        onLabel="LOCKED"
+        onTone="warn"
+        on={ui.locked}
+        onchange={setLocked}
+        nudge={ui.lockNudge}
+        title={ui.locked
+          ? 'Locked: hold for 1 second to unlock (Alt+L)'
+          : 'Hold for 1 second to lock widgets and settings for a show (Alt+L)'}
+      />
+      <button
+        class="mbtn switch wide"
+        class:accent={ui.presenting}
+        role="switch"
+        aria-checked={ui.presenting}
+        title={ui.presenting
+          ? 'Presenting: only this desk’s widgets, full screen. Click to stop (Esc or F11)'
+          : 'PRESENT: only this desk’s widgets, full screen. Desk tabs and these switches stay (F11)'}
+        onclick={() => setPresenting(!ui.presenting)}
+        ><span class="box">[{ui.presenting ? '■' : '\u00a0'}]</span>PRESENT</button
       >
-        <span class="box" class:blink={networkStore.paused}
-          >[{networkStore.paused ? '■' : '\u00a0'}]</span
-        >{networkStore.paused ? 'PAUSED' : 'PAUSE'}
-      </button>
-      <LockButton locked={ui.locked} onchange={setLocked} nudge={ui.lockNudge} />
     </div>
   </header>
 
   <section class="frame" aria-label={ui.view === 'desk' ? `Desk ${desk.name}` : 'Global settings'}>
-    <div class="frame-head">
-      <nav class="sections" aria-label="Sections">
-        {#each currentSections() as s, i (s.id)}
-          {@const bad = failing(s.id)}
-          <button
-            class="section"
-            class:on={currentSection() === s.id}
-            title="{s.hint} (F{i + 1})"
-            onclick={() => showSectionAt(i)}
-            ><span class="fkey">F{i + 1}</span><span class="section-label">{s.label}</span
-            >{#if bad > 0}<span class="badge">{bad}!</span>{/if}</button
-          >
-        {/each}
-      </nav>
-      <!-- The EDIT switch is in the desk's own tool row, next to INFO (see Desk). -->
-    </div>
+    {#if !ui.presenting}
+      <div class="frame-head">
+        <nav class="sections" aria-label="Sections">
+          {#each currentSections() as s, i (s.id)}
+            {@const bad = failing(s.id)}
+            <button
+              class="section"
+              class:on={currentSection() === s.id}
+              title="{s.hint} (F{i + 1})"
+              onclick={() => showSectionAt(i)}
+              ><span class="fkey">F{i + 1}</span><span class="section-label">{s.label}</span
+              >{#if bad > 0}<span class="badge">{bad}!</span>{/if}</button
+            >
+          {/each}
+        </nav>
+        <!-- The EDIT switch is in the desk's own tool row, next to INFO (see Desk). -->
+      </div>
+    {/if}
 
     <main class:locked={ui.locked}>
       {#if fatal}
@@ -410,9 +500,15 @@
     .brand {
       order: -2;
     }
+    /* A phone is too narrow for all of it: it wraps, right-aligned, so each control stays
+       reachable. */
     .master {
       order: -1;
-      margin-left: auto;
+      flex: 1;
+      min-width: 0;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      row-gap: 4px;
       margin-bottom: 0;
       padding-left: 0;
       border-left: 0;

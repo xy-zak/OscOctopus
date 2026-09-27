@@ -9,6 +9,11 @@ Scripts.
 
 ### Added
 
+- **Presenting** (`[ ] PRESENT` at the right end of the master bar, or F11): the desk's
+  widgets fill the screen, and on desktop the window goes fullscreen. Only the desk tabs,
+  OSC-IN, OSC-OUT, LOCK and `[■] PRESENT` (click it, or Esc / F11, to stop) stay; the sections, the
+  tool row, the info panel and the banners are hidden, and nothing else can navigate away. It
+  survives restarts, like LOCK and OSC-OUT.
 - **Widget skins** (GLOBAL SETTINGS › LOOK › _Widget skin_): how widgets are drawn, apart from
   their colours. TERMINAL is the pixel look so far; GLASS draws clear, rounded panes tinted
   with the widget colour, with pill switches and round knobs; SKETCH draws them in coloured
@@ -42,7 +47,7 @@ Scripts.
   - Packets this app (or a sync peer) sent itself are recognised and never applied.
   - A widget you are touching ignores input, and our own echoes are dropped.
   - A breaker stops a widget that forwards more than 40 times a second.
-  - **IN** (master bar, Alt+I) switches all input off.
+  - **OSC-IN** (master bar, Alt+I) switches all input off.
   - TRAFFIC shows what happened to every received message.
 - **Sync: share desks live between OscOctopus apps**, peer to peer, with no server.
   - Join a session (GLOBAL SETTINGS › SYNC, F5) with a generated key or a passphrase. Others
@@ -63,6 +68,15 @@ Scripts.
 
 ### Changed
 
+- **PAUSE is now OSC-OUT**, next to **OSC-IN**: both are on by default, and turning OSC-OUT
+  off pauses all output as before (red, with the OUTPUT PAUSED banner; still Alt+P).
+- **OSC-IN, OSC-OUT and LOCK change only after a 1 s press-and-hold**, on and off alike (LOCK
+  used to lock on a single tap). The new state wipes in while held; a short tap says HOLD 1 SEC.
+  Their shortcuts (Alt+I, Alt+P, Alt+L) must be held for a second too.
+- **Switches fill with the accent colour while on:** OSC-IN, OSC-OUT, PRESENT, and the desk's
+  INFO and EDIT. LOCK still fills amber while locked.
+- **The master bar wraps on narrow screens** instead of running off the edge, so every
+  control (LOCK was cut off on a phone) stays reachable.
 - **Widget styles are skins:** each widget keeps only its layout; every colour, line, fill and
   animation is in a skin stylesheet, and widget parts are named (see ARCHITECTURE › Widget
   skins). The TERMINAL look is unchanged pixel for pixel.
@@ -72,7 +86,7 @@ Scripts.
   horizontal while each option still gets a few characters.
 - **Preset schema v8:** a message's `enabled` became `send`, next to the new `receive`,
   `sourceIds` and `forward` (migrated automatically, all off).
-- The master bar gained **SYNC** (connected devices) and **IN**. Desks gained **F5 SYNC**,
+- The master bar gained **SYNC** (connected devices) and **OSC-IN**. Desks gained **F5 SYNC**,
   and GLOBAL SETTINGS **F5 SYNC**.
 - **The Inspector is in foldable sections:** VISUAL, INTERACTION, MESSAGES (with the preview)
   and ACTIVITY (folded by default). The LIVE info panel has the same look: VALUE, MESSAGES and
@@ -85,9 +99,8 @@ Scripts.
 - **The desk grid shows only in EDIT**, and more clearly: every cell is an outlined slot in the
   desk's colour. LIVE has no background grid, just the widgets.
 - **One look for the master bar:** OUT and SYNC are status readouts (a lamp; click to open
-  them), then the switches IN, PAUSE and LOCK, from least to most restrictive. All share one
-  size and border. Each switch shows `[■]` when on and fills with a colour in its safety state,
-  so IN ON / IN OFF is as clear as PAUSE and LOCK.
+  them), then the switches OSC-IN, OSC-OUT and LOCK, from least to most restrictive. All share
+  one size and border, and each switch shows `[■]` when on.
 - **Eight themed palettes** in GLOBAL SETTINGS › LOOK. Like SUNSET and UNDERWATER, each is
   inspired by one colour but travels across its neighbouring hues, then adds two contrasting
   accents: PHOSPHOR (terminal greens), AMBER (terminal golds), CRIMSON, SAKURA, VIOLET (after

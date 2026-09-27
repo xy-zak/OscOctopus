@@ -5,7 +5,8 @@
   // that tab. Desks run at the same time; the tab only chooses which one you see.
   //
   // Adding or removing a desk always asks first (see deskActions.ts). When LOCKED, tabs can
-  // still be switched (that's performing) but not added or removed.
+  // still be switched (that's performing) but not added or removed. PRESENTING shows the desk
+  // tabs only: switching desks is all it is for.
   import { networkStore } from '../lib/state/network.svelte';
   import { presetStore } from '../lib/state/preset.svelte';
   import { showDesk, showGlobal, ui } from '../lib/state/ui.svelte';
@@ -17,6 +18,8 @@
   import { addDesk, duplicateDesk, openDesk, removeDesk } from './deskActions';
 
   let menuOpen = $state(false);
+  /** Whether desks can be added and removed here. */
+  const managing = $derived(!ui.locked && !ui.presenting);
 
   const closedPresets = $derived(
     presetStore.summaries.filter((s) => !s.error && !presetStore.isOpen(s.id)),
@@ -98,7 +101,7 @@
             title="Unsaved (autosaving)">+</span
           >{/if}
       </button>
-      {#if !ui.locked && presetStore.desks.length > 1}
+      {#if managing && presetStore.desks.length > 1}
         <button
           class="x"
           title="Remove desk"
@@ -109,7 +112,7 @@
     </div>
   {/each}
 
-  {#if !ui.locked}
+  {#if managing}
     <div class="add-wrap">
       <button
         class="add"
@@ -145,20 +148,21 @@
   <span class="gap"></span>
 
   <!-- GLOBAL SETTINGS is not a desk: it's set apart at the end, neutral white, never numbered. -->
-  <div class="tab global" class:on={ui.view === 'global'} role="presentation">
-    <button
-      class="pick"
-      role="tab"
-      aria-selected={ui.view === 'global'}
-      title="GLOBAL SETTINGS: traffic of all desks, this device, preset library, look (Alt+0)"
-      onclick={() => showGlobal()}
-    >
-      <Icon name="grid" />
-      <span class="name">GLOBAL<span class="long">SETTINGS</span></span>{#if globalFailing > 0}<span
-          class="badge">{globalFailing}!</span
-        >{/if}
-    </button>
-  </div>
+  {#if !ui.presenting}
+    <div class="tab global" class:on={ui.view === 'global'} role="presentation">
+      <button
+        class="pick"
+        role="tab"
+        aria-selected={ui.view === 'global'}
+        title="GLOBAL SETTINGS: traffic of all desks, this device, preset library, look (Alt+0)"
+        onclick={() => showGlobal()}
+      >
+        <Icon name="grid" />
+        <span class="name">GLOBAL<span class="long">SETTINGS</span></span
+        >{#if globalFailing > 0}<span class="badge">{globalFailing}!</span>{/if}
+      </button>
+    </div>
+  {/if}
 </div>
 
 <style>

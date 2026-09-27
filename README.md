@@ -57,7 +57,7 @@ The screen always shows **where you are**, by containment:
 
 ```
 ▓ LOCKED / PAUSED banners: the whole app, full width
-[■ DESK A ●][■ ⇄ DESK B ●][+]  [GLOBAL SETTINGS] │ ● 3/3 OUT  ● 2 SYNC │ [■] IN ON  [ ] PAUSE  [ ] LOCK
+[■ DESK A ●][■ ⇄ DESK B ●][+]  [GLOBAL SETTINGS] │ ● 3/3 OUT  ● 2 SYNC │ [■] OSC-IN  [■] OSC-OUT  [ ] LOCK  [ ] PRESENT
 ╔ frame in the active tab's colour ════════════════════════════════════════════════════╗
 ║ F1 CONTROLS  F2 NETWORK  F3 TRAFFIC  F4 PRESET  F5 SYNC                                ║
 ║ desk tool row: + ADD … (EDIT) or [ ] INFO (LIVE)                             [ ] EDIT ║
@@ -80,18 +80,26 @@ The screen always shows **where you are**, by containment:
 | **F5 SYNC** | Share this desk with the sync session, see who else is on it, choose the device that forwards input, restore an earlier version. | **F5 SYNC** | This device's name, colour and fingerprint; join or leave a session; listen port, LAN discovery and devices by address; the desks shared in the session (*Open*); every device with its state, round trip and clock. |
 
 - **The master bar sits outside every tab and frame** (top right), because it affects all desks.
-  Status first, then the switches from least to most restrictive:
+  Status first, then the switches from least to most restrictive, and PRESENT last:
   - **OUT** (readout): outputs ready / enabled across all desks, and messages per second. Its
     lamp is green when all are ready, red when one failed. Click it for GLOBAL SETTINGS ›
     NETWORK.
   - **SYNC** (readout): devices connected in your session; click it for GLOBAL SETTINGS › SYNC.
-  - **IN** (switch, Alt+I): `[■] IN ON` lets received OSC drive widgets; `[ ] IN OFF` (amber)
-    ignores it all (still shown in TRAFFIC).
-  - **PAUSE** (switch, Alt+P): blocks all outgoing OSC (red while paused). It is enforced in the
-    Rust core, and held packets are logged with their exact bytes.
-  - **LOCK** (switch, Alt+L): freezes widgets and settings (amber while locked). Unlock with a
-    1 s press-and-hold. Edits from other devices on shared desks wait until you unlock.
-  - Switches show `[■]` when what they name is on. IN, PAUSE and LOCK survive restarts.
+  - **OSC-IN** (switch, Alt+I, on by default): lets received OSC drive widgets. Off, it ignores
+    it all (still shown in TRAFFIC).
+  - **OSC-OUT** (switch, Alt+P, on by default): off, it pauses all outgoing OSC. It turns red and
+    the OUTPUT PAUSED banner shows. This is enforced in the Rust core, and held packets are
+    logged with their exact bytes.
+  - **LOCK** (switch, Alt+L): freezes widgets and settings (amber while locked). Edits from
+    other devices on shared desks wait until you unlock.
+  - **PRESENT** (switch, F11): the active desk's widgets fill the screen (the window goes
+    fullscreen on desktop). Only the desk tabs, OSC-IN, OSC-OUT, LOCK and `[■] PRESENT` stay.
+    Click it, or press Esc or F11, to stop.
+  - Switches show `[■]` and fill with the accent colour when what they name is on (LOCK fills
+    amber). OSC-IN, OSC-OUT and LOCK survive restarts, and so does presenting.
+  - **OSC-IN, OSC-OUT and LOCK change only after a 1 s press-and-hold**, on and off alike, so a
+    stray touch can't flip them mid-show. The new state wipes in while you hold; let go early
+    and it says HOLD 1 SEC. Their Alt shortcuts must be held for a second too.
 - **All open desks run at the same time.** A tab only chooses which one you see. **+** adds a desk
   (new, duplicate, open saved) and **×** removes one, always after a confirmation. Removing keeps
   the preset saved.
@@ -138,7 +146,8 @@ The screen always shows **where you are**, by containment:
 **Keys:**
 - Alt+1…9 opens desk N, Alt+0 opens GLOBAL SETTINGS, and Alt+[ / Alt+] go to the previous / next desk.
 - F1…F5 switch sections inside the current frame.
-- Alt+E edit, Alt+P pause, Alt+I input on/off, Alt+L lock.
+- F11 presents (and stops); Esc also stops. While presenting, F1…F5, Alt+0 and Alt+E do nothing.
+- Alt+E edit. Hold for 1 s: Alt+I OSC-IN, Alt+P OSC-OUT (pause), Alt+L lock.
 - In edit mode: arrows nudge, Del removes, Esc deselects.
 
 ## Platforms

@@ -168,7 +168,7 @@
       <option value="packets">Packets only</option>
       <option value="lifecycle">Lifecycle only</option>
       <option value="errors">Errors only</option>
-      <option value="blocked">Held by PAUSE</option>
+      <option value="blocked">Held (OSC-OUT off)</option>
     </select>
     {#if scope === undefined}
       <select class="input narrow" bind:value={chosenDesk} onchange={() => (endpoint = '')}>

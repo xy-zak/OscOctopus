@@ -1,5 +1,5 @@
-// Saves a per-device setting and says so when it can't. LOCK and PAUSE promise to survive a
-// restart, so a failed write must be visible (Traffic log + toast), never swallowed.
+// Saves a per-device setting and says so when it can't. LOCK and PAUSE (OSC-OUT off) promise to
+// survive a restart, so a failed write must be visible (Traffic log + toast), never swallowed.
 import { setSetting, type Settings } from '../platform/settings';
 import { errorText } from '../util';
 import { debugStore } from './debug.svelte';

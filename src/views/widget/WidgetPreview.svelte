@@ -39,7 +39,7 @@
           >
             → {outputName(id)}{st?.remote ? ` (${st.remote})` : ''}{st && st.state !== 'ready'
               ? ` · ${st.state}`
-              : ''}{networkStore.paused ? ' · PAUSED: not sent' : ''}
+              : ''}{networkStore.paused ? ' · OSC-OUT off: not sent' : ''}
           </span>
         {/each}
       </div>

@@ -17,8 +17,10 @@
   const selectedIndex = $derived(preset.widgets.findIndex((w) => w.id === ui.selectedId));
   const selected = $derived(preset.widgets[selectedIndex]);
   const focused = $derived(presetStore.widget(ui.focusedId));
-  // Edit mode always has the panel; live mode has it when the info panel is switched on.
-  const panel = $derived(editing || ui.infoOpen);
+  // Edit mode always has the panel; live mode has it when the info panel is switched on, but
+  // never while presenting (always live): then the widgets fill the screen.
+  const info = $derived(ui.infoOpen && !ui.presenting);
+  const panel = $derived(editing || info);
 
   // Shared desks: who else edits which widget, and what concurrent edits left to sort out.
   const shared = $derived(sharedDesks.view[preset.id]?.shared ?? false);
@@ -76,48 +78,53 @@
 
 <div class="desk">
   <!-- The tool row is there in both modes, at one fixed height, so the desk below never moves
-       when switching: EDIT adds widgets here, LIVE shows or hides the info panel. -->
-  <div class="toolbar">
-    <div class="tools">
-      {#if editing}
-        <span class="faint">ADD</span>
-        {#each WIDGET_TYPES as t (t)}
-          <button class="btn" onclick={() => presetStore.addWidget(t)}
-            ><Icon name="plus" /> {DEFS[t].label}</button
+       when switching: EDIT adds widgets here, LIVE shows or hides the info panel. Presenting
+       hides it. -->
+  {#if !ui.presenting}
+    <div class="toolbar">
+      <div class="tools">
+        {#if editing}
+          <span class="faint">ADD</span>
+          {#each WIDGET_TYPES as t (t)}
+            <button class="btn" onclick={() => presetStore.addWidget(t)}
+              ><Icon name="plus" /> {DEFS[t].label}</button
+            >
+          {/each}
+          <span class="hint faint"
+            >drag: move · handles: resize · arrows: nudge · del: remove · esc: deselect</span
           >
-        {/each}
-        <span class="hint faint"
-          >drag: move · handles: resize · arrows: nudge · del: remove · esc: deselect</span
-        >
-      {:else}
-        <!-- A switch like the master bar's (.mbtn), for the side panel. -->
-        <button
-          class="mbtn switch info"
-          role="switch"
-          aria-checked={ui.infoOpen}
-          title={ui.infoOpen
-            ? 'Hide the widget info panel'
-            : 'Show the widget info panel (value, messages, activity)'}
-          onclick={() => (ui.infoOpen = !ui.infoOpen)}
-          ><span class="box">[{ui.infoOpen ? '■' : '\u00a0'}]</span>INFO</button
-        >
-      {/if}
-    </div>
-    <!-- Live ⇄ edit, the same kind of switch. Outside the scrolling tools and last in the row,
+        {:else}
+          <!-- A switch like the master bar's (.mbtn), for the side panel. -->
+          <button
+            class="mbtn switch info"
+            class:accent={ui.infoOpen}
+            role="switch"
+            aria-checked={ui.infoOpen}
+            title={ui.infoOpen
+              ? 'Hide the widget info panel'
+              : 'Show the widget info panel (value, messages, activity)'}
+            onclick={() => (ui.infoOpen = !ui.infoOpen)}
+            ><span class="box">[{ui.infoOpen ? '■' : '\u00a0'}]</span>INFO</button
+          >
+        {/if}
+      </div>
+      <!-- Live ⇄ edit, the same kind of switch. Outside the scrolling tools and last in the row,
          so it stays in one place in both modes and never scrolls out of reach. -->
-    <button
-      class="mbtn switch"
-      role="switch"
-      aria-checked={editing}
-      disabled={ui.locked}
-      title={ui.locked
-        ? 'Locked'
-        : editing
-          ? 'Back to LIVE: play the widgets (Alt+E)'
-          : 'Switch to EDIT: move and change widgets (Alt+E)'}
-      onclick={toggleEditMode}><span class="box">[{editing ? '■' : '\u00a0'}]</span>EDIT</button
-    >
-  </div>
+      <button
+        class="mbtn switch"
+        class:accent={editing}
+        role="switch"
+        aria-checked={editing}
+        disabled={ui.locked}
+        title={ui.locked
+          ? 'Locked'
+          : editing
+            ? 'Back to LIVE: play the widgets (Alt+E)'
+            : 'Switch to EDIT: move and change widgets (Alt+E)'}
+        onclick={toggleEditMode}><span class="box">[{editing ? '■' : '\u00a0'}]</span>EDIT</button
+      >
+    </div>
+  {/if}
   {#if conflicts.length || (editing && invalid.length)}
     <div class="conflicts" role="status">
       <span class="tag">CHECK</span>
@@ -139,7 +146,7 @@
         {editing}
         {holderOf}
         selectedId={ui.selectedId}
-        focusedId={ui.infoOpen ? ui.focusedId : null}
+        focusedId={info ? ui.focusedId : null}
         onselect={(id) => (ui.selectedId = id)}
         onfocus={(id) => (ui.focusedId = id)}
         oncommit={(id, rect) => presetStore.setRect(id, rect)}

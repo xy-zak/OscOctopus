@@ -157,7 +157,7 @@ Input mapping lets received OSC drive widgets. A binding (`BindingSchema`, prese
 `forward` (re-send after received input changed the widget; off by default).
 
 **Rust (`input.rs`) does only transport jobs:**
-- **IN gate.** It starts closed; the UI opens it after subscribing (the IN switch, Alt+I).
+- **IN gate.** It starts closed; the UI opens it after subscribing (the OSC-IN switch, Alt+I).
 - **Listen filter.** Only endpoints some binding receives from (`input_set_listen`).
 - **Own-socket registry.** Output sockets register their local address with a guard that
   unregisters on drop. A packet from one of them is tagged `origin: self`, and one from a sync
@@ -278,9 +278,12 @@ transport that never reads app payloads (Rust) with desk semantics owned by the 
   active section use `--scope`: the desk's colour, or `--fg` for GLOBAL SETTINGS.
 - The master bar and the global banners sit outside the tabs and the frame, because they affect
   every desk. The bar holds readouts (OUT, SYNC: a status lamp, click to open) and then
-  switches from least to most restrictive (IN, PAUSE, LOCK: `[■]` when on, fixed width, filled
-  with a status colour while in a safety state). All five share one shape, `.mbtn` in
-  `app.css`, which `LockButton` and the INFO switch (the LIVE side panel) use too.
+  switches from least to most restrictive (OSC-IN, OSC-OUT, LOCK), then PRESENT. A switch shows
+  `[■]` and fills with the accent while on, and has a fixed width; LOCK fills amber, and
+  OSC-OUT off (PAUSE) is an unfilled red alarm. All six share one shape, `.mbtn` in `app.css`,
+  which the desk's INFO and EDIT switches use too. OSC-IN, OSC-OUT and LOCK are `HoldSwitch`es:
+  they change only after a 1 s hold, on and off alike (pointer, Space/Enter, or their Alt
+  shortcut, which App holds through the component's `press`/`release`/`cancel`).
 - `Traffic.svelte` is one component: `scope = deskId` for a desk's TRAFFIC, unscoped for
   GLOBAL SETTINGS › TRAFFIC.
 - Desk actions with a confirmation (add, duplicate, open, remove, import, export, delete) live
@@ -303,7 +306,7 @@ The open desks and the active one are stored per device (`openDesks`, `activeDes
 
 ## PAUSE and LOCK
 
-- **PAUSE** is enforced in Rust (`NetworkManager::set_paused`), not the UI.
+- **PAUSE** (the OSC-OUT switch, off) is enforced in Rust (`NetworkManager::set_paused`), not the UI.
   - `send` still encodes each message, but instead of writing to the socket it records a
     `blocked` debug event per output, with the exact bytes, and bumps `stats.blocked`.
   - The flag is checked once per message, so a message is never half-sent across outputs.
@@ -313,8 +316,8 @@ The open desks and the active one are stored per device (`openDesks`, `activeDes
   entirely, and a capture-phase press on the desk bumps `ui.lockNudge` so the LOCK button hints.
   - `Lockable.svelte` wraps editable views in a disabled `<fieldset>`, which natively disables
     every control inside.
-  - Locking also leaves edit mode and cancels any open confirmation. Unlocking needs the
-    press-and-hold on `LockButton`, never a single keystroke.
+  - Locking also leaves edit mode and cancels any open confirmation. Locking and unlocking
+    both need the 1 s hold on LOCK (`HoldSwitch`), never a single keystroke.
 
 ## Reconciliation
 
@@ -538,7 +541,7 @@ missing.
   `debug_export`) refuse any path that isn't a `.json` file.
 - **Received OSC can't loop.** It never drives a widget while that widget is touched, is
   never applied when this app (or a sync peer) sent it, forwards only on opt-in with split
-  horizon, and a breaker bounds forwarding. The IN switch stops it all.
+  horizon, and a breaker bounds forwarding. The OSC-IN switch stops it all.
 - **Sync peers are untrusted until proven otherwise.** Connections are authenticated and
   encrypted, and every limit is enforced in Rust (see *Sync*). Every app message is validated
   (zod, then per key, then per widget type) before it touches a desk. Nothing a peer sends is

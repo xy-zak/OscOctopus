@@ -32,11 +32,13 @@ export interface Settings {
   /** Preset ids open as desk tabs, in tab order. */
   openDesks: string[];
   activeDesk: string | null;
-  /** Whether incoming OSC may drive widgets (the IN switch). */
+  /** Whether incoming OSC may drive widgets (the OSC-IN switch). */
   inputEnabled: boolean;
   /** Survive restarts: a crash mid-show must not unlock the desk or resume output. */
   locked: boolean;
   paused: boolean;
+  /** A restart mid-show comes back presenting. */
+  presenting: boolean;
   /** Global palette, accent and background (shared by every desk). */
   theme: Theme;
   /** Widget skin for every desk, and any desk's own (see state/skins.svelte.ts). */

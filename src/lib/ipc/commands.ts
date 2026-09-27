@@ -52,7 +52,7 @@ export const input = {
     channel.onmessage = onBatch;
     return invoke<void>('input_subscribe', { channel });
   },
-  /** The master gate (the IN switch). Resolves with the new state. */
+  /** The master gate (the OSC-IN switch). Resolves with the new state. */
   setEnabled: (enabled: boolean) => invoke<boolean>('input_set_enabled', { enabled }),
   enabled: () => invoke<boolean>('input_enabled'),
   /** The endpoints of a desk that a widget listens on. */

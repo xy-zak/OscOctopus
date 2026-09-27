@@ -61,9 +61,16 @@ export const ui = $state({
   /**
    * LOCK: everything is frozen for a show: widgets ignore input, no edit mode, network and
    * presets are read-only, desks can't be added or removed. Still usable: viewing, switching
-   * views and desk tabs, and PAUSE (a safety control).
+   * views and desk tabs, and OSC-OUT (a safety control).
    */
   locked: false,
+  /**
+   * PRESENTING: the active desk's widgets fill the screen, live. Only the desk tabs and the
+   * master switches (OSC-IN, OSC-OUT, LOCK, PRESENT to stop) stay; the sections, the desk's tool row, the side
+   * panel and the banners are hidden, and nothing can navigate away from the widgets (see
+   * `setPresenting`).
+   */
+  presenting: false,
   /** Bumped when something locked is touched, so the LOCK button can hint how to unlock. */
   lockNudge: 0,
   /** The confirm dialog currently shown, if any. */
@@ -121,22 +128,37 @@ export function confirmAction(opts: {
   });
 }
 
-/** Live ⇄ edit on the desk surface. Refused while LOCKED. */
+/** Live ⇄ edit on the desk surface. Refused while LOCKED or PRESENTING. */
 export function toggleEditMode() {
-  if (ui.locked) return;
+  if (ui.locked || ui.presenting) return;
   ui.mode = ui.mode === 'live' ? 'edit' : 'live';
   if (ui.mode === 'live') ui.selectedId = null;
   else ui.deskView = 'controls';
 }
 
-/** Go to a section of the active desk. */
+/**
+ * Enters or leaves PRESENTING. Entering shows the active desk's widgets, live. While it lasts,
+ * only desk tabs can change what is on screen: every other way to navigate is refused.
+ */
+export function setPresenting(on: boolean) {
+  ui.presenting = on;
+  if (!on) return;
+  ui.view = 'desk';
+  ui.deskView = 'controls';
+  ui.mode = 'live';
+  ui.selectedId = null;
+}
+
+/** Go to a section of the active desk. Only CONTROLS while PRESENTING. */
 export function showDesk(section: DeskView = ui.deskView) {
+  if (ui.presenting && section !== 'controls') return;
   ui.view = 'desk';
   ui.deskView = section;
 }
 
-/** Go to a GLOBAL SETTINGS section. */
+/** Go to a GLOBAL SETTINGS section. Refused while PRESENTING. */
 export function showGlobal(section: GlobalView = ui.globalView) {
+  if (ui.presenting) return;
   ui.view = 'global';
   ui.globalView = section;
 }
@@ -151,8 +173,9 @@ export function currentSection(): DeskView | GlobalView {
   return ui.view === 'desk' ? ui.deskView : ui.globalView;
 }
 
-/** Shows section `i` (F1 = 0) of the container on screen. */
+/** Shows section `i` (F1 = 0) of the container on screen. Refused while PRESENTING. */
 export function showSectionAt(i: number) {
+  if (ui.presenting) return;
   if (ui.view === 'desk') {
     const s = DESK_SECTIONS[i];
     if (s) ui.deskView = s.id;

@@ -172,10 +172,12 @@ h2::after {
   pointer-events: none;
 }
 
-/* ---- master bar: every all-desk control has one shape (App.svelte, LockButton.svelte) -------
-   Readouts (OUT, SYNC) show a status lamp and open their settings. Switches (IN, PAUSE, LOCK)
-   show [■] when what they name is on, have a fixed width so the bar never shifts, and fill with
-   a status colour while they hold the app in a safety state. */
+/* ---- master bar: every all-desk control has one shape (App.svelte, HoldSwitch.svelte) -------
+   Readouts (OUT, SYNC) show a status lamp and open their settings. Switches (OSC-IN, OSC-OUT,
+   LOCK, PRESENT, and the desk's INFO and EDIT) show [■] and fill with the accent while what they
+   name is on, and have a fixed width (wider for longer labels) so the bar never shifts. LOCK
+   fills amber instead: it holds the app in a safety state. OSC-OUT off (PAUSE) is the other
+   safety state: an unfilled red alarm. */
 .mbtn {
   display: inline-flex;
   align-items: center;
@@ -198,6 +200,9 @@ h2::after {
 }
 .mbtn.switch {
   width: 12ch;
+}
+.mbtn.switch.wide {
+  width: 14ch;
 }
 .mbtn .lamp {
   color: var(--fg-faint);
@@ -225,11 +230,17 @@ h2::after {
   color: var(--bg);
   font-weight: 700;
 }
-.mbtn.danger,
-.mbtn.danger:hover {
+.mbtn.alarm,
+.mbtn.alarm:hover {
   border-color: var(--danger);
-  background: var(--danger);
-  color: var(--bg);
+  color: var(--danger);
+  font-weight: 700;
+}
+.mbtn.accent,
+.mbtn.accent:hover {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
   font-weight: 700;
 }
 @keyframes mbtn-blink {

@@ -24,7 +24,7 @@ export interface Outcome {
 const KEEP_OUTCOMES = 5000;
 
 class InputStore {
-  /** The IN switch: whether inbound OSC may drive widgets. */
+  /** The OSC-IN switch: whether inbound OSC may drive widgets. */
   enabled = $state(false);
   /** Messages Rust discarded because they arrived faster than the UI took them. */
   totalDropped = $state(0);
