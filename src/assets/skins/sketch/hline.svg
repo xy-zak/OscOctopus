@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="12" viewBox="0 0 96 12" fill="none" stroke="#000" stroke-linecap="round">
+  <!-- A pencil stroke along the middle, for tiling across (fader grooves, underlines). -->
+  <path stroke-width="1.8" d="M0 6.4C16 5.2 32 7.1 48 6S80 5.3 96 6.3"/>
+  <path stroke-width="1" opacity=".5" d="M0 7.8C20 7.1 40 8.6 60 7.5S86 7.2 96 8"/>
+</svg>

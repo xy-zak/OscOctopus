@@ -1,12 +1,12 @@
 // Problems two people's edits can create together even though each edit was fine alone: two
 // widgets moved onto the same cells, a widget left outside a grid someone else shrank, a
-// widget in the EDIT switch's cell, a message pointing at an output someone removed. They
-// are shown, never fixed automatically: only a person knows which move to undo.
-import { editCell, inBounds, overlaps } from '../grid/engine';
+// message pointing at an output someone removed. They are shown, never fixed automatically:
+// only a person knows which move to undo.
+import { inBounds, overlaps } from '../grid/engine';
 import type { Preset } from '../model/preset';
 
 export interface Conflict {
-  kind: 'overlap' | 'outside' | 'editCell' | 'missingEndpoint';
+  kind: 'overlap' | 'outside' | 'missingEndpoint';
   widgetIds: string[];
   text: string;
 }
@@ -29,19 +29,12 @@ export function findConflicts(desk: Preset): Conflict[] {
       }
     }
   }
-  const edit = editCell(grid);
   for (const w of widgets) {
     if (!inBounds(w, grid)) {
       out.push({
         kind: 'outside',
         widgetIds: [w.id],
         text: `“${name(w.id)}” is outside the ${grid.cols}×${grid.rows} grid (not shown)`,
-      });
-    } else if (overlaps(w, edit)) {
-      out.push({
-        kind: 'editCell',
-        widgetIds: [w.id],
-        text: `“${name(w.id)}” covers the EDIT switch’s cell`,
       });
     }
   }

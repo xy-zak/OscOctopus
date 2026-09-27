@@ -10,6 +10,8 @@
   import { isRecord, listValue } from '../../osc/value';
   import { emitValue } from '../../osc/flow';
   import { tapHaptic } from '../../platform/haptics';
+  import { flag } from '../../skins/anatomy';
+  import { charWidth } from '../../ui/textfit';
   import { values } from '../../state/values.svelte';
   import WidgetFrame from '../WidgetFrame.svelte';
 
@@ -27,7 +29,11 @@
 
   let bw = $state(0);
   let bh = $state(0);
-  const horizontal = $derived(p.layout === 'horizontal' || (p.layout === 'auto' && bw > bh * 1.6));
+  // Auto: a strip when the list is wide, and each option still gets a few characters.
+  const horizontal = $derived(
+    p.layout === 'horizontal' ||
+      (p.layout === 'auto' && bw > bh * 1.6 && bw / p.options.length >= 6 * charWidth()),
+  );
 
   /** The option under the finger right now: lit while held. */
   let held = $state<number | null>(null);
@@ -69,7 +75,9 @@
 </script>
 
 <WidgetFrame
-  class="list {live ? 'live' : ''}"
+  type="list"
+  {live}
+  data-horizontal={flag(horizontal)}
   title={widget.label}
   status="{index + 1}/{p.options.length}"
   color={widget.color}
@@ -80,13 +88,20 @@
   {onkeydown}
 >
   {#snippet children()}
-    <div class="options" class:horizontal bind:clientWidth={bw} bind:clientHeight={bh}>
+    <div
+      class="options"
+      class:horizontal
+      data-part="list.options"
+      bind:clientWidth={bw}
+      bind:clientHeight={bh}
+    >
       {#each p.options as o, i (i)}
         <button
           type="button"
           class="opt"
-          class:on={i === index}
-          class:held={held === i}
+          data-part="list.option"
+          data-current={flag(i === index)}
+          data-held={flag(held === i)}
           id="{widget.id}-opt-{i}"
           role="option"
           aria-selected={i === index}
@@ -98,10 +113,20 @@
           onclick={() => select(i)}
         >
           {#key flashes[i] ?? 0}
-            <span class="fill" class:dissolve={held !== i && (flashes[i] ?? 0) > 0}></span>
+            <span
+              class="fill"
+              data-part="list.fill"
+              data-held={flag(held === i)}
+              data-flash={flag(held !== i && (flashes[i] ?? 0) > 0)}
+            ></span>
           {/key}
-          <span class="mark">{i === index ? '▸' : ' '}</span><span class="text"
-            >{o.label || o.value}</span
+          <span class="mark" data-part="list.mark" data-current={flag(i === index)}
+            >{i === index ? '▸' : ' '}</span
+          ><span
+            class="text"
+            data-part="list.text"
+            data-current={flag(i === index)}
+            data-held={flag(held === i)}>{o.label || o.value}</span
           >
         </button>
       {/each}
@@ -115,7 +140,7 @@
     inset: 0;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--list-gap, 2px);
     overflow-y: auto;
     overflow-x: hidden;
     touch-action: pan-y;
@@ -126,31 +151,10 @@
     overflow: hidden;
     touch-action: none;
   }
-  /* ACTIVE green only while pressed, then the pads' pixel dissolve back to the widget colour. */
   .fill {
     position: absolute;
     inset: 0;
     pointer-events: none;
-  }
-  .held .fill {
-    background: var(--act);
-  }
-  .fill.dissolve {
-    animation: dissolve 210ms steps(1, end) forwards;
-  }
-  @keyframes dissolve {
-    0% {
-      background: var(--act);
-    }
-    33% {
-      background: var(--dither-50-act);
-    }
-    66% {
-      background: var(--dither-25-act);
-    }
-    100% {
-      background: transparent;
-    }
   }
   .mark,
   .text {
@@ -162,17 +166,11 @@
     display: flex;
     align-items: center;
     gap: 0.5ch;
-    height: var(--lh);
+    height: var(--list-row-h, var(--lh));
     padding: 0 0.5ch;
-    border: 0;
-    /* Each option is a block in the widget colour; the non-current ones read a little quieter. */
-    background: var(--c-solid);
-    color: color-mix(in srgb, var(--c-ink) 65%, var(--c-solid));
     text-align: left;
     white-space: nowrap;
     overflow: hidden;
-    text-transform: uppercase;
-    transition: color var(--t-ui) steps(2);
   }
   .horizontal .opt {
     flex: 1;
@@ -188,18 +186,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  :global(.frame.list.live) .opt {
+  :global(.frame[data-type='list'][data-live]) .opt {
     cursor: pointer;
-  }
-  :global(.frame.list.live) .opt:not(.on):not(.held):hover {
-    color: var(--c-ink);
-  }
-  /* The current option: marked, not lit. */
-  .opt.on {
-    color: var(--c-ink);
-    font-weight: 700;
-  }
-  .opt.held {
-    color: var(--act-ink);
   }
 </style>

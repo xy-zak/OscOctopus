@@ -1,0 +1,353 @@
+/* HARDWARE: a physical mixing desk. Anodised panels with a channel-colour strip along the top,
+   rubber keys and pads in the widget colour that glow from behind when lit, a metal slider in
+   a sunk slot, ridged metal fader caps with the channel colour on their line, an LED strip for
+   the value, and a black XY screen with a glowing LED. Every rule is keyed on
+   .frame[data-base='hardware']. Parts and states: skins/anatomy.ts; what every skin keeps the
+   same (font, label placement, markers, the desk background): skins/base.css, docs/SKINS.md. */
+@layer skin.builtin {
+  /* ---- frame: an anodised panel, lit along its top edge, with a channel strip ---- */
+  .frame[data-base='hardware'] {
+    --hw-panel-hi: color-mix(in srgb, var(--fg) 13%, var(--bg-2));
+    --hw-panel-lo: color-mix(in srgb, var(--fg) 5%, var(--bg-2));
+    --hw-slot: rgb(0 0 0 / 0.55);
+    --hw-metal: linear-gradient(to bottom, #e8e8e6, #b9b9b5 45%, #8e8e8a 55%, #c4c4c0);
+    --hw-glow: color-mix(in srgb, var(--act) 55%, transparent);
+    --hw-strip: var(--c);
+    --switch-inset: 3px;
+    --slider-cap-len: 26px;
+    --slider-track-w: 8px;
+    --slider-tick-c: var(--fg-dim);
+    --graph-cursor: 12px;
+    --graph-dot: 4px;
+    --pads-gap: 6px;
+    --list-gap: 3px;
+    --list-row-h: 22px;
+    border: 1px solid rgb(0 0 0 / 0.6);
+    border-radius: 6px;
+    background: linear-gradient(to bottom, var(--hw-panel-hi), var(--hw-panel-lo));
+    box-shadow:
+      inset 0 3px 0 var(--hw-strip),
+      inset 0 4px 0 rgb(255 255 255 / 0.08),
+      0 2px 0 rgb(0 0 0 / 0.5),
+      0 6px 14px rgb(0 0 0 / 0.35);
+    transition:
+      translate 90ms ease-out,
+      box-shadow 150ms ease;
+  }
+  :root[data-mode='light'] .frame[data-base='hardware'] {
+    --hw-slot: rgb(0 0 0 / 0.22);
+    border-color: rgb(0 0 0 / 0.25);
+  }
+  .frame[data-base='hardware'][data-active] {
+    --hw-strip: var(--act);
+  }
+  .frame[data-base='hardware'][data-pressed] {
+    translate: 0 1px;
+  }
+  [data-lifted] .frame[data-base='hardware'] {
+    box-shadow:
+      inset 0 3px 0 var(--hw-strip),
+      0 14px 28px rgb(0 0 0 / 0.5);
+  }
+  .frame[data-base='hardware'] [data-part='frame.title'],
+  .frame[data-base='hardware'] [data-part='frame.status'] {
+    background: var(--bg);
+    border-radius: 3px;
+    transition: color 150ms ease;
+  }
+  .frame[data-base='hardware'] [data-part='frame.title'] {
+    color: var(--fg);
+  }
+  .frame[data-base='hardware'][data-active] [data-part='frame.title'] {
+    color: var(--act);
+  }
+  .frame[data-base='hardware'] [data-part='frame.status'] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='hardware'][data-active] [data-part='frame.status'] {
+    color: var(--fg);
+  }
+
+  @keyframes hardware-fade {
+    from {
+      background: var(--act);
+    }
+    to {
+      background: transparent;
+    }
+  }
+
+  /* ---- keys (buttons, pads): rubber, shaded top to bottom, pressed into the panel ---- */
+  .frame[data-base='hardware'] [data-part='keycap.face'] {
+    border-radius: 5px;
+    background: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--c) 55%, var(--bg-3)),
+      color-mix(in srgb, var(--c) 38%, var(--bg))
+    );
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.2),
+      0 2px 0 rgb(0 0 0 / 0.55),
+      0 3px 6px rgb(0 0 0 / 0.35);
+    transition:
+      translate 60ms ease-out,
+      box-shadow 90ms ease-out;
+  }
+  .frame[data-base='hardware'] [data-part='keycap'][data-down] [data-part='keycap.face'] {
+    translate: 0 2px;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.1),
+      0 0 0 rgb(0 0 0 / 0.5);
+  }
+  /* Lit from behind. */
+  .frame[data-base='hardware'][data-lit] [data-part='keycap.face'] {
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.2),
+      0 0 14px var(--hw-glow),
+      0 2px 0 rgb(0 0 0 / 0.55);
+  }
+
+  /* ---- button ---- */
+  .frame[data-base='hardware'] [data-part='button.fill'][data-on] {
+    background: radial-gradient(
+      circle at 50% 40%,
+      color-mix(in srgb, var(--act) 75%, #fff),
+      var(--act) 60%,
+      color-mix(in srgb, var(--act) 75%, #000)
+    );
+  }
+  .frame[data-base='hardware'] [data-part='button.fill'][data-flash] {
+    animation: hardware-fade 300ms ease-out forwards;
+  }
+  .frame[data-base='hardware'] [data-part='button.armed'] {
+    background: radial-gradient(circle, var(--hw-glow), transparent 75%);
+    animation: hardware-pulse 0.8s ease-in-out infinite;
+  }
+  @keyframes hardware-pulse {
+    50% {
+      opacity: 0.3;
+    }
+  }
+  .frame[data-base='hardware'] [data-part='button.hold'] {
+    background: var(--act);
+    animation: hardware-hold var(--hold) linear forwards;
+  }
+  @keyframes hardware-hold {
+    from {
+      clip-path: inset(100% 0 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  .frame[data-base='hardware'] [data-part='button.hint'] {
+    color: var(--fg);
+  }
+
+  /* ---- switch: a metal slider block in a sunk slot; the slot lights green when on ---- */
+  .frame[data-base='hardware'] [data-part='switch.track'] {
+    border-radius: 4px;
+    background: var(--hw-slot);
+    box-shadow:
+      inset 0 2px 4px rgb(0 0 0 / 0.6),
+      0 1px 0 rgb(255 255 255 / 0.06);
+    transition: box-shadow 150ms ease;
+  }
+  .frame[data-base='hardware'][data-on] [data-part='switch.track'] {
+    box-shadow:
+      inset 0 2px 4px rgb(0 0 0 / 0.6),
+      inset 0 0 0 1px var(--act),
+      0 0 10px var(--hw-glow);
+  }
+  .frame[data-base='hardware'] [data-part='switch.tag'] {
+    background: none;
+  }
+  .frame[data-base='hardware'] [data-part='switch.legend'] {
+    transition: opacity 120ms ease;
+  }
+  .frame[data-base='hardware'] [data-part='switch.legend'][data-side='off'] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='hardware'] [data-part='switch.legend'][data-side='on'] {
+    color: var(--act);
+  }
+  .frame[data-base='hardware'] [data-part='switch.thumb'] {
+    border-radius: 3px;
+    background: var(--hw-metal);
+    color: #3a3a38;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.7),
+      0 2px 3px rgb(0 0 0 / 0.55);
+    transition: transform 140ms ease-out;
+  }
+  .frame[data-base='hardware'][data-dragging] [data-part='switch.thumb'] {
+    transition: none;
+  }
+
+  /* ---- fader: a sunk slot with an LED strip up to the value, and a ridged metal cap ---- */
+  .frame[data-base='hardware'] [data-part='slider.track'] {
+    border-radius: 4px;
+    background: var(--hw-slot);
+    box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.7);
+  }
+  .frame[data-base='hardware'] [data-part='slider.fill'] {
+    border-radius: 4px;
+    background: var(--act);
+    box-shadow: 0 0 8px var(--hw-glow);
+    transition: clip-path 140ms ease-out;
+  }
+  .frame[data-base='hardware'][data-dragging] [data-part='slider.fill'] {
+    transition: none;
+  }
+  .frame[data-base='hardware'] [data-part='slider.cap'] {
+    border-radius: 3px;
+    background:
+      repeating-linear-gradient(to right, rgb(0 0 0 / 0.18) 0 1px, transparent 1px 3px),
+      var(--hw-metal);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.7),
+      0 3px 5px rgb(0 0 0 / 0.55);
+    transition: transform 140ms ease-out;
+  }
+  .frame[data-base='hardware'][data-vertical] [data-part='slider.cap'] {
+    background:
+      repeating-linear-gradient(to bottom, rgb(0 0 0 / 0.18) 0 1px, transparent 1px 3px),
+      linear-gradient(to right, #e8e8e6, #b9b9b5 45%, #8e8e8a 55%, #c4c4c0);
+  }
+  .frame[data-base='hardware'][data-dragging] [data-part='slider.cap'] {
+    transition: none;
+  }
+  /* The channel-colour line across the cap. */
+  .frame[data-base='hardware'] [data-part='slider.grip'] {
+    width: 2px;
+    height: 70%;
+    background: var(--c);
+  }
+  .frame[data-base='hardware'][data-vertical] [data-part='slider.grip'] {
+    width: 70%;
+    height: 2px;
+  }
+  .frame[data-base='hardware'][data-dragging] [data-part='slider.grip'] {
+    background: var(--act);
+    box-shadow: 0 0 6px var(--act);
+  }
+
+  /* ---- graph: a black screen with a faint grid and a glowing LED cursor ---- */
+  .frame[data-base='hardware'] [data-part='graph.plot'] {
+    --paper: #050506;
+    border-radius: 4px;
+    background: radial-gradient(ellipse at center, #111214, var(--paper));
+    box-shadow: inset 0 2px 6px rgb(0 0 0 / 0.8);
+  }
+  .frame[data-base='hardware'] [data-part='graph.grid'] {
+    --g: color-mix(in srgb, var(--c) 28%, transparent);
+    background:
+      linear-gradient(to right, var(--g) 1px, transparent 1px) 0 0 / 25% 100%,
+      linear-gradient(to bottom, var(--g) 1px, transparent 1px) 0 0 / 100% 25%;
+  }
+  .frame[data-base='hardware'] [data-part='graph.cross'] {
+    background: color-mix(in srgb, var(--act) 45%, transparent);
+    transition: transform 140ms ease-out;
+  }
+  .frame[data-base='hardware'] [data-part='graph.cursor'] {
+    border-radius: 50%;
+    background: radial-gradient(
+      circle at 40% 35%,
+      color-mix(in srgb, var(--act) 60%, #fff),
+      var(--act) 60%
+    );
+    box-shadow: 0 0 12px var(--act);
+    transition: transform 140ms ease-out;
+  }
+  .frame[data-base='hardware'][data-dragging] [data-part='graph.cross'],
+  .frame[data-base='hardware'][data-dragging] [data-part='graph.cursor'] {
+    transition: none;
+  }
+  .frame[data-base='hardware'] [data-part='graph.lock'] {
+    border: 1px solid rgb(255 255 255 / 0.6);
+    border-radius: 50%;
+    opacity: 0;
+    transition:
+      inset 160ms ease-out,
+      opacity 120ms ease;
+  }
+  .frame[data-base='hardware'][data-dragging] {
+    --graph-lock-inset: -7px;
+  }
+  .frame[data-base='hardware'][data-dragging] [data-part='graph.lock'] {
+    opacity: 1;
+  }
+  .frame[data-base='hardware'] [data-part='graph.trail'] {
+    transition: opacity 500ms ease;
+  }
+  .frame[data-base='hardware'] [data-part='graph.trail'][data-fading] {
+    opacity: 0;
+  }
+  .frame[data-base='hardware'] [data-part='graph.dot'] {
+    border-radius: 50%;
+    background: var(--act);
+    box-shadow: 0 0 4px var(--act);
+  }
+  .frame[data-base='hardware'] [data-part='graph.tick'] {
+    color: rgb(255 255 255 / 0.55);
+    background: var(--paper);
+  }
+
+  /* ---- pads: rubber pads that glow from behind while held or latched ---- */
+  .frame[data-base='hardware'] [data-part='pads.pad'][data-on] [data-part='keycap.face'] {
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.2),
+      0 0 12px var(--hw-glow);
+  }
+  .frame[data-base='hardware'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
+    background: radial-gradient(
+      circle at 50% 45%,
+      color-mix(in srgb, var(--act) 70%, #fff),
+      var(--act) 70%
+    );
+  }
+  .frame[data-base='hardware'] [data-part='pads.fill'][data-flash] {
+    animation: hardware-fade 300ms ease-out forwards;
+  }
+  .frame[data-base='hardware'] [data-part='pads.num'] {
+    color: color-mix(in srgb, var(--fg) 85%, transparent);
+  }
+  .frame[data-base='hardware'] [data-part='pads.pad'][data-on] [data-part='pads.num'] {
+    color: var(--act-ink);
+  }
+
+  /* ---- list: dark rocker rows; the current one's marker is a lit LED ---- */
+  .frame[data-base='hardware'] [data-part='list.option'] {
+    border-radius: 3px;
+    background: linear-gradient(to bottom, var(--hw-panel-hi), var(--hw-panel-lo));
+    color: var(--fg-dim);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.08),
+      0 1px 2px rgb(0 0 0 / 0.5);
+    transition: color 120ms ease;
+  }
+  .frame[data-base='hardware'][data-live]
+    [data-part='list.option']:not([data-current]):not([data-held]):hover {
+    color: var(--fg);
+  }
+  .frame[data-base='hardware'] [data-part='list.option'][data-current] {
+    color: var(--fg);
+    box-shadow:
+      inset 3px 0 0 var(--c),
+      inset 0 1px 0 rgb(255 255 255 / 0.08),
+      0 1px 2px rgb(0 0 0 / 0.5);
+  }
+  .frame[data-base='hardware'] [data-part='list.option'][data-held] {
+    color: var(--act-ink);
+  }
+  .frame[data-base='hardware'] [data-part='list.option'][data-held] [data-part='list.fill'] {
+    background: var(--act);
+  }
+  .frame[data-base='hardware'] [data-part='list.fill'][data-flash] {
+    animation: hardware-fade 300ms ease-out forwards;
+  }
+  .frame[data-base='hardware'] [data-part='list.mark'] {
+    color: var(--act);
+    text-shadow: 0 0 6px var(--act);
+  }
+}

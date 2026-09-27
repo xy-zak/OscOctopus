@@ -4,11 +4,8 @@
 // Each widget's def says how its values travel (`Gate` in widgets/types.ts):
 //   - queue: discrete events (button, switch, pads, list) go through an OrderedQueue: every
 //     press, hit or selection is sent, in order, never merged away.
-//   - throttle: continuous values (fader, graph, bounded knob) go through a rate-limited
-//     Throttle: under a fast drag only the newest value matters, and the resting value
-//     always goes out.
-//   - merge: the endless knob's Throttle merges held-back values (+1 +1 +1 → +3) instead of
-//     replacing them, so no turns are lost.
+//   - throttle: continuous values (fader, graph) go through a rate-limited Throttle: under a
+//     fast drag only the newest value matters, and the resting value always goes out.
 import { osc } from '../ipc/commands';
 import type { Avoid } from '../ipc/types';
 import type { Widget } from '../model/preset';
@@ -20,7 +17,7 @@ import type { Gate } from '../widgets/types';
 import { expectations } from './expect';
 import { buildMessages } from './mapping';
 import { OrderedQueue, Throttle, type ThrottleStats } from './throttle';
-import { mergeDeltas, type WidgetValue } from './value';
+import type { WidgetValue } from './value';
 
 /** One value on its way out. `avoid` (forwarded input only) keeps it from its sender. */
 interface Outgoing {
@@ -60,16 +57,7 @@ async function sendNow(widgetId: string, { value, avoid }: Outgoing) {
   if (failed) throw failed.reason;
 }
 
-/**
- * Merging two held-back values: deltas add up (endless knob). A value from a local gesture
- * goes everywhere, so once one is merged in, the `avoid` of a forwarded value is dropped.
- */
-const mergeOutgoing = (held: Outgoing, next: Outgoing): Outgoing => ({
-  value: mergeDeltas(held.value, next.value),
-  avoid: held.avoid && next.avoid ? next.avoid : undefined,
-});
-
-/** The widget's gate, recreated when its kind changes (e.g. a knob switched to endless). */
+/** The widget's gate, recreated when its kind changes. */
 function gateImpl(widgetId: string, widget: Widget): GateImpl {
   const spec = gateFor(widget);
   let entry = gates.get(widgetId);
@@ -81,15 +69,11 @@ function gateImpl(widgetId: string, widget: Widget): GateImpl {
     const gate =
       spec.kind === 'queue'
         ? new OrderedQueue<Outgoing>(send, onStats)
-        : new Throttle<Outgoing>(send, {
-            maxHz: spec.maxHz,
-            onStats,
-            merge: spec.kind === 'merge' ? mergeOutgoing : undefined,
-          });
+        : new Throttle<Outgoing>(send, { maxHz: spec.maxHz, onStats });
     entry = { kind: spec.kind, gate };
     gates.set(widgetId, entry);
   }
-  if (spec.kind !== 'queue' && entry.gate instanceof Throttle) entry.gate.maxHz = spec.maxHz;
+  if (spec.kind === 'throttle' && entry.gate instanceof Throttle) entry.gate.maxHz = spec.maxHz;
   return entry.gate;
 }
 

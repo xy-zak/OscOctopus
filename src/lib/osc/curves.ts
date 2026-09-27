@@ -1,5 +1,5 @@
 // Fader curves: a normalised 0..1 position ⇄ a value in [min, max]. Pure; tested in
-// mapping.test.ts. Shared by the fader, the bounded knob and both graph axes.
+// mapping.test.ts. Shared by the fader and both graph axes.
 import type { Axis } from '../model/preset';
 import { clamp } from '../util';
 

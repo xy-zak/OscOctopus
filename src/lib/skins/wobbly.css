@@ -1,0 +1,375 @@
+/* WOBBLY: clean, flat widgets whose lines are even waves. Outlines are wave line art
+   (assets/skins/wobbly/*.svg) used as masks in the widget's colour (ACTIVE green when on): a
+   nine-slice box whose edges hold whole wave periods, tiled with `round`, so the waves stay
+   even along any length. Fills are flat, lightly tinted colour. Every rule is keyed on
+   .frame[data-base='wobbly']. Parts and states: skins/anatomy.ts; what every skin keeps the
+   same (font, label placement, markers, the desk background): skins/base.css, docs/SKINS.md.
+
+   Outlines sit on a part's ::before (under its contents) or ::after (over them), never as a
+   mask on the part itself, which would clip everything inside it. */
+@layer skin.builtin {
+  /* ---- frame: a wavy box, the labels on its top line ---- */
+  .frame[data-base='wobbly'] {
+    --wb-line: var(--c);
+    --wb-tint: color-mix(in srgb, var(--c) 9%, var(--bg));
+    --wb-solid: color-mix(in srgb, var(--c) 30%, var(--bg));
+    --wb-ease: cubic-bezier(0.3, 1.4, 0.5, 1);
+    --frame-inset-t: 11px;
+    --frame-inset-x: 10px;
+    --frame-inset-b: 10px;
+    --switch-inset: 4px;
+    --slider-cap-len: 22px;
+    --slider-track-w: 14px;
+    --slider-tick-c: color-mix(in srgb, var(--fg) 35%, transparent);
+    --graph-cursor: 18px;
+    --graph-dot: 5px;
+    --pads-gap: 7px;
+    --list-gap: 4px;
+    --list-row-h: 24px;
+    background: var(--wb-tint);
+    border-radius: 8px;
+    transition: scale 200ms var(--wb-ease);
+  }
+  .frame[data-base='wobbly'][data-active] {
+    --wb-line: var(--act);
+  }
+  .frame[data-base='wobbly'][data-pressed] {
+    scale: 0.98;
+  }
+  [data-lifted] .frame[data-base='wobbly'] {
+    scale: 1.03;
+  }
+  .frame[data-base='wobbly']::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    background: var(--wb-line);
+    -webkit-mask-box-image: url('../../assets/skins/wobbly/box.svg') 12 / 12px round;
+    pointer-events: none;
+    transition: background 200ms ease;
+  }
+  .frame[data-base='wobbly'] [data-part='frame.title'],
+  .frame[data-base='wobbly'] [data-part='frame.status'] {
+    background: var(--bg);
+    border-radius: 4px;
+    transition: color 200ms ease;
+  }
+  .frame[data-base='wobbly'] [data-part='frame.title'] {
+    color: var(--fg);
+  }
+  .frame[data-base='wobbly'][data-active] [data-part='frame.title'] {
+    color: var(--act);
+  }
+  .frame[data-base='wobbly'] [data-part='frame.status'] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='wobbly'][data-active] [data-part='frame.status'] {
+    color: var(--fg);
+  }
+
+  /* Release, for buttons, pads and list options: the ACTIVE colour fades out. */
+  @keyframes wobbly-fade {
+    from {
+      background: var(--act);
+    }
+    to {
+      background: transparent;
+    }
+  }
+
+  /* ---- keys (buttons, pads): flat tiles in a wavy outline ---- */
+  .frame[data-base='wobbly'] [data-part='keycap.face'] {
+    border-radius: 7px;
+    background: var(--wb-solid);
+    transition: scale 180ms var(--wb-ease);
+  }
+  .frame[data-base='wobbly'] [data-part='keycap.face']::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--wb-line);
+    -webkit-mask-box-image: url('../../assets/skins/wobbly/box.svg') 12 / 10px round;
+    pointer-events: none;
+  }
+  .frame[data-base='wobbly'] [data-part='keycap'][data-down] [data-part='keycap.face'] {
+    scale: 0.95;
+  }
+
+  /* ---- button ---- */
+  .frame[data-base='wobbly'] [data-part='button.fill'][data-on] {
+    background: var(--act);
+  }
+  .frame[data-base='wobbly'] [data-part='button.fill'][data-flash] {
+    animation: wobbly-fade 320ms ease-out forwards;
+  }
+  .frame[data-base='wobbly'] [data-part='button.armed'] {
+    background: color-mix(in srgb, var(--act) 35%, transparent);
+    animation: wobbly-pulse 1s ease-in-out infinite;
+  }
+  @keyframes wobbly-pulse {
+    50% {
+      opacity: 0.4;
+    }
+  }
+  .frame[data-base='wobbly'] [data-part='button.hold'] {
+    background: var(--act);
+    animation: wobbly-hold var(--hold) linear forwards;
+  }
+  @keyframes wobbly-hold {
+    from {
+      clip-path: inset(100% 0 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  .frame[data-base='wobbly'] [data-part='button.hint'] {
+    color: var(--fg);
+  }
+
+  /* ---- switch: a wavy box with a tile in it, the box tinted ACTIVE green when on ---- */
+  .frame[data-base='wobbly'] [data-part='switch.track'] {
+    border-radius: 8px;
+    transition: background 200ms ease;
+  }
+  .frame[data-base='wobbly'][data-on] [data-part='switch.track'] {
+    background: color-mix(in srgb, var(--act) 30%, transparent);
+  }
+  .frame[data-base='wobbly'] [data-part='switch.track']::before,
+  .frame[data-base='wobbly'] [data-part='switch.thumb']::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--wb-line);
+    -webkit-mask-box-image: url('../../assets/skins/wobbly/box.svg') 12 / 10px round;
+    pointer-events: none;
+  }
+  .frame[data-base='wobbly'] [data-part='switch.legend'] {
+    transition: opacity 200ms ease;
+  }
+  .frame[data-base='wobbly'] [data-part='switch.legend'][data-side='off'] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='wobbly'] [data-part='switch.legend'][data-side='on'] {
+    color: var(--act);
+  }
+  .frame[data-base='wobbly'] [data-part='switch.thumb'] {
+    border-radius: 6px;
+    background: var(--wb-solid);
+    color: var(--fg);
+    transition: transform 280ms var(--wb-ease);
+  }
+  .frame[data-base='wobbly'][data-on] [data-part='switch.thumb'] {
+    background: var(--act);
+    color: var(--act-ink);
+  }
+  .frame[data-base='wobbly'][data-dragging] [data-part='switch.thumb'] {
+    transition: none;
+  }
+
+  /* ---- fader: a wavy groove, the value a wave of ACTIVE green over it, a scalloped knob ---- */
+  .frame[data-base='wobbly'] [data-part='slider.grip'] {
+    visibility: hidden;
+  }
+  .frame[data-base='wobbly'] [data-part='slider.track']::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: color-mix(in srgb, var(--c) 70%, transparent);
+    -webkit-mask: url('../../assets/skins/wobbly/wave-h.svg') 0 50% / 24px 12px repeat-x;
+    mask: url('../../assets/skins/wobbly/wave-h.svg') 0 50% / 24px 12px repeat-x;
+  }
+  .frame[data-base='wobbly'] [data-part='slider.fill'] {
+    background: var(--act);
+    -webkit-mask: url('../../assets/skins/wobbly/wave-h.svg') 0 50% / 24px 12px repeat-x;
+    mask: url('../../assets/skins/wobbly/wave-h.svg') 0 50% / 24px 12px repeat-x;
+    transition: clip-path 220ms ease;
+  }
+  .frame[data-base='wobbly'][data-vertical] [data-part='slider.track']::before,
+  .frame[data-base='wobbly'][data-vertical] [data-part='slider.fill'] {
+    -webkit-mask: url('../../assets/skins/wobbly/wave-v.svg') 50% 0 / 12px 24px repeat-y;
+    mask: url('../../assets/skins/wobbly/wave-v.svg') 50% 0 / 12px 24px repeat-y;
+  }
+  .frame[data-base='wobbly'][data-dragging] [data-part='slider.fill'] {
+    transition: none;
+  }
+  .frame[data-base='wobbly'] [data-part='slider.cap'] {
+    transition: transform 220ms ease;
+  }
+  .frame[data-base='wobbly'][data-dragging] [data-part='slider.cap'] {
+    transition: none;
+  }
+  /* The knob, centred on the cap (not a grid item: see GLASS's fader). */
+  .frame[data-base='wobbly'] [data-part='slider.cap']::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    width: min(20px, 100%);
+    aspect-ratio: 1;
+    background: var(--wb-line);
+    -webkit-mask: url('../../assets/skins/wobbly/disc.svg') center / contain no-repeat;
+    mask: url('../../assets/skins/wobbly/disc.svg') center / contain no-repeat;
+    transition:
+      scale 180ms var(--wb-ease),
+      background 200ms ease;
+  }
+  .frame[data-base='wobbly'][data-dragging] [data-part='slider.cap']::before {
+    background: var(--act);
+    scale: 1.15;
+  }
+
+  /* ---- graph: a wavy box, wavy quarter lines, wavy crosshairs, a scalloped cursor ---- */
+  .frame[data-base='wobbly'] [data-part='graph.plot'] {
+    --paper: var(--bg);
+    border-radius: 8px;
+    background: var(--paper);
+  }
+  .frame[data-base='wobbly'] [data-part='graph.plot']::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--wb-line);
+    -webkit-mask-box-image: url('../../assets/skins/wobbly/box.svg') 12 / 10px round;
+    pointer-events: none;
+  }
+  /* Quarter lines at 25/50/75%, as waves. */
+  .frame[data-base='wobbly'] [data-part='graph.grid'] {
+    background: color-mix(in srgb, var(--c) 35%, transparent);
+    -webkit-mask:
+      url('../../assets/skins/wobbly/wave-v.svg') 25% 0 / 12px 24px repeat-y,
+      url('../../assets/skins/wobbly/wave-v.svg') 50% 0 / 12px 24px repeat-y,
+      url('../../assets/skins/wobbly/wave-v.svg') 75% 0 / 12px 24px repeat-y,
+      url('../../assets/skins/wobbly/wave-h.svg') 0 25% / 24px 12px repeat-x,
+      url('../../assets/skins/wobbly/wave-h.svg') 0 50% / 24px 12px repeat-x,
+      url('../../assets/skins/wobbly/wave-h.svg') 0 75% / 24px 12px repeat-x;
+    mask:
+      url('../../assets/skins/wobbly/wave-v.svg') 25% 0 / 12px 24px repeat-y,
+      url('../../assets/skins/wobbly/wave-v.svg') 50% 0 / 12px 24px repeat-y,
+      url('../../assets/skins/wobbly/wave-v.svg') 75% 0 / 12px 24px repeat-y,
+      url('../../assets/skins/wobbly/wave-h.svg') 0 25% / 24px 12px repeat-x,
+      url('../../assets/skins/wobbly/wave-h.svg') 0 50% / 24px 12px repeat-x,
+      url('../../assets/skins/wobbly/wave-h.svg') 0 75% / 24px 12px repeat-x;
+  }
+  .frame[data-base='wobbly'] [data-part='graph.cross']::before {
+    content: '';
+    position: absolute;
+    background: var(--act);
+  }
+  .frame[data-base='wobbly'] [data-part='graph.cross'][data-axis='x']::before {
+    left: 0;
+    right: 0;
+    top: -6px;
+    height: 12px;
+    -webkit-mask: url('../../assets/skins/wobbly/wave-h.svg') 0 0 / 24px 12px repeat-x;
+    mask: url('../../assets/skins/wobbly/wave-h.svg') 0 0 / 24px 12px repeat-x;
+  }
+  .frame[data-base='wobbly'] [data-part='graph.cross'][data-axis='y']::before {
+    top: 0;
+    bottom: 0;
+    left: -6px;
+    width: 12px;
+    -webkit-mask: url('../../assets/skins/wobbly/wave-v.svg') 0 0 / 12px 24px repeat-y;
+    mask: url('../../assets/skins/wobbly/wave-v.svg') 0 0 / 12px 24px repeat-y;
+  }
+  .frame[data-base='wobbly'] [data-part='graph.cross'],
+  .frame[data-base='wobbly'] [data-part='graph.cursor'] {
+    transition: transform 200ms ease;
+  }
+  .frame[data-base='wobbly'][data-dragging] [data-part='graph.cross'],
+  .frame[data-base='wobbly'][data-dragging] [data-part='graph.cursor'] {
+    transition: none;
+  }
+  .frame[data-base='wobbly'] [data-part='graph.cursor']::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--act);
+    -webkit-mask: url('../../assets/skins/wobbly/disc.svg') center / contain no-repeat;
+    mask: url('../../assets/skins/wobbly/disc.svg') center / contain no-repeat;
+  }
+  .frame[data-base='wobbly'] [data-part='graph.lock'] {
+    background: var(--fg-dim);
+    -webkit-mask: url('../../assets/skins/wobbly/ring.svg') center / contain no-repeat;
+    mask: url('../../assets/skins/wobbly/ring.svg') center / contain no-repeat;
+    opacity: 0;
+    transition:
+      inset 220ms var(--wb-ease),
+      opacity 160ms ease;
+  }
+  .frame[data-base='wobbly'][data-dragging] {
+    --graph-lock-inset: -9px;
+  }
+  .frame[data-base='wobbly'][data-dragging] [data-part='graph.lock'] {
+    opacity: 1;
+  }
+  .frame[data-base='wobbly'] [data-part='graph.trail'] {
+    transition: opacity 450ms ease;
+  }
+  .frame[data-base='wobbly'] [data-part='graph.trail'][data-fading] {
+    opacity: 0;
+  }
+  .frame[data-base='wobbly'] [data-part='graph.dot'] {
+    border-radius: 50%;
+    background: var(--act);
+  }
+  .frame[data-base='wobbly'] [data-part='graph.tick'] {
+    color: var(--c-text);
+    background: var(--paper);
+  }
+
+  /* ---- pads: wavy tiles, ACTIVE green while held or latched ---- */
+  .frame[data-base='wobbly'] [data-part='pads.pad'][data-on] {
+    --wb-line: var(--act);
+  }
+  .frame[data-base='wobbly'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
+    background: var(--act);
+  }
+  .frame[data-base='wobbly'] [data-part='pads.fill'][data-flash] {
+    animation: wobbly-fade 320ms ease-out forwards;
+  }
+  .frame[data-base='wobbly'] [data-part='pads.num'] {
+    color: var(--fg);
+  }
+  .frame[data-base='wobbly'] [data-part='pads.pad'][data-on] [data-part='pads.num'] {
+    color: var(--act-ink);
+  }
+
+  /* ---- list: tinted rows, the current one in a wavy outline ---- */
+  .frame[data-base='wobbly'] [data-part='list.option'] {
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--c) 14%, transparent);
+    color: var(--fg-dim);
+    transition:
+      background 180ms ease,
+      color 180ms ease;
+  }
+  .frame[data-base='wobbly'][data-live]
+    [data-part='list.option']:not([data-current]):not([data-held]):hover {
+    color: var(--fg);
+  }
+  .frame[data-base='wobbly'] [data-part='list.option'][data-current] {
+    color: var(--fg);
+  }
+  .frame[data-base='wobbly'] [data-part='list.option'][data-current]::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--wb-line);
+    -webkit-mask-box-image: url('../../assets/skins/wobbly/box.svg') 12 / 8px round;
+    pointer-events: none;
+  }
+  .frame[data-base='wobbly'] [data-part='list.option'][data-held] {
+    color: var(--act-ink);
+  }
+  .frame[data-base='wobbly'] [data-part='list.option'][data-held] [data-part='list.fill'] {
+    background: var(--act);
+  }
+  .frame[data-base='wobbly'] [data-part='list.fill'][data-flash] {
+    animation: wobbly-fade 320ms ease-out forwards;
+  }
+  .frame[data-base='wobbly'] [data-part='list.mark'] {
+    color: var(--wb-line);
+  }
+}

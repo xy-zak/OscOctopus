@@ -106,7 +106,7 @@
   {#each widget.bindings as b (b.id)}
     {@const addrErr = addressError(b.address)}
     {@const inProblem = b.receive ? receiveProblem(widget, b) : null}
-    {@const fwdProblem = forwardProblem(widget, b)}
+    {@const fwdProblem = forwardProblem(widget)}
     <div class="binding card">
       <div class="part">
         <div class="row">

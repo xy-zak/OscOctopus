@@ -5,14 +5,7 @@
 // sync (state/changes.ts). `touch()` is `changed()` for the active desk.
 import { presets as presetIpc, sync as syncIpc } from '../ipc/commands';
 import type { PresetSummary } from '../ipc/types';
-import {
-  collisions,
-  editCell,
-  findFreeSpot,
-  outOfBounds,
-  withEditCell,
-  type Rect,
-} from '../grid/engine';
+import { findFreeSpot, outOfBounds, type Rect } from '../grid/engine';
 import { newInput, newOutput, newPreset, withFreshWidgetIds } from '../model/factory';
 import { migratePreset } from '../model/migrations';
 import { uid } from '../model/parts';
@@ -29,6 +22,7 @@ import { PALETTE_SIZE } from '../theme/palettes';
 import { errorText } from '../util';
 import { DEFS, initialValue, newWidget } from '../widgets/defs';
 import { appearance } from './appearance.svelte';
+import { skinStore } from './skins.svelte';
 import { Autosave } from './autosave.svelte';
 import { deskChanges, syncKey, syncRecords } from './changes';
 import { forgetFeedback } from './feedback.svelte';
@@ -334,6 +328,7 @@ class PresetStore {
       await this.closeDesk(id);
     }
     await presetIpc.remove(id);
+    await skinStore.forgetDesk(id);
     await this.refreshList();
   }
 
@@ -451,7 +446,7 @@ class PresetStore {
 
   addWidget(type: WidgetType) {
     const { grid, widgets } = this.current;
-    const spot = findFreeSpot(DEFS[type].defaultSize, grid, withEditCell(widgets, grid));
+    const spot = findFreeSpot(DEFS[type].defaultSize, grid, widgets);
     if (!spot) {
       toast('No free space on the grid: resize the grid or remove a widget', 'error');
       return;
@@ -469,7 +464,7 @@ class PresetStore {
     const src = this.widget(id);
     if (!src) return;
     const { grid, widgets } = this.current;
-    const spot = findFreeSpot({ w: src.w, h: src.h }, grid, withEditCell(widgets, grid));
+    const spot = findFreeSpot({ w: src.w, h: src.h }, grid, widgets);
     if (!spot) {
       toast('No free space for a copy of this size', 'error');
       return;
@@ -506,14 +501,6 @@ class PresetStore {
     if (clipped.length) {
       toast(
         `${clipped.length} widget(s) would fall outside a ${next.cols}×${next.rows} grid; move them first`,
-        'error',
-      );
-      return false;
-    }
-    // The top-right cell is the EDIT / LIVE switch's, and it moves with the right edge.
-    if (collisions(editCell(next), this.current.widgets).length) {
-      toast(
-        `A widget sits in the top-right cell of a ${next.cols}-column grid, where the EDIT / LIVE switch goes; move it first`,
         'error',
       );
       return false;

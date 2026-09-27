@@ -40,18 +40,16 @@ describe('patchInPlace', () => {
 });
 
 describe('conflicts', () => {
-  it('reports overlaps, widgets outside the grid or on the EDIT cell, and missing endpoints', () => {
+  it('reports overlaps, widgets outside the grid, and missing endpoints', () => {
     const desk = newPreset('Desk');
     expect(findConflicts(desk)).toEqual([]);
-    const [a, b, c, d] = desk.widgets;
+    const [a, b, c] = desk.widgets;
     Object.assign(b!, { x: a!.x, y: a!.y });
     c!.x = desk.grid.cols + 2;
-    Object.assign(d!, { x: desk.grid.cols - 2, y: 0, w: 2, h: 1 });
     desk.widgets[4]!.bindings[0]!.outputIds = ['gone'];
     const kinds = findConflicts(desk).map((x) => x.kind);
     expect(kinds).toContain('overlap');
     expect(kinds).toContain('outside');
-    expect(kinds).toContain('editCell');
     expect(kinds).toContain('missingEndpoint');
   });
 });

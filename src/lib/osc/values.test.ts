@@ -4,7 +4,7 @@ import type { ArgTemplate, Widget } from '../model/preset';
 import { initialValue, newWidget } from '../widgets/defs';
 import { formatArg, typetags } from './format';
 import { buildArgs, buildMessages, fillAddress } from './mapping';
-import { channelValue, listValue, mergeDeltas, padEvent } from './value';
+import { channelValue, listValue, padEvent } from './value';
 
 const val = (
   type: Extract<ArgTemplate, { kind: 'value' }>['type'],
@@ -102,14 +102,7 @@ describe('padEvent / listValue', () => {
 });
 
 describe('initialValue for the new widgets', () => {
-  it('knob, pads and list start from their defaults', () => {
-    const knob = newWidget('knob', { x: 0, y: 0, w: 2, h: 2 }, ['out']) as Extract<
-      Widget,
-      { type: 'knob' }
-    >;
-    expect(initialValue(knob)).toBe(knob.props.defaultValue);
-    knob.props.mode = 'endless';
-    expect(initialValue(knob)).toEqual({ value: knob.props.defaultValue, delta: 0 });
+  it('pads and list start from their defaults', () => {
     const pads = newWidget('pads', { x: 0, y: 0, w: 2, h: 2 }, ['out']);
     expect(initialValue(pads)).toEqual({ number: 1, row: 1, col: 1, on: false });
     const list = newWidget('list', { x: 0, y: 0, w: 2, h: 2 }, ['out']) as Extract<
@@ -129,19 +122,5 @@ describe('initialValue for the new widgets', () => {
       { type: 'i', value: 6 },
       { type: 'i', value: 1 },
     ]);
-  });
-});
-
-describe('mergeDeltas', () => {
-  it('adds up held-back encoder deltas and keeps the newest value', () => {
-    expect(mergeDeltas({ value: 1, delta: 1 }, { value: 2, delta: 1 })).toEqual({
-      value: 2,
-      delta: 2,
-    });
-    expect(mergeDeltas({ value: 1, delta: 0.1 }, { value: 1.2, delta: 0.2 })).toEqual({
-      value: 1.2,
-      delta: 0.3,
-    });
-    expect(mergeDeltas(0.2, 0.4)).toBe(0.4);
   });
 });

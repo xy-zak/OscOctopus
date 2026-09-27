@@ -37,8 +37,7 @@ export function newPreset(
     [newWidget('button', { x: 4, y: 0, w: 2, h: 2 }, o, 1), 8],
     [newWidget('switch', { x: 6, y: 0, w: 2, h: 1 }, o, 1), 3],
     [newWidget('slider', { x: 4, y: 3, w: 4, h: 1 }, o, 4), 6],
-    // Row 1, under the EDIT / LIVE switch in the top-right cell.
-    [newWidget('graph', { x: 8, y: 1, w: 4, h: 5 }, o, 1), 5],
+    [newWidget('graph', { x: 8, y: 0, w: 4, h: 5 }, o, 1), 5],
   ];
   const widgets = layout.map(([w, color]) => ({ ...w, color }));
   return {

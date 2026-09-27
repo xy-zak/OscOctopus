@@ -2,7 +2,7 @@
 // tested in values.test.ts.
 //
 // A widget's value is one of:
-//   - a scalar: number | string | boolean                        (button, switch, fader, knob)
+//   - a scalar: number | string | boolean                        (button, switch, fader)
 //   - a list of scalars                                          (future: fader banks, …)
 //   - a record of named channels                                 (graph {x,y}, pads, list, …)
 // Message arguments pick a channel (`ArgTemplate.channel`), and addresses may contain
@@ -76,17 +76,4 @@ export function listValue(
     label: o.label,
     value: o.value.trim() !== '' && Number.isFinite(n) ? n : o.value,
   };
-}
-
-/** Endless-encoder merge: keep the newest absolute value, add up the deltas. */
-export function mergeDeltas(held: WidgetValue, next: WidgetValue): WidgetValue {
-  if (
-    isRecord(held) &&
-    isRecord(next) &&
-    typeof held.delta === 'number' &&
-    typeof next.delta === 'number'
-  ) {
-    return { ...next, delta: Number((held.delta + next.delta).toFixed(10)) };
-  }
-  return next;
 }

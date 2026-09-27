@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="#000" stroke-linecap="round">
+  <!-- A pencil circle that doesn't quite close, drawn twice. -->
+  <path stroke-width="2.4" d="M24 5.5C35 5 43 13 42.5 24C42 35 34 42.8 23.5 42.5C12.5 42.2 5.2 34 5.6 23.4C6 13 13.5 5.8 26 6.6"/>
+  <path stroke-width="1.3" opacity=".5" d="M27 3.8C39 6 45.5 16 43.8 27C42 38 31 45 20 43.6C9 42 3.6 31 5.2 20C6.6 11 13 6.2 20 5.2"/>
+</svg>

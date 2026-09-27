@@ -20,15 +20,6 @@ describe('migratePreset', () => {
     expect(() => migratePreset([])).toThrow(PresetError);
     expect(() => migratePreset({})).toThrow(/schemaVersion/);
   });
-  it('adds a top row when a widget covers the top-right EDIT cell, keeping the layout', () => {
-    const p = newPreset();
-    const graph = p.widgets.find((w) => w.type === 'graph')!;
-    expect(graph.x + graph.w).toBe(p.grid.cols);
-    graph.y = 0; // the graph now reaches the top-right cell
-    const migrated = migratePreset(JSON.parse(JSON.stringify(p)));
-    expect(migrated.grid.rows).toBe(p.grid.rows + 1);
-    expect(migrated.widgets).toEqual(p.widgets.map((w) => ({ ...w, y: w.y + 1 })));
-  });
 });
 
 describe('v1 → v2: toggle buttons become switches', () => {
@@ -198,7 +189,7 @@ describe('v7 → v8: messages can also be received', () => {
       })),
     };
     const migrated = migratePreset(JSON.parse(JSON.stringify(v7)));
-    expect(migrated.schemaVersion).toBe(8);
+    expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     const [first, second] = migrated.widgets;
     expect(first!.bindings[0]).toMatchObject({
       send: false,
@@ -213,5 +204,94 @@ describe('v7 → v8: messages can also be received', () => {
       forward: false,
     });
     expect(first!.bindings[0]).not.toHaveProperty('enabled');
+  });
+});
+
+describe('v8 → v9: knobs become faders', () => {
+  const knob = (id: string, mode: 'bounded' | 'endless', args: unknown[], address: string) => ({
+    id,
+    type: 'knob',
+    x: 0,
+    y: 0,
+    w: 2,
+    h: 2,
+    label: `Knob ${id}`,
+    color: 3,
+    props: {
+      mode,
+      min: -1,
+      max: 5,
+      step: 0.5,
+      curve: 'exp',
+      defaultValue: 2,
+      deltaStep: 1,
+      detentPx: 12,
+      maxRateHz: 30,
+    },
+    bindings: [
+      {
+        id: `b${id}`,
+        send: true,
+        outputIds: [],
+        receive: true,
+        sourceIds: [],
+        forward: false,
+        address,
+        args,
+      },
+    ],
+  });
+
+  it('keeps place, range, curve, rate and messages; one value replaces value and delta', () => {
+    const current = newPreset();
+    const v8 = {
+      ...JSON.parse(JSON.stringify(current)),
+      schemaVersion: 8,
+      widgets: [
+        knob('k1', 'bounded', [{ kind: 'value', type: 'f' }], '/pot'),
+        knob(
+          'k2',
+          'endless',
+          [
+            { kind: 'value', type: 'f', channel: 'delta' },
+            { kind: 'const', type: 's', value: 'x' },
+            { kind: 'value', type: 'i', channel: 'value' },
+          ],
+          '/enc/{delta}/{value}',
+        ),
+      ],
+    };
+    const migrated = migratePreset(v8);
+    expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    const [bounded, endless] = migrated.widgets;
+    expect(bounded).toMatchObject({
+      id: 'k1',
+      type: 'slider',
+      x: 0,
+      y: 0,
+      w: 2,
+      h: 2,
+      label: 'Knob k1',
+      color: 3,
+      props: {
+        orientation: 'vertical',
+        min: -1,
+        max: 5,
+        step: 0.5,
+        curve: 'exp',
+        touch: 'relative',
+        defaultValue: 2,
+        maxRateHz: 30,
+      },
+    });
+    expect(bounded!.props).not.toHaveProperty('mode');
+    expect(bounded!.bindings[0]).toMatchObject({ address: '/pot', receive: true });
+    expect(endless!.type).toBe('slider');
+    expect(endless!.bindings[0]!.address).toBe('/enc/{value}/{value}');
+    expect(endless!.bindings[0]!.args).toEqual([
+      { kind: 'value', type: 'f' },
+      { kind: 'const', type: 's', value: 'x' },
+      { kind: 'value', type: 'i' },
+    ]);
   });
 });

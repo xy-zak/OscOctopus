@@ -48,7 +48,7 @@ describe('widget defs', () => {
     }
   });
 
-  it('discrete widgets queue, continuous ones throttle, the endless knob merges', () => {
+  it('discrete widgets queue, continuous ones throttle', () => {
     const kinds = Object.fromEntries(
       WIDGET_TYPES.map((t) => [t, gateFor(newWidget(t, rect, [])).kind]),
     );
@@ -56,16 +56,10 @@ describe('widget defs', () => {
       button: 'queue',
       switch: 'queue',
       slider: 'throttle',
-      knob: 'throttle',
       graph: 'throttle',
       pads: 'queue',
       list: 'queue',
     });
-    const knob = newWidget('knob', rect, []);
-    knob.props.mode = 'endless';
-    expect(gateFor(knob)).toEqual({ kind: 'merge', maxHz: knob.props.maxRateHz });
-    expect(initialValue(knob)).toEqual({ value: knob.props.defaultValue, delta: 0 });
-    expect(channelsFor(knob).map((c) => c.id)).toEqual(['value', 'delta']);
   });
 });
 
@@ -151,9 +145,5 @@ describe('what a peer may set (WidgetDef.isValue)', () => {
     const list = newWidget('list', rect, []);
     expect(isValueFor(list, { index: 0, label: 'forged', value: 1 })).toBe(false);
     expect(isValueFor(list, { index: 99, label: '', value: '' })).toBe(false);
-    const knob = newWidget('knob', rect, []);
-    knob.props.mode = 'endless';
-    expect(isValueFor(knob, { value: 3, delta: 1 })).toBe(true);
-    expect(isValueFor(knob, 3)).toBe(false);
   });
 });

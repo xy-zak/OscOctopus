@@ -25,8 +25,7 @@ export interface ChannelInfo {
  *   resting value always goes out.
  * - merge: like throttle, but held-back values are merged (an encoder's +1 +1 +1 → +3).
  */
-export type Gate =
-  { kind: 'queue' } | { kind: 'throttle'; maxHz: number } | { kind: 'merge'; maxHz: number };
+export type Gate = { kind: 'queue' } | { kind: 'throttle'; maxHz: number };
 
 /**
  * What a received OSC message says about a widget's value, by channel. Single-value widgets
@@ -59,8 +58,7 @@ export interface WidgetDef<W extends Widget> {
   gate(w: W): Gate;
   /**
    * The value a received message sets, given the current one, or null to ignore it. It must
-   * be idempotent: it *sets* state (a toggle pad is set on or off, never flipped). The one
-   * exception is a bare `delta` on an endless knob, which adds.
+   * be idempotent: it *sets* state (a toggle pad is set on or off, never flipped).
    */
   input(w: W, patch: InputPatch, current: WidgetValue): WidgetValue | null;
   /**

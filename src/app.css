@@ -1,9 +1,41 @@
-@import './lib/theme/tokens.css';
+/* Cascade layers, lowest first. Everything unlayered (app.css below, component styles) beats
+   them all, so element resets sit in `reset`, under the widget skins (see lib/skins/). */
+@layer reset, skin.base, skin.builtin, skin.user;
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+@import './lib/theme/tokens.css';
+@import './lib/skins/base.css';
+@import './lib/skins/terminal.css';
+@import './lib/skins/glass.css';
+@import './lib/skins/sketch.css';
+@import './lib/skins/wobbly.css';
+@import './lib/skins/pixelated.css';
+@import './lib/skins/hardware.css';
+@import './lib/skins/neon.css';
+@import './lib/skins/blueprint.css';
+@import './lib/skins/brutalist.css';
+@import './lib/skins/led.css';
+@import './lib/skins/crt.css';
+@import './lib/skins/arcade.css';
+
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+  }
+
+  button {
+    cursor: pointer;
+  }
 }
 
 html,
@@ -25,19 +57,6 @@ body {
   overscroll-behavior: none;
   touch-action: manipulation;
   overflow: hidden;
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-  color: inherit;
-  letter-spacing: inherit;
-}
-
-button {
-  cursor: pointer;
 }
 
 ::selection {

@@ -1,13 +1,13 @@
 <script lang="ts">
   // A key cap seen head-on, standing out of the panel towards you: the face is a smaller
-  // rectangle in the middle, joined to the base by four corner edges and four walls. Light
-  // comes from the top-left, so the walls are shaded with the Switch's groove dots: none on
-  // top, sparse on the left, dense on the right and bottom. Pressed, the cap sinks back until
-  // it is almost flush with the panel.
-  //
-  // Colours come from the caller through inherited custom properties, so a lit key only has
-  // to set them: --key-edge (lines), --key-dots (wall shading), --key-face (face fill).
+  // rectangle in the middle, joined to the base by four corner edges and four walls. Pressed,
+  // the cap sinks back until it is almost flush with the panel. This lays out the shape (the
+  // depth `--d`, the walls, the edge lines); the skin paints it (keycap parts in
+  // skins/anatomy.ts), e.g. TERMINAL shades the walls with dots lit from the top-left. A skin
+  // with flat keys (GLASS) gets just the face: no walls, edges or measuring.
   import type { Snippet } from 'svelte';
+  import { flag } from '../skins/anatomy';
+  import { useSkin } from '../skins/context';
 
   interface Props {
     /** Height of the cap in px at most; smaller keys stand out proportionally less. */
@@ -16,6 +16,9 @@
     children?: Snippet;
   }
   let { depth = 12, down = false, children }: Props = $props();
+
+  const skin = useSkin();
+  const flat = $derived(skin().params.keycap === 'flat');
 
   let w = $state(0);
   let h = $state(0);
@@ -34,24 +37,42 @@
   });
 </script>
 
-<span class="key" class:down bind:clientWidth={w} bind:clientHeight={h} style:--d="{d}px">
-  <span class="wall top" aria-hidden="true"></span>
-  <span class="wall left" aria-hidden="true"></span>
-  <span class="wall right" aria-hidden="true"></span>
-  <span class="wall bottom" aria-hidden="true"></span>
-  {#if w > 2 * d && h > 2 * d}
-    <svg class="edges" width={w} height={h} aria-hidden="true" shape-rendering="crispEdges">
-      <rect x="0.5" y="0.5" width={w - 1} height={h - 1} />
-      <path d={corners} />
-    </svg>
-  {/if}
-  <span class="face">{@render children?.()}</span>
-</span>
+{#if flat}
+  <span class="key" data-part="keycap" data-style="flat" data-down={flag(down)} style:--d="0px">
+    <span class="face" data-part="keycap.face">{@render children?.()}</span>
+  </span>
+{:else}
+  <span
+    class="key"
+    data-part="keycap"
+    data-style="bevel"
+    data-down={flag(down)}
+    bind:clientWidth={w}
+    bind:clientHeight={h}
+    style:--d="{d}px"
+  >
+    {#each ['top', 'left', 'right', 'bottom'] as side (side)}
+      <span class="wall {side}" data-part="keycap.wall" data-side={side} aria-hidden="true"></span>
+    {/each}
+    {#if w > 2 * d && h > 2 * d}
+      <svg
+        class="edges"
+        data-part="keycap.edges"
+        width={w}
+        height={h}
+        aria-hidden="true"
+        shape-rendering="crispEdges"
+      >
+        <rect x="0.5" y="0.5" width={w - 1} height={h - 1} />
+        <path d={corners} />
+      </svg>
+    {/if}
+    <span class="face" data-part="keycap.face">{@render children?.()}</span>
+  </span>
+{/if}
 
 <style>
   .key {
-    --edge: var(--key-edge, var(--line-strong));
-    --dots: var(--key-dots, var(--line));
     position: absolute;
     inset: 0;
     display: block;
@@ -65,7 +86,6 @@
   }
   .wall.left {
     clip-path: polygon(0 0, var(--d) var(--d), var(--d) calc(100% - var(--d)), 0 100%);
-    background: conic-gradient(at 2px 2px, transparent 75%, var(--dots) 0) 0 0 / 4px 4px;
   }
   .wall.right {
     clip-path: polygon(
@@ -74,7 +94,6 @@
       calc(100% - var(--d)) calc(100% - var(--d)),
       calc(100% - var(--d)) var(--d)
     );
-    background: repeating-conic-gradient(var(--dots) 0 25%, transparent 0 50%) 0 0 / 4px 4px;
   }
   .wall.bottom {
     clip-path: polygon(
@@ -83,29 +102,16 @@
       calc(100% - var(--d)) calc(100% - var(--d)),
       100% 100%
     );
-    background: repeating-conic-gradient(var(--dots) 0 25%, transparent 0 50%) 0 0 / 4px 4px;
   }
   .edges {
     position: absolute;
     inset: 0;
-    fill: none;
-    stroke: var(--edge);
     pointer-events: none;
   }
-  /* The face, with a raised bevel: a light line top-left, a dark one bottom-right. */
   .face {
     position: absolute;
     inset: var(--d);
     display: block;
     overflow: hidden;
-    border: 1px solid var(--edge);
-    background: var(--key-face, var(--bg-2));
-    box-shadow:
-      inset 1px 1px 0 0 color-mix(in srgb, var(--fg) 30%, transparent),
-      inset -1px -1px 0 0 var(--shadow-px);
-    transition: border-color var(--t-ui) steps(2);
-  }
-  .down .face {
-    box-shadow: inset 1px 1px 0 0 var(--shadow-px);
   }
 </style>

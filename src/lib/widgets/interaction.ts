@@ -1,4 +1,4 @@
-// Interaction rules shared by the continuous widgets (fader, knob, graph), so they all feel the
+// Interaction rules shared by the continuous widgets (fader, graph), so they all feel the
 // same: double-tap to reset, Shift for fine control, the same keyboard steps and readouts.
 import type { Axis } from '../model/preset';
 

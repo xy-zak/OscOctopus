@@ -1,0 +1,334 @@
+/* TERMINAL: the built-in pixel look. 1px lines in the widget colour, hard offset shadows that
+   widgets sink into when pressed, dither fills, and `steps()` motion. Every rule is keyed on
+   .frame[data-base='terminal'], so other skins can sit beside it on the same desk. Parts and
+   states: skins/anatomy.ts. */
+@layer skin.builtin {
+  /* ---- frame: the title and value are set into the border on a patch of page colour ---- */
+  .frame[data-base='terminal'] {
+    border: 1px solid var(--c);
+    background: var(--w-bg);
+    box-shadow: 4px 4px 0 0 var(--shadow-px);
+    transition:
+      translate var(--t-release) var(--ease-spring),
+      box-shadow var(--t-release) var(--ease-spring),
+      border-color var(--t-ui) steps(2);
+  }
+  .frame[data-base='terminal'][data-active] {
+    border-color: var(--act);
+  }
+  .frame[data-base='terminal'][data-pressed] {
+    translate: 3px 3px;
+    box-shadow: 1px 1px 0 0 var(--shadow-px);
+    transition-duration: var(--t-press);
+  }
+  /* Picked up on the desk (EDIT): lifted further off the panel. */
+  [data-lifted] .frame[data-base='terminal'] {
+    box-shadow: 8px 8px 0 0 var(--shadow-px);
+  }
+  .frame[data-base='terminal'] [data-part='frame.title'],
+  .frame[data-base='terminal'] [data-part='frame.status'] {
+    background: var(--bg);
+    transition: color var(--t-ui) steps(2);
+  }
+  .frame[data-base='terminal'] [data-part='frame.title'] {
+    color: var(--fg);
+  }
+  .frame[data-base='terminal'][data-active] [data-part='frame.title'] {
+    color: var(--act);
+  }
+  .frame[data-base='terminal'] [data-part='frame.status'] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='terminal'][data-active] [data-part='frame.status'] {
+    color: var(--fg);
+  }
+
+  /* ---- keycap: walls shaded with the Switch's groove dots, lit from the top-left: none on
+     top, sparse on the left, dense on the right and bottom. The face has a raised bevel. ---- */
+  .frame[data-base='terminal'] [data-part='keycap'] {
+    --edge: var(--key-edge, var(--line-strong));
+    --dots: var(--key-dots, var(--line));
+  }
+  .frame[data-base='terminal'] [data-part='keycap.wall'][data-side='left'] {
+    background: conic-gradient(at 2px 2px, transparent 75%, var(--dots) 0) 0 0 / 4px 4px;
+  }
+  .frame[data-base='terminal'] [data-part='keycap.wall'][data-side='right'],
+  .frame[data-base='terminal'] [data-part='keycap.wall'][data-side='bottom'] {
+    background: repeating-conic-gradient(var(--dots) 0 25%, transparent 0 50%) 0 0 / 4px 4px;
+  }
+  .frame[data-base='terminal'] [data-part='keycap.edges'] {
+    fill: none;
+    stroke: var(--edge);
+  }
+  .frame[data-base='terminal'] [data-part='keycap.face'] {
+    border: 1px solid var(--edge);
+    background: var(--key-face, var(--bg-2));
+    box-shadow:
+      inset 1px 1px 0 0 color-mix(in srgb, var(--fg) 30%, transparent),
+      inset -1px -1px 0 0 var(--shadow-px);
+    transition: border-color var(--t-ui) steps(2);
+  }
+  .frame[data-base='terminal'] [data-part='keycap'][data-down] [data-part='keycap.face'] {
+    box-shadow: inset 1px 1px 0 0 var(--shadow-px);
+  }
+
+  /* Release, for buttons, pads and list options: a pixel dissolve from ACTIVE green back to
+     the widget colour, solid → 50% dither → 25% dither → gone. */
+  @keyframes terminal-dissolve {
+    0% {
+      background: var(--act);
+    }
+    33% {
+      background: var(--dither-50-act);
+    }
+    66% {
+      background: var(--dither-25-act);
+    }
+    100% {
+      background: transparent;
+    }
+  }
+
+  /* ---- button: at rest the key is the widget colour; lit (fired, armed, holding), its lines
+     and shading turn the ACTIVE green and the face fills green while pressed. ---- */
+  .frame[data-base='terminal'] [data-part='button.key'] {
+    --key-edge: var(--c);
+    --key-dots: color-mix(in srgb, var(--c) 55%, transparent);
+    --key-face: var(--c-solid);
+  }
+  .frame[data-base='terminal'][data-lit] [data-part='button.key'] {
+    --key-edge: var(--act);
+    --key-dots: color-mix(in srgb, var(--act) 55%, transparent);
+  }
+  .frame[data-base='terminal'] [data-part='button.fill'][data-on] {
+    background: var(--act);
+  }
+  .frame[data-base='terminal'] [data-part='button.fill'][data-flash] {
+    animation: terminal-dissolve 210ms steps(1, end) forwards;
+  }
+  /* ARMED: a blinking dithered wash; the next press fires. */
+  .frame[data-base='terminal'] [data-part='button.armed'] {
+    background: var(--dither-50-act);
+    animation: terminal-armed-blink 0.6s steps(1) infinite;
+  }
+  @keyframes terminal-armed-blink {
+    50% {
+      opacity: 0.25;
+    }
+  }
+  /* HOLD: a fill steps up the key; it fires when full. */
+  .frame[data-base='terminal'] [data-part='button.hold'] {
+    background: var(--act);
+    animation: terminal-hold-fill var(--hold) steps(10, end) forwards;
+  }
+  @keyframes terminal-hold-fill {
+    from {
+      clip-path: inset(100% 0 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  .frame[data-base='terminal'] [data-part='button.hint'] {
+    color: var(--c-ink);
+  }
+
+  /* ---- switch: a solid block on a dithered groove; everything turns ACTIVE green when on ---- */
+  .frame[data-base='terminal'] [data-part='switch.track'] {
+    border: 1px solid var(--c);
+    background: var(--dither-25-c);
+    transition: border-color var(--t-ui) steps(2);
+  }
+  .frame[data-base='terminal'][data-on] [data-part='switch.track'] {
+    border-color: var(--act);
+    background: var(--dither-25-act);
+  }
+  .frame[data-base='terminal'] [data-part='switch.legend'] {
+    transition: opacity var(--t-ui) steps(2);
+  }
+  /* A patch behind the word, so it reads on the coloured dots. */
+  .frame[data-base='terminal'] [data-part='switch.tag'] {
+    background: var(--w-bg);
+  }
+  .frame[data-base='terminal'] [data-part='switch.legend'][data-side='off'] {
+    color: var(--c-text);
+  }
+  .frame[data-base='terminal'] [data-part='switch.legend'][data-side='on'] {
+    color: var(--act);
+  }
+  /* The block slides with a spring when tapped and follows the finger while dragged. */
+  .frame[data-base='terminal'] [data-part='switch.thumb'] {
+    background: var(--c-solid);
+    color: var(--c-ink);
+    box-shadow: 2px 2px 0 0 var(--shadow-px);
+    transition:
+      transform var(--t-release) var(--ease-spring),
+      background var(--t-ui) steps(2);
+  }
+  .frame[data-base='terminal'][data-on] [data-part='switch.thumb'] {
+    background: var(--act);
+    color: var(--act-ink);
+  }
+  .frame[data-base='terminal'][data-dragging] [data-part='switch.thumb'] {
+    transition: background var(--t-ui) steps(2);
+  }
+
+  /* ---- fader: the Switch's groove as a narrow track filling with denser ACTIVE green dots,
+     a solid cap wider than the track with a grip line, and a printed scale either side ---- */
+  .frame[data-base='terminal'] [data-part='slider.track'] {
+    border: 1px solid var(--c);
+    background: var(--dither-25-c);
+    transition: border-color var(--t-ui) steps(2);
+  }
+  .frame[data-base='terminal'][data-dragging] [data-part='slider.track'] {
+    border-color: var(--act);
+  }
+  /* Its own backing, so the groove's dots don't show through. */
+  .frame[data-base='terminal'] [data-part='slider.fill'] {
+    background: var(--dither-50-act), var(--w-bg);
+    transition: clip-path var(--t-release) var(--ease-out);
+  }
+  .frame[data-base='terminal'][data-dragging] [data-part='slider.fill'] {
+    transition: none;
+  }
+  .frame[data-base='terminal'] [data-part='slider.cap'] {
+    background: var(--c-solid);
+    box-shadow: 2px 2px 0 0 var(--shadow-px);
+    transition:
+      transform var(--t-release) var(--ease-out),
+      background var(--t-ui) steps(2);
+  }
+  .frame[data-base='terminal'][data-dragging] [data-part='slider.cap'] {
+    background: var(--act);
+    transition: background var(--t-ui) steps(2);
+  }
+  .frame[data-base='terminal'] [data-part='slider.grip'] {
+    width: 1px;
+    height: 60%;
+    background: var(--c-ink);
+  }
+  .frame[data-base='terminal'][data-vertical] [data-part='slider.grip'] {
+    width: 60%;
+    height: 1px;
+  }
+  .frame[data-base='terminal'][data-dragging] [data-part='slider.grip'] {
+    background: var(--act-ink);
+  }
+
+  /* ---- graph: neutral paper with a dot grid printed in the widget colour; the cursor, its
+     dashed crosshairs and trail are ACTIVE green, and brackets lock on while held ---- */
+  .frame[data-base='terminal'] [data-part='graph.plot'] {
+    --grid-line: color-mix(in srgb, var(--c) 45%, transparent);
+    --paper: var(--bg-2);
+    background: var(--paper);
+    border: 1px solid var(--c);
+  }
+  /* A 1px dot every 10%, plus solid quarter lines. */
+  .frame[data-base='terminal'] [data-part='graph.grid'] {
+    background:
+      conic-gradient(at 1px 1px, transparent 75%, var(--c) 0) 0 0 / 10% 10%,
+      linear-gradient(to right, var(--grid-line) 1px, transparent 1px) 0 0 / 25% 100%,
+      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px) 0 0 / 100% 25%;
+  }
+  .frame[data-base='terminal'] [data-part='graph.cross'],
+  .frame[data-base='terminal'] [data-part='graph.cursor'] {
+    transition: transform var(--t-release) var(--ease-out);
+  }
+  .frame[data-base='terminal'][data-dragging] [data-part='graph.cross'],
+  .frame[data-base='terminal'][data-dragging] [data-part='graph.cursor'] {
+    transition: none;
+  }
+  .frame[data-base='terminal'] [data-part='graph.cross'][data-axis='x'] {
+    background: repeating-linear-gradient(to right, var(--act) 0 3px, transparent 3px 6px);
+  }
+  .frame[data-base='terminal'] [data-part='graph.cross'][data-axis='y'] {
+    background: repeating-linear-gradient(to bottom, var(--act) 0 3px, transparent 3px 6px);
+  }
+  .frame[data-base='terminal'] [data-part='graph.cursor'] {
+    background: var(--act);
+    box-shadow: 0 0 0 2px var(--bg);
+  }
+  .frame[data-base='terminal'] [data-part='graph.lock'] {
+    --b: var(--fg);
+    opacity: 0;
+    background:
+      linear-gradient(var(--b), var(--b)) top left / 5px 1px no-repeat,
+      linear-gradient(var(--b), var(--b)) top left / 1px 5px no-repeat,
+      linear-gradient(var(--b), var(--b)) top right / 5px 1px no-repeat,
+      linear-gradient(var(--b), var(--b)) top right / 1px 5px no-repeat,
+      linear-gradient(var(--b), var(--b)) bottom left / 5px 1px no-repeat,
+      linear-gradient(var(--b), var(--b)) bottom left / 1px 5px no-repeat,
+      linear-gradient(var(--b), var(--b)) bottom right / 5px 1px no-repeat,
+      linear-gradient(var(--b), var(--b)) bottom right / 1px 5px no-repeat;
+    transition:
+      inset var(--t-release) steps(3, end),
+      opacity var(--t-press) steps(1);
+  }
+  .frame[data-base='terminal'][data-dragging] {
+    --graph-lock-inset: -8px;
+  }
+  .frame[data-base='terminal'][data-dragging] [data-part='graph.lock'] {
+    opacity: 1;
+  }
+  /* Square pixels, older ones dimmer; the trail dissolves in steps on release. */
+  .frame[data-base='terminal'] [data-part='graph.trail'] {
+    transition: opacity 450ms steps(4, end);
+  }
+  .frame[data-base='terminal'] [data-part='graph.trail'][data-fading] {
+    opacity: 0;
+  }
+  .frame[data-base='terminal'] [data-part='graph.dot'] {
+    background: var(--act);
+  }
+  .frame[data-base='terminal'] [data-part='graph.tick'] {
+    color: var(--c-text);
+    background: var(--paper);
+  }
+
+  /* ---- pads: small key caps in the widget colour; held or latched, ACTIVE green ---- */
+  .frame[data-base='terminal'] [data-part='pads.pad'] {
+    --key-edge: var(--c);
+    --key-dots: color-mix(in srgb, var(--c) 55%, transparent);
+    --key-face: var(--c-solid);
+  }
+  .frame[data-base='terminal'] [data-part='pads.pad'][data-on] {
+    --key-edge: var(--act);
+    --key-dots: color-mix(in srgb, var(--act) 55%, transparent);
+  }
+  .frame[data-base='terminal'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
+    background: var(--act);
+  }
+  .frame[data-base='terminal'] [data-part='pads.fill'][data-flash] {
+    animation: terminal-dissolve 210ms steps(1, end) forwards;
+  }
+  .frame[data-base='terminal'] [data-part='pads.num'] {
+    color: var(--c-ink);
+  }
+  .frame[data-base='terminal'] [data-part='pads.pad'][data-on] [data-part='pads.num'] {
+    color: var(--act-ink);
+  }
+
+  /* ---- list: blocks in the widget colour, the current one marked (bold, ▸), not lit; an
+     option lights ACTIVE green only while pressed, then dissolves like the pads ---- */
+  .frame[data-base='terminal'] [data-part='list.option'] {
+    background: var(--c-solid);
+    color: color-mix(in srgb, var(--c-ink) 65%, var(--c-solid));
+    transition: color var(--t-ui) steps(2);
+  }
+  .frame[data-base='terminal'][data-live]
+    [data-part='list.option']:not([data-current]):not([data-held]):hover {
+    color: var(--c-ink);
+  }
+  .frame[data-base='terminal'] [data-part='list.option'][data-current] {
+    color: var(--c-ink);
+  }
+  .frame[data-base='terminal'] [data-part='list.option'][data-held] {
+    color: var(--act-ink);
+  }
+  .frame[data-base='terminal'] [data-part='list.option'][data-held] [data-part='list.fill'] {
+    background: var(--act);
+  }
+  .frame[data-base='terminal'] [data-part='list.fill'][data-flash] {
+    animation: terminal-dissolve 210ms steps(1, end) forwards;
+  }
+}

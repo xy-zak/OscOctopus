@@ -1,0 +1,287 @@
+/* BRUTALIST: heavy and blunt. Thick borders in the text colour, square corners, hard offset
+   shadows in the widget colour that a press drives the widget into, and flat blocks of
+   saturated colour with near-black type on them. Every rule is keyed on
+   .frame[data-base='brutalist']. Parts and states: skins/anatomy.ts; what every skin keeps the
+   same (font, label placement, markers, the desk background): skins/base.css, docs/SKINS.md. */
+@layer skin.builtin {
+  /* ---- frame: a thick box casting a hard shadow in the widget colour; the title and value
+     sit on solid blocks in the border ---- */
+  .frame[data-base='brutalist'] {
+    --br-ink: #0b0b0c;
+    --br-line: var(--fg);
+    --br-shadow: var(--c);
+    --br-off: 6px;
+    --frame-inset-t: 11px;
+    --frame-inset-x: 9px;
+    --frame-inset-b: 9px;
+    --switch-inset: 4px;
+    --slider-cap-len: 16px;
+    --slider-track-w: 14px;
+    --slider-tick-c: var(--fg);
+    --graph-cursor: 12px;
+    --graph-dot: 4px;
+    --pads-gap: 6px;
+    --list-gap: 4px;
+    --list-row-h: 22px;
+    border: 3px solid var(--br-line);
+    background: var(--w-bg);
+    box-shadow: var(--br-off) var(--br-off) 0 0 var(--br-shadow);
+    transition:
+      translate 70ms steps(2, end),
+      box-shadow 70ms steps(2, end);
+  }
+  .frame[data-base='brutalist'][data-active] {
+    --br-shadow: var(--act);
+  }
+  .frame[data-base='brutalist'][data-pressed] {
+    translate: 4px 4px;
+    box-shadow: 2px 2px 0 0 var(--br-shadow);
+  }
+  [data-lifted] .frame[data-base='brutalist'] {
+    box-shadow: 12px 12px 0 0 var(--br-shadow);
+  }
+  .frame[data-base='brutalist'] [data-part='frame.title'] {
+    background: var(--br-line);
+    color: var(--bg);
+  }
+  .frame[data-base='brutalist'][data-active] [data-part='frame.title'] {
+    background: var(--act);
+    color: var(--act-ink);
+  }
+  .frame[data-base='brutalist'] [data-part='frame.status'] {
+    background: var(--bg);
+    color: var(--fg);
+  }
+
+  /* Release: off in two hard steps. */
+  @keyframes brutalist-off {
+    0% {
+      background: var(--act);
+    }
+    50% {
+      background: var(--dither-50-act);
+    }
+    100% {
+      background: transparent;
+    }
+  }
+
+  /* ---- keys (buttons, pads): a block of the widget colour with a thick edge and a hard
+     shadow; pressed, it is driven down into its shadow. The face gives up a margin on the
+     right and bottom for the shadow, which the widget's inside would otherwise clip. ---- */
+  .frame[data-base='brutalist'] [data-part='button.key'] {
+    --br-key-off: 5px;
+  }
+  .frame[data-base='brutalist'] [data-part='pads.pad'] {
+    --br-key-off: 3px;
+  }
+  .frame[data-base='brutalist'] [data-part='keycap.face'] {
+    margin: 0 var(--br-key-off, 4px) var(--br-key-off, 4px) 0;
+    border: 3px solid var(--br-line);
+    background: var(--c);
+    box-shadow: var(--br-key-off, 4px) var(--br-key-off, 4px) 0 0 var(--br-line);
+    transition:
+      translate 50ms steps(1, end),
+      box-shadow 50ms steps(1, end);
+  }
+  .frame[data-base='brutalist'] [data-part='pads.pad'] [data-part='keycap.face'] {
+    border-width: 2px;
+  }
+  .frame[data-base='brutalist'] [data-part='keycap'][data-down] [data-part='keycap.face'] {
+    translate: var(--br-key-off, 4px) var(--br-key-off, 4px);
+    box-shadow: 0 0 0 0 var(--br-line);
+  }
+
+  /* ---- button ---- */
+  .frame[data-base='brutalist'] [data-part='button.fill'][data-on] {
+    background: var(--act);
+  }
+  .frame[data-base='brutalist'] [data-part='button.fill'][data-flash] {
+    animation: brutalist-off 160ms steps(1, end) forwards;
+  }
+  /* ARMED: hazard stripes. */
+  .frame[data-base='brutalist'] [data-part='button.armed'] {
+    background: repeating-linear-gradient(-45deg, var(--act) 0 6px, transparent 6px 12px);
+    animation: brutalist-blink 0.5s steps(1) infinite;
+  }
+  @keyframes brutalist-blink {
+    50% {
+      opacity: 0.35;
+    }
+  }
+  .frame[data-base='brutalist'] [data-part='button.hold'] {
+    background: var(--act);
+    box-shadow: inset 0 3px 0 var(--br-ink);
+    animation: brutalist-hold var(--hold) steps(8, end) forwards;
+  }
+  @keyframes brutalist-hold {
+    from {
+      clip-path: inset(100% 0 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  .frame[data-base='brutalist'] [data-part='button.hint'] {
+    color: var(--br-ink);
+  }
+
+  /* ---- switch: a thick box; the block is the widget colour, the box floods green when
+     on ---- */
+  .frame[data-base='brutalist'] [data-part='switch.track'] {
+    border: 3px solid var(--br-line);
+    background: var(--w-bg);
+  }
+  .frame[data-base='brutalist'][data-on] [data-part='switch.track'] {
+    background: var(--act);
+  }
+  .frame[data-base='brutalist'] [data-part='switch.tag'] {
+    background: none;
+  }
+  .frame[data-base='brutalist'] [data-part='switch.legend'] {
+    transition: opacity 70ms steps(1, end);
+  }
+  .frame[data-base='brutalist'] [data-part='switch.legend'][data-side='off'] {
+    color: var(--fg);
+  }
+  .frame[data-base='brutalist'] [data-part='switch.legend'][data-side='on'] {
+    color: var(--act-ink);
+  }
+  .frame[data-base='brutalist'] [data-part='switch.thumb'] {
+    border: 3px solid var(--br-line);
+    background: var(--c);
+    color: var(--br-ink);
+    transition: transform 90ms steps(3, end);
+  }
+  .frame[data-base='brutalist'][data-dragging] [data-part='switch.thumb'] {
+    transition: none;
+  }
+
+  /* ---- fader: a thick slot filling solid green, and a slab of a cap ---- */
+  .frame[data-base='brutalist'] [data-part='slider.track'] {
+    border: 3px solid var(--br-line);
+    background: var(--w-bg);
+  }
+  .frame[data-base='brutalist'] [data-part='slider.fill'] {
+    background: var(--act);
+    transition: clip-path 90ms steps(3, end);
+  }
+  .frame[data-base='brutalist'][data-dragging] [data-part='slider.fill'] {
+    transition: none;
+  }
+  .frame[data-base='brutalist'] [data-part='slider.cap'] {
+    border: 3px solid var(--br-line);
+    background: var(--c);
+    box-shadow: 3px 3px 0 0 var(--br-line);
+    transition: transform 90ms steps(3, end);
+  }
+  .frame[data-base='brutalist'][data-dragging] [data-part='slider.cap'] {
+    background: var(--act);
+    transition: none;
+  }
+  .frame[data-base='brutalist'] [data-part='slider.grip'] {
+    width: 3px;
+    height: 55%;
+    background: var(--br-ink);
+  }
+  .frame[data-base='brutalist'][data-vertical] [data-part='slider.grip'] {
+    width: 55%;
+    height: 3px;
+  }
+
+  /* ---- graph: a thick box ruled in quarters, a solid square cursor ---- */
+  .frame[data-base='brutalist'] [data-part='graph.plot'] {
+    --paper: var(--w-bg);
+    border: 3px solid var(--br-line);
+    background: var(--paper);
+  }
+  .frame[data-base='brutalist'] [data-part='graph.grid'] {
+    --g: color-mix(in srgb, var(--c) 60%, transparent);
+    background:
+      linear-gradient(to right, var(--g) 2px, transparent 2px) 0 0 / 25% 100%,
+      linear-gradient(to bottom, var(--g) 2px, transparent 2px) 0 0 / 100% 25%;
+  }
+  .frame[data-base='brutalist'] [data-part='graph.cross'] {
+    background: var(--act);
+    transition: transform 90ms steps(3, end);
+  }
+  .frame[data-base='brutalist'] [data-part='graph.cross'][data-axis='x'] {
+    box-shadow: 0 1px 0 var(--act);
+  }
+  .frame[data-base='brutalist'] [data-part='graph.cross'][data-axis='y'] {
+    box-shadow: 1px 0 0 var(--act);
+  }
+  .frame[data-base='brutalist'] [data-part='graph.cursor'] {
+    border: 3px solid var(--br-line);
+    background: var(--act);
+    transition: transform 90ms steps(3, end);
+  }
+  .frame[data-base='brutalist'][data-dragging] [data-part='graph.cross'],
+  .frame[data-base='brutalist'][data-dragging] [data-part='graph.cursor'] {
+    transition: none;
+  }
+  .frame[data-base='brutalist'] [data-part='graph.lock'] {
+    border: 3px solid var(--br-line);
+    opacity: 0;
+    transition:
+      inset 90ms steps(2, end),
+      opacity 50ms steps(1);
+  }
+  .frame[data-base='brutalist'][data-dragging] {
+    --graph-lock-inset: -8px;
+  }
+  .frame[data-base='brutalist'][data-dragging] [data-part='graph.lock'] {
+    opacity: 1;
+  }
+  .frame[data-base='brutalist'] [data-part='graph.trail'] {
+    transition: opacity 360ms steps(3, end);
+  }
+  .frame[data-base='brutalist'] [data-part='graph.trail'][data-fading] {
+    opacity: 0;
+  }
+  .frame[data-base='brutalist'] [data-part='graph.dot'] {
+    background: var(--act);
+  }
+  .frame[data-base='brutalist'] [data-part='graph.tick'] {
+    color: var(--fg);
+    background: var(--paper);
+  }
+
+  /* ---- pads: blocks of the widget colour; held or latched, green ---- */
+  .frame[data-base='brutalist'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
+    background: var(--act);
+  }
+  .frame[data-base='brutalist'] [data-part='pads.fill'][data-flash] {
+    animation: brutalist-off 160ms steps(1, end) forwards;
+  }
+  .frame[data-base='brutalist'] [data-part='pads.num'] {
+    color: var(--br-ink);
+  }
+  .frame[data-base='brutalist'] [data-part='pads.pad'][data-on] [data-part='pads.num'] {
+    color: var(--act-ink);
+  }
+
+  /* ---- list: boxed rows; the current one a block of the widget colour ---- */
+  .frame[data-base='brutalist'] [data-part='list.option'] {
+    border: 2px solid var(--br-line);
+    background: var(--w-bg);
+    color: var(--fg);
+  }
+  .frame[data-base='brutalist'][data-live]
+    [data-part='list.option']:not([data-current]):not([data-held]):hover {
+    background: color-mix(in srgb, var(--c) 25%, var(--w-bg));
+  }
+  .frame[data-base='brutalist'] [data-part='list.option'][data-current] {
+    background: var(--c);
+    color: var(--br-ink);
+  }
+  .frame[data-base='brutalist'] [data-part='list.option'][data-held] {
+    color: var(--act-ink);
+  }
+  .frame[data-base='brutalist'] [data-part='list.option'][data-held] [data-part='list.fill'] {
+    background: var(--act);
+  }
+  .frame[data-base='brutalist'] [data-part='list.fill'][data-flash] {
+    animation: brutalist-off 160ms steps(1, end) forwards;
+  }
+}

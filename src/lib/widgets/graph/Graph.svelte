@@ -1,14 +1,15 @@
 <script lang="ts">
-  // XY pad drawn as a plot on dot-grid paper: one finger sets two channels at once. X and Y
-  // each have their own range/step/curve (see Axis in model/preset.ts); messages pick a channel
-  // per argument. The cursor is a pixel block with dashed crosshairs; while held, corner
-  // brackets lock on around it, and it leaves a trail of fading pixels.
+  // XY pad drawn as a plot on grid paper: one finger sets two channels at once. X and Y each
+  // have their own range/step/curve (see Axis in model/preset.ts); messages pick a channel per
+  // argument. A cursor with crosshairs; while held, brackets lock on around it and it leaves a
+  // trail of fading dots (TERMINAL: dashed lines and square pixels on a dot grid).
   import type { GraphWidget } from '../../model/preset';
   import { sliderPosition, sliderValue } from '../../osc/curves';
   import { formatValue } from '../../osc/format';
   import { emitValue } from '../../osc/flow';
   import { isRecord, type XY } from '../../osc/value';
   import { tapHaptic } from '../../platform/haptics';
+  import { flag } from '../../skins/anatomy';
   import { values } from '../../state/values.svelte';
   import { clamp } from '../../util';
   import { doubleTap, dragScale, keyStep } from '../interaction';
@@ -121,7 +122,9 @@
 </script>
 
 <WidgetFrame
-  class="graph {live ? 'live' : ''}"
+  type="graph"
+  {live}
+  data-dragging={flag(drag !== null)}
   title={widget.label}
   status="{p.x.label}:{fmt(value.x)} {p.y.label}:{fmt(value.y)}"
   color={widget.color}
@@ -138,58 +141,44 @@
   {onkeydown}
 >
   {#snippet children()}
-    <div
-      bind:this={plot}
-      class="plot"
-      class:dragging={drag !== null}
-      style:--nx={nx}
-      style:--ny={ny}
-    >
-      <div class="grid"></div>
-      <div class="trail" class:fading>
+    <div bind:this={plot} class="plot" data-part="graph.plot" style:--nx={nx} style:--ny={ny}>
+      <div class="grid" data-part="graph.grid"></div>
+      <div class="trail" data-part="graph.trail" data-fading={flag(fading)}>
         {#each trail as t, i (t.n)}
           <span
             class="px"
+            data-part="graph.dot"
             style:--tx={t.x}
             style:--ty={t.y}
             style:opacity={((i + 1) / trail.length) * 0.8}
           ></span>
         {/each}
       </div>
-      <div class="cross-x"></div>
-      <div class="cross-y"></div>
-      <div class="cursor"><span class="lock"></span></div>
-      <span class="tick x-min">{p.x.min}</span>
-      <span class="tick x-max">{p.x.max}</span>
-      <span class="tick y-max">{p.y.max}</span>
+      <div class="cross-x" data-part="graph.cross" data-axis="x"></div>
+      <div class="cross-y" data-part="graph.cross" data-axis="y"></div>
+      <div class="cursor" data-part="graph.cursor">
+        <span class="lock" data-part="graph.lock"></span>
+      </div>
+      <span class="tick x-min" data-part="graph.tick" data-at="x-min">{p.x.min}</span>
+      <span class="tick x-max" data-part="graph.tick" data-at="x-max">{p.x.max}</span>
+      <span class="tick y-max" data-part="graph.tick" data-at="y-max">{p.y.max}</span>
     </div>
   {/snippet}
 </WidgetFrame>
 
 <style>
-  :global(.frame.graph.live) {
+  :global(.frame[data-type='graph'][data-live]) {
     cursor: crosshair;
   }
-  /* Neutral paper with the grid printed in the widget colour. The cursor, its crosshairs and
-     trail are the ACTIVE green. */
   .plot {
-    --grid-line: color-mix(in srgb, var(--c) 45%, transparent);
-    --paper: var(--bg-2);
     position: absolute;
     inset: 0;
-    background: var(--paper);
-    border: 1px solid var(--c);
     container-type: size;
     overflow: hidden;
   }
-  /* Dot grid: a 1px dot every 10%, plus solid quarter lines. */
   .grid {
     position: absolute;
     inset: 0;
-    background:
-      conic-gradient(at 1px 1px, transparent 75%, var(--c) 0) 0 0 / 10% 10%,
-      linear-gradient(to right, var(--grid-line) 1px, transparent 1px) 0 0 / 25% 100%,
-      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px) 0 0 / 100% 25%;
     pointer-events: none;
   }
   .cross-x,
@@ -202,81 +191,42 @@
     pointer-events: none;
     will-change: transform;
   }
-  .cross-x,
-  .cross-y,
-  .cursor {
-    transition: transform var(--t-release) var(--ease-out);
-  }
-  .dragging .cross-x,
-  .dragging .cross-y,
-  .dragging .cursor {
-    transition: none;
-  }
-  /* Dashed crosshairs. */
   .cross-x {
     width: 100%;
     height: 1px;
-    background: repeating-linear-gradient(to right, var(--act) 0 3px, transparent 3px 6px);
     transform: translateY(calc((1 - var(--ny)) * 100cqh));
   }
   .cross-y {
     width: 1px;
     height: 100%;
-    background: repeating-linear-gradient(to bottom, var(--act) 0 3px, transparent 3px 6px);
     transform: translateX(calc(var(--nx) * 100cqw));
   }
   .cursor {
-    width: 10px;
-    height: 10px;
-    margin: -5px 0 0 -5px;
-    background: var(--act);
-    box-shadow: 0 0 0 2px var(--bg);
+    --size: var(--graph-cursor, 10px);
+    width: var(--size);
+    height: var(--size);
+    margin: calc(var(--size) / -2) 0 0 calc(var(--size) / -2);
     transform: translate(calc(var(--nx) * 100cqw), calc((1 - var(--ny)) * 100cqh));
   }
-  /* Corner brackets that snap in around the cursor while it is held. */
+  /* Brackets around the cursor; the skin moves them in and out (--graph-lock-inset). */
   .lock {
     position: absolute;
-    inset: 0;
-    opacity: 0;
-    --b: var(--fg);
-    background:
-      linear-gradient(var(--b), var(--b)) top left / 5px 1px no-repeat,
-      linear-gradient(var(--b), var(--b)) top left / 1px 5px no-repeat,
-      linear-gradient(var(--b), var(--b)) top right / 5px 1px no-repeat,
-      linear-gradient(var(--b), var(--b)) top right / 1px 5px no-repeat,
-      linear-gradient(var(--b), var(--b)) bottom left / 5px 1px no-repeat,
-      linear-gradient(var(--b), var(--b)) bottom left / 1px 5px no-repeat,
-      linear-gradient(var(--b), var(--b)) bottom right / 5px 1px no-repeat,
-      linear-gradient(var(--b), var(--b)) bottom right / 1px 5px no-repeat;
-    transition:
-      inset var(--t-release) steps(3, end),
-      opacity var(--t-press) steps(1);
+    inset: var(--graph-lock-inset, 0px);
   }
-  .dragging .lock {
-    inset: -8px;
-    opacity: 1;
-  }
-  /* Trail: square pixels, older ones dimmer; dissolves in steps on release. */
   .trail {
     position: absolute;
     inset: 0;
-    transition: opacity 450ms steps(4, end);
-  }
-  .trail.fading {
-    opacity: 0;
   }
   .px {
-    width: 4px;
-    height: 4px;
-    margin: -2px 0 0 -2px;
-    background: var(--act);
+    --size: var(--graph-dot, 4px);
+    width: var(--size);
+    height: var(--size);
+    margin: calc(var(--size) / -2) 0 0 calc(var(--size) / -2);
     transform: translate(calc(var(--tx) * 100cqw), calc((1 - var(--ty)) * 100cqh));
   }
   .tick {
     position: absolute;
     padding: 0 0.5ch;
-    color: var(--c-text);
-    background: var(--paper);
     line-height: 1;
     pointer-events: none;
   }

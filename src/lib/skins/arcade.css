@@ -1,0 +1,382 @@
+/* ARCADE: a cabinet control panel. Round, domed buttons in the widget colour sit in black
+   bezels with a chrome ring and sink when pressed; the switch is a chrome ball in a slot, the
+   fader a ball-top lever, and the XY cursor a joystick ball. Every rule is keyed on
+   .frame[data-base='arcade']. Parts and states: skins/anatomy.ts; what every skin keeps the
+   same (font, label placement, markers, the desk background): skins/base.css, docs/SKINS.md.
+
+   The domes and bezels are layered gradients and shadows. A key's face gives up a margin
+   around it, so its bezel and chrome ring fit inside the widget. */
+@layer skin.builtin {
+  /* ---- frame: a panel of the cabinet, lit from above, with a moulded edge ---- */
+  .frame[data-base='arcade'] {
+    --ar-bezel: #111113;
+    --ar-chrome: linear-gradient(to bottom, #f2f2f2, #9c9ca2 50%, #d9d9dc);
+    --ar-ball: radial-gradient(circle at 35% 30%, #fff 0 8%, #d4d4d8 25%, #7a7a80 70%, #3a3a3f);
+    --ar-slot: #0a0a0b;
+    /* Domes, in the widget colour and ACTIVE green: a highlight up and to the left, darker
+       towards the rim. (Declared here, where --c and --act resolve.) */
+    --ar-dome: radial-gradient(
+      circle at 38% 30%,
+      color-mix(in srgb, var(--c) 45%, #fff) 0,
+      var(--c) 42%,
+      color-mix(in srgb, var(--c) 55%, #000) 100%
+    );
+    --ar-dome-act: radial-gradient(
+      circle at 38% 30%,
+      color-mix(in srgb, var(--act) 45%, #fff) 0,
+      var(--act) 42%,
+      color-mix(in srgb, var(--act) 55%, #000) 100%
+    );
+    --ar-edge: color-mix(in srgb, var(--c) 55%, #000);
+    --switch-inset: 3px;
+    --switch-thumb-len: calc(100cqh - 6px);
+    --slider-cap-len: 24px;
+    --slider-track-w: 8px;
+    --slider-tick-c: color-mix(in srgb, var(--fg) 45%, transparent);
+    --graph-cursor: 18px;
+    --graph-dot: 5px;
+    --pads-gap: 4px;
+    --list-gap: 4px;
+    --list-row-h: 22px;
+    border: 2px solid var(--ar-edge);
+    border-radius: 10px;
+    background: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--c) 16%, var(--w-bg)),
+      color-mix(in srgb, var(--c) 5%, var(--w-bg))
+    );
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.12),
+      inset 0 -2px 0 rgb(0 0 0 / 0.3),
+      0 3px 0 rgb(0 0 0 / 0.45);
+    transition:
+      border-color 160ms ease,
+      translate 80ms ease-out;
+  }
+  :root[data-mode='light'] .frame[data-base='arcade'] {
+    --ar-slot: #2a2a2e;
+  }
+  .frame[data-base='arcade'][data-vertical] {
+    --switch-thumb-len: calc(100cqw - 6px);
+  }
+  .frame[data-base='arcade'][data-active] {
+    --ar-edge: var(--act);
+  }
+  .frame[data-base='arcade'][data-pressed] {
+    translate: 0 1px;
+  }
+  [data-lifted] .frame[data-base='arcade'] {
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.12),
+      0 14px 28px rgb(0 0 0 / 0.5);
+  }
+  .frame[data-base='arcade'] [data-part='frame.title'],
+  .frame[data-base='arcade'] [data-part='frame.status'] {
+    background: var(--bg);
+    border-radius: 5px;
+    transition: color 160ms ease;
+  }
+  .frame[data-base='arcade'] [data-part='frame.title'] {
+    color: var(--fg);
+  }
+  .frame[data-base='arcade'][data-active] [data-part='frame.title'] {
+    color: var(--act);
+  }
+  .frame[data-base='arcade'] [data-part='frame.status'] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='arcade'][data-active] [data-part='frame.status'] {
+    color: var(--fg);
+  }
+
+  /* Release: the lamp under the dome dims. */
+  @keyframes arcade-dim {
+    from {
+      background: var(--ar-dome-act);
+      opacity: 1;
+    }
+    to {
+      background: var(--ar-dome-act);
+      opacity: 0;
+    }
+  }
+
+  /* ---- keys (buttons, pads): a dome in a black bezel with a chrome ring; pressed, it sinks
+     and its highlight flattens ---- */
+  .frame[data-base='arcade'] [data-part='button.key'] {
+    --ar-ring: 5px;
+  }
+  .frame[data-base='arcade'] [data-part='pads.pad'] {
+    --ar-ring: 3px;
+  }
+  .frame[data-base='arcade'] [data-part='keycap.face'] {
+    margin: var(--ar-ring, 4px);
+    border-radius: 999px;
+    background: var(--ar-dome);
+    box-shadow:
+      0 0 0 calc(var(--ar-ring, 4px) * 0.6) var(--ar-bezel),
+      0 0 0 var(--ar-ring, 4px) #a8a8ae,
+      inset 0 -3px 4px rgb(0 0 0 / 0.35),
+      inset 0 2px 2px rgb(255 255 255 / 0.25);
+    transition:
+      scale 60ms ease-out,
+      box-shadow 60ms ease-out,
+      filter 60ms ease-out;
+  }
+  .frame[data-base='arcade'] [data-part='keycap'][data-down] [data-part='keycap.face'] {
+    scale: 0.94;
+    filter: brightness(0.88);
+    box-shadow:
+      0 0 0 calc(var(--ar-ring, 4px) * 0.6 / 0.94) var(--ar-bezel),
+      0 0 0 calc(var(--ar-ring, 4px) / 0.94) #a8a8ae,
+      inset 0 3px 5px rgb(0 0 0 / 0.4);
+  }
+  .frame[data-base='arcade'][data-lit] [data-part='keycap.face'] {
+    box-shadow:
+      0 0 0 calc(var(--ar-ring, 4px) * 0.6) var(--ar-bezel),
+      0 0 0 var(--ar-ring, 4px) #a8a8ae,
+      0 0 14px var(--ar-ring, 4px) color-mix(in srgb, var(--act) 45%, transparent),
+      inset 0 -3px 4px rgb(0 0 0 / 0.35);
+  }
+
+  /* ---- button: the dome lights up green while on ---- */
+  .frame[data-base='arcade'] [data-part='button.fill'][data-on] {
+    background: var(--ar-dome-act);
+  }
+  .frame[data-base='arcade'] [data-part='button.fill'][data-flash] {
+    animation: arcade-dim 280ms ease-out forwards;
+  }
+  .frame[data-base='arcade'] [data-part='button.armed'] {
+    background: radial-gradient(
+      circle,
+      color-mix(in srgb, var(--act) 70%, transparent),
+      transparent 72%
+    );
+    animation: arcade-blink 0.7s steps(1) infinite;
+  }
+  @keyframes arcade-blink {
+    50% {
+      opacity: 0.2;
+    }
+  }
+  .frame[data-base='arcade'] [data-part='button.hold'] {
+    background: var(--ar-dome-act);
+    animation: arcade-hold var(--hold) linear forwards;
+  }
+  @keyframes arcade-hold {
+    from {
+      clip-path: inset(100% 0 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  .frame[data-base='arcade'] [data-part='button.hint'] {
+    color: var(--fg);
+    text-shadow: 0 1px 2px rgb(0 0 0 / 0.7);
+  }
+
+  /* ---- switch: a chrome ball in a black slot; the slot lights green when on ---- */
+  .frame[data-base='arcade'] [data-part='switch.track'] {
+    border-radius: 999px;
+    background: var(--ar-slot);
+    box-shadow:
+      inset 0 2px 4px rgb(0 0 0 / 0.8),
+      0 0 0 2px #a8a8ae;
+    transition: box-shadow 160ms ease;
+  }
+  .frame[data-base='arcade'][data-on] [data-part='switch.track'] {
+    box-shadow:
+      inset 0 2px 4px rgb(0 0 0 / 0.8),
+      inset 0 0 10px color-mix(in srgb, var(--act) 60%, transparent),
+      0 0 0 2px var(--act);
+  }
+  .frame[data-base='arcade'] [data-part='switch.tag'] {
+    background: none;
+  }
+  .frame[data-base='arcade'] [data-part='switch.legend'] {
+    transition: opacity 160ms ease;
+  }
+  .frame[data-base='arcade'] [data-part='switch.legend'][data-side='off'] {
+    color: color-mix(in srgb, #fff 60%, transparent);
+  }
+  .frame[data-base='arcade'] [data-part='switch.legend'][data-side='on'] {
+    color: color-mix(in srgb, var(--act) 60%, #fff);
+  }
+  .frame[data-base='arcade'] [data-part='switch.grip'] {
+    visibility: hidden;
+  }
+  .frame[data-base='arcade'] [data-part='switch.thumb'] {
+    border-radius: 50%;
+    background: var(--ar-ball);
+    box-shadow: 0 2px 4px rgb(0 0 0 / 0.6);
+    transition: transform 200ms cubic-bezier(0.3, 1.3, 0.5, 1);
+  }
+  .frame[data-base='arcade'][data-dragging] [data-part='switch.thumb'] {
+    transition: none;
+  }
+
+  /* ---- fader: a black slot lit green up to the value, and a ball-top lever ---- */
+  .frame[data-base='arcade'] [data-part='slider.track'] {
+    border-radius: 999px;
+    background: var(--ar-slot);
+    box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.8);
+  }
+  .frame[data-base='arcade'] [data-part='slider.fill'] {
+    border-radius: 999px;
+    background: var(--act);
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.35);
+    transition: clip-path 160ms ease-out;
+  }
+  .frame[data-base='arcade'][data-dragging] [data-part='slider.fill'] {
+    transition: none;
+  }
+  .frame[data-base='arcade'] [data-part='slider.grip'] {
+    visibility: hidden;
+  }
+  .frame[data-base='arcade'] [data-part='slider.cap'] {
+    transition: transform 160ms ease-out;
+  }
+  .frame[data-base='arcade'][data-dragging] [data-part='slider.cap'] {
+    transition: none;
+  }
+  /* The ball, centred on the cap (see GLASS for why it is not a grid item). */
+  .frame[data-base='arcade'] [data-part='slider.cap']::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    width: min(22px, 100%);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--ar-dome);
+    box-shadow:
+      0 0 0 1.5px var(--ar-bezel),
+      0 3px 5px rgb(0 0 0 / 0.55);
+    transition: scale 120ms ease-out;
+  }
+  .frame[data-base='arcade'][data-dragging] [data-part='slider.cap']::before {
+    background: var(--ar-dome-act);
+    scale: 1.08;
+  }
+
+  /* ---- graph: a black screen, and a joystick ball for the cursor ---- */
+  .frame[data-base='arcade'] [data-part='graph.plot'] {
+    --paper: var(--ar-slot);
+    border-radius: 8px;
+    background: var(--paper);
+    box-shadow:
+      inset 0 2px 6px rgb(0 0 0 / 0.8),
+      inset 0 0 0 2px #2a2a2e;
+  }
+  .frame[data-base='arcade'] [data-part='graph.grid'] {
+    --g: color-mix(in srgb, var(--c) 30%, transparent);
+    background:
+      linear-gradient(to right, var(--g) 1px, transparent 1px) 0 0 / 25% 100%,
+      linear-gradient(to bottom, var(--g) 1px, transparent 1px) 0 0 / 100% 25%;
+  }
+  .frame[data-base='arcade'] [data-part='graph.cross'] {
+    background: color-mix(in srgb, var(--act) 45%, transparent);
+    transition: transform 160ms ease-out;
+  }
+  .frame[data-base='arcade'] [data-part='graph.cursor'] {
+    border-radius: 50%;
+    background: var(--ar-dome-act);
+    box-shadow:
+      0 0 0 1.5px var(--ar-bezel),
+      0 3px 6px rgb(0 0 0 / 0.6);
+    transition: transform 160ms ease-out;
+  }
+  .frame[data-base='arcade'][data-dragging] [data-part='graph.cross'],
+  .frame[data-base='arcade'][data-dragging] [data-part='graph.cursor'] {
+    transition: none;
+  }
+  .frame[data-base='arcade'] [data-part='graph.lock'] {
+    border: 2px solid rgb(255 255 255 / 0.6);
+    border-radius: 50%;
+    opacity: 0;
+    transition:
+      inset 180ms ease-out,
+      opacity 120ms ease;
+  }
+  .frame[data-base='arcade'][data-dragging] {
+    --graph-lock-inset: -6px;
+  }
+  .frame[data-base='arcade'][data-dragging] [data-part='graph.lock'] {
+    opacity: 1;
+  }
+  .frame[data-base='arcade'] [data-part='graph.trail'] {
+    transition: opacity 500ms ease;
+  }
+  .frame[data-base='arcade'] [data-part='graph.trail'][data-fading] {
+    opacity: 0;
+  }
+  .frame[data-base='arcade'] [data-part='graph.dot'] {
+    border-radius: 50%;
+    background: var(--act);
+  }
+  .frame[data-base='arcade'] [data-part='graph.tick'] {
+    color: color-mix(in srgb, #fff 55%, transparent);
+    background: var(--paper);
+  }
+
+  /* ---- pads: a grid of small domes; held or latched, lit green ---- */
+  .frame[data-base='arcade'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
+    background: var(--ar-dome-act);
+  }
+  .frame[data-base='arcade'] [data-part='pads.fill'][data-flash] {
+    animation: arcade-dim 280ms ease-out forwards;
+  }
+  .frame[data-base='arcade'] [data-part='pads.num'] {
+    color: #fff;
+    text-shadow: 0 1px 2px rgb(0 0 0 / 0.7);
+  }
+  .frame[data-base='arcade'] [data-part='pads.pad'][data-on] [data-part='pads.num'] {
+    color: var(--act-ink);
+    text-shadow: none;
+  }
+
+  /* ---- list: pill-shaped select buttons; the current one a coloured dome ---- */
+  .frame[data-base='arcade'] [data-part='list.option'] {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--c) 12%, var(--w-bg));
+    color: var(--fg-dim);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.1),
+      inset 0 -1px 0 rgb(0 0 0 / 0.3);
+    transition: color 140ms ease;
+  }
+  .frame[data-base='arcade'][data-live]
+    [data-part='list.option']:not([data-current]):not([data-held]):hover {
+    color: var(--fg);
+  }
+  .frame[data-base='arcade'] [data-part='list.option'][data-current] {
+    background: radial-gradient(
+      ellipse at 50% 20%,
+      color-mix(in srgb, var(--c-solid) 60%, #fff),
+      var(--c-solid) 60%
+    );
+    color: var(--fg);
+  }
+  .frame[data-base='arcade'] [data-part='list.option'][data-held] {
+    color: var(--act-ink);
+  }
+  .frame[data-base='arcade'] [data-part='list.option'][data-held] [data-part='list.fill'] {
+    background: var(--act);
+  }
+  .frame[data-base='arcade'] [data-part='list.fill'][data-flash] {
+    animation: arcade-list-dim 280ms ease-out forwards;
+  }
+  @keyframes arcade-list-dim {
+    from {
+      background: var(--act);
+    }
+    to {
+      background: transparent;
+    }
+  }
+  .frame[data-base='arcade'] [data-part='list.mark'] {
+    color: var(--act);
+  }
+}

@@ -1,0 +1,344 @@
+/* SKETCH: widgets drawn in coloured pencil. Outlines are hand-drawn line art
+   (assets/skins/sketch/*.svg) used as masks, so every line takes the widget's colour (and
+   ACTIVE green when on); fills are pencil hatching. Every rule is keyed on
+   .frame[data-base='sketch']. Parts and states: skins/anatomy.ts; what every skin keeps the
+   same (font, label placement, markers, the desk background): skins/base.css, docs/SKINS.md.
+
+   Outlines sit on a part's ::before (under its contents) or ::after (over them), never as a
+   mask on the part itself, which would clip everything inside it. */
+@layer skin.builtin {
+  /* ---- frame: a pencil box, the title written on its top line ---- */
+  .frame[data-base='sketch'] {
+    /* The desk's colour, for patches that cut a line (labels) and for solid blocks. */
+    --sk-paper: var(--bg);
+    --sk-line: var(--c);
+    --sk-hatch: repeating-linear-gradient(
+      -45deg,
+      color-mix(in srgb, var(--c) 40%, transparent) 0 1px,
+      transparent 1px 6px
+    );
+    --sk-hatch-act: repeating-linear-gradient(-45deg, var(--act) 0 1.5px, transparent 1.5px 5px);
+    --sk-cross-act:
+      repeating-linear-gradient(-45deg, var(--act) 0 1.5px, transparent 1.5px 5px),
+      repeating-linear-gradient(45deg, var(--act) 0 1.5px, transparent 1.5px 5px);
+    /* A halo of the desk's colour around text on hatching, so it stays readable. */
+    --sk-halo: 0 0 2px var(--sk-paper), 0 0 2px var(--sk-paper), 0 0 4px var(--sk-paper);
+    --frame-inset-t: 11px;
+    --frame-inset-x: 9px;
+    --frame-inset-b: 9px;
+    --switch-inset: 3px;
+    --slider-cap-len: 12px;
+    --slider-track-w: 12px;
+    --slider-tick-c: color-mix(in srgb, var(--fg) 45%, transparent);
+    --graph-cursor: 18px;
+    --graph-dot: 4px;
+    --pads-gap: 6px;
+    --list-gap: 3px;
+    --list-row-h: 24px;
+    transition:
+      translate 120ms ease,
+      rotate 120ms ease;
+  }
+  .frame[data-base='sketch'][data-active] {
+    --sk-line: var(--act);
+  }
+  /* Pressed: nudged on the page. */
+  .frame[data-base='sketch'][data-pressed] {
+    translate: 1px 1px;
+    rotate: -0.5deg;
+  }
+  [data-lifted] .frame[data-base='sketch'] {
+    rotate: 1deg;
+  }
+  .frame[data-base='sketch']::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: var(--sk-line);
+    -webkit-mask-box-image: url('../../assets/skins/sketch/rect.svg') 20 / 20px round;
+    pointer-events: none;
+  }
+  .frame[data-base='sketch'] [data-part='frame.title'],
+  .frame[data-base='sketch'] [data-part='frame.status'] {
+    background: var(--sk-paper);
+  }
+  .frame[data-base='sketch'] [data-part='frame.title'] {
+    color: var(--fg);
+  }
+  .frame[data-base='sketch'][data-active] [data-part='frame.title'] {
+    color: var(--act);
+  }
+  .frame[data-base='sketch'] [data-part='frame.status'] {
+    color: var(--fg-dim);
+  }
+
+  /* Release, for buttons, pads and list options: the green hatching fades off the page. */
+  @keyframes sketch-fade {
+    to {
+      opacity: 0;
+    }
+  }
+
+  /* ---- keys (buttons, pads): pencil boxes, hatched in the widget colour ---- */
+  .frame[data-base='sketch'] [data-part='keycap.face'] {
+    background: var(--sk-hatch);
+    transition: scale 120ms ease;
+  }
+  .frame[data-base='sketch'] [data-part='keycap.face']::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--sk-line);
+    -webkit-mask-box-image: url('../../assets/skins/sketch/rect.svg') 20 / 14px round;
+    pointer-events: none;
+  }
+  .frame[data-base='sketch'] [data-part='keycap'][data-down] [data-part='keycap.face'] {
+    scale: 0.97;
+  }
+
+  /* ---- button ---- */
+  .frame[data-base='sketch'] [data-part='button.fill'][data-on],
+  .frame[data-base='sketch'] [data-part='button.fill'][data-flash] {
+    background: var(--sk-cross-act);
+  }
+  .frame[data-base='sketch'] [data-part='button.fill'][data-flash] {
+    animation: sketch-fade 280ms ease-out forwards;
+  }
+  .frame[data-base='sketch'] [data-part='button.armed'] {
+    background: var(--sk-hatch-act);
+    animation: sketch-blink 0.8s steps(1) infinite;
+  }
+  @keyframes sketch-blink {
+    50% {
+      opacity: 0.3;
+    }
+  }
+  .frame[data-base='sketch'] [data-part='button.hold'] {
+    background: var(--sk-cross-act);
+    animation: sketch-hold var(--hold) linear forwards;
+  }
+  @keyframes sketch-hold {
+    from {
+      clip-path: inset(100% 0 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  .frame[data-base='sketch'] [data-part='button.hint'] {
+    color: var(--fg);
+    text-shadow: var(--sk-halo);
+  }
+
+  /* ---- switch: a hatched groove with a paper block on it; green hatching when on ---- */
+  .frame[data-base='sketch'] [data-part='switch.track'] {
+    background: var(--sk-hatch);
+  }
+  .frame[data-base='sketch'][data-on] [data-part='switch.track'] {
+    background: var(--sk-hatch-act);
+  }
+  .frame[data-base='sketch'] [data-part='switch.track']::before,
+  .frame[data-base='sketch'] [data-part='switch.thumb']::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--sk-line);
+    -webkit-mask-box-image: url('../../assets/skins/sketch/rect.svg') 20 / 12px round;
+    pointer-events: none;
+  }
+  .frame[data-base='sketch'] [data-part='switch.legend'] {
+    transition: opacity 120ms ease;
+  }
+  .frame[data-base='sketch'] [data-part='switch.tag'] {
+    background: var(--sk-paper);
+  }
+  .frame[data-base='sketch'] [data-part='switch.legend'][data-side='off'] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='sketch'] [data-part='switch.legend'][data-side='on'] {
+    color: var(--act);
+  }
+  .frame[data-base='sketch'] [data-part='switch.thumb'] {
+    background: var(--sk-paper);
+    color: var(--fg);
+    transition: transform 180ms ease-out;
+  }
+  .frame[data-base='sketch'][data-dragging] [data-part='switch.thumb'] {
+    transition: none;
+  }
+
+  /* ---- fader: a pencil groove scribbled green up to the value, and a hatched cap ---- */
+  .frame[data-base='sketch'] [data-part='slider.grip'] {
+    visibility: hidden;
+  }
+  .frame[data-base='sketch'] [data-part='slider.track']::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--sk-line);
+    -webkit-mask: url('../../assets/skins/sketch/hline.svg') 0 50% / 96px 12px repeat-x;
+    mask: url('../../assets/skins/sketch/hline.svg') 0 50% / 96px 12px repeat-x;
+  }
+  .frame[data-base='sketch'][data-vertical] [data-part='slider.track']::before {
+    -webkit-mask: url('../../assets/skins/sketch/vline.svg') 50% 0 / 12px 96px repeat-y;
+    mask: url('../../assets/skins/sketch/vline.svg') 50% 0 / 12px 96px repeat-y;
+  }
+  .frame[data-base='sketch'] [data-part='slider.fill'] {
+    background: repeating-linear-gradient(-60deg, var(--act) 0 1.5px, transparent 1.5px 4px);
+    transition: clip-path 160ms ease-out;
+  }
+  .frame[data-base='sketch'][data-dragging] [data-part='slider.fill'] {
+    transition: none;
+  }
+  .frame[data-base='sketch'] [data-part='slider.cap'] {
+    background: var(--sk-paper);
+    transition: transform 160ms ease-out;
+  }
+  .frame[data-base='sketch'][data-dragging] [data-part='slider.cap'] {
+    transition: none;
+  }
+  .frame[data-base='sketch'] [data-part='slider.cap']::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--sk-line);
+    -webkit-mask-box-image: url('../../assets/skins/sketch/rect.svg') 20 / 6px round;
+    pointer-events: none;
+  }
+  .frame[data-base='sketch'][data-dragging] [data-part='slider.cap'] {
+    background: var(--sk-cross-act);
+  }
+
+  /* ---- graph: a pencil box of paper with faint quarter lines and a circled cursor ---- */
+  .frame[data-base='sketch'] [data-part='graph.plot'] {
+    --paper: var(--sk-paper);
+  }
+  .frame[data-base='sketch'] [data-part='graph.plot']::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--sk-line);
+    -webkit-mask-box-image: url('../../assets/skins/sketch/rect.svg') 20 / 14px round;
+    pointer-events: none;
+  }
+  .frame[data-base='sketch'] [data-part='graph.grid'] {
+    --g: color-mix(in srgb, var(--c) 30%, transparent);
+    background:
+      repeating-linear-gradient(to bottom, var(--g) 0 4px, transparent 4px 8px) 25% 0 / 1px 100%
+        no-repeat,
+      repeating-linear-gradient(to bottom, var(--g) 0 4px, transparent 4px 8px) 50% 0 / 1px 100%
+        no-repeat,
+      repeating-linear-gradient(to bottom, var(--g) 0 4px, transparent 4px 8px) 75% 0 / 1px 100%
+        no-repeat,
+      repeating-linear-gradient(to right, var(--g) 0 4px, transparent 4px 8px) 0 25% / 100% 1px
+        no-repeat,
+      repeating-linear-gradient(to right, var(--g) 0 4px, transparent 4px 8px) 0 50% / 100% 1px
+        no-repeat,
+      repeating-linear-gradient(to right, var(--g) 0 4px, transparent 4px 8px) 0 75% / 100% 1px
+        no-repeat;
+  }
+  .frame[data-base='sketch'] [data-part='graph.cross'][data-axis='x'] {
+    background: repeating-linear-gradient(to right, var(--act) 0 5px, transparent 5px 9px);
+  }
+  .frame[data-base='sketch'] [data-part='graph.cross'][data-axis='y'] {
+    background: repeating-linear-gradient(to bottom, var(--act) 0 5px, transparent 5px 9px);
+  }
+  .frame[data-base='sketch'] [data-part='graph.cross'],
+  .frame[data-base='sketch'] [data-part='graph.cursor'] {
+    transition: transform 160ms ease-out;
+  }
+  .frame[data-base='sketch'][data-dragging] [data-part='graph.cross'],
+  .frame[data-base='sketch'][data-dragging] [data-part='graph.cursor'] {
+    transition: none;
+  }
+  .frame[data-base='sketch'] [data-part='graph.cursor']::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--act);
+    -webkit-mask: url('../../assets/skins/sketch/circle.svg') center / contain no-repeat;
+    mask: url('../../assets/skins/sketch/circle.svg') center / contain no-repeat;
+  }
+  .frame[data-base='sketch'] [data-part='graph.lock'] {
+    background: var(--fg-dim);
+    -webkit-mask: url('../../assets/skins/sketch/circle.svg') center / contain no-repeat;
+    mask: url('../../assets/skins/sketch/circle.svg') center / contain no-repeat;
+    opacity: 0;
+    transition:
+      inset 160ms ease-out,
+      opacity 120ms ease;
+  }
+  .frame[data-base='sketch'][data-dragging] {
+    --graph-lock-inset: -9px;
+  }
+  .frame[data-base='sketch'][data-dragging] [data-part='graph.lock'] {
+    opacity: 1;
+  }
+  .frame[data-base='sketch'] [data-part='graph.trail'] {
+    transition: opacity 400ms ease;
+  }
+  .frame[data-base='sketch'] [data-part='graph.trail'][data-fading] {
+    opacity: 0;
+  }
+  .frame[data-base='sketch'] [data-part='graph.dot'] {
+    border-radius: 50%;
+    background: var(--act);
+  }
+  .frame[data-base='sketch'] [data-part='graph.tick'] {
+    color: var(--fg-dim);
+    background: var(--paper);
+  }
+
+  /* ---- pads: pencil boxes, cross-hatched green while held or latched ---- */
+  .frame[data-base='sketch'] [data-part='pads.pad'] [data-part='keycap.face'] {
+    background: none;
+  }
+  .frame[data-base='sketch'] [data-part='pads.pad'][data-on] {
+    --sk-line: var(--act);
+  }
+  .frame[data-base='sketch'] [data-part='pads.pad'][data-on] [data-part='pads.fill'],
+  .frame[data-base='sketch'] [data-part='pads.fill'][data-flash] {
+    background: var(--sk-cross-act);
+  }
+  .frame[data-base='sketch'] [data-part='pads.fill'][data-flash] {
+    animation: sketch-fade 280ms ease-out forwards;
+  }
+  .frame[data-base='sketch'] [data-part='pads.num'] {
+    color: var(--fg);
+    text-shadow: var(--sk-halo);
+  }
+
+  /* ---- list: handwritten options; the current one boxed, a pressed one hatched green ---- */
+  .frame[data-base='sketch'] [data-part='list.option'] {
+    color: var(--fg-dim);
+    transition: color 120ms ease;
+  }
+  .frame[data-base='sketch'][data-live]
+    [data-part='list.option']:not([data-current]):not([data-held]):hover {
+    color: var(--fg);
+  }
+  .frame[data-base='sketch'] [data-part='list.option'][data-current] {
+    color: var(--fg);
+  }
+  .frame[data-base='sketch'] [data-part='list.option'][data-current]::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--sk-line);
+    -webkit-mask-box-image: url('../../assets/skins/sketch/rect.svg') 20 / 10px round;
+    pointer-events: none;
+  }
+  .frame[data-base='sketch'] [data-part='list.text'] {
+    text-shadow: var(--sk-halo);
+  }
+  .frame[data-base='sketch'] [data-part='list.option'][data-held] [data-part='list.fill'],
+  .frame[data-base='sketch'] [data-part='list.fill'][data-flash] {
+    background: var(--sk-hatch-act);
+  }
+  .frame[data-base='sketch'] [data-part='list.fill'][data-flash] {
+    animation: sketch-fade 280ms ease-out forwards;
+  }
+  .frame[data-base='sketch'] [data-part='list.mark'] {
+    color: var(--sk-line);
+  }
+}

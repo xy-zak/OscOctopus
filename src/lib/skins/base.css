@@ -1,0 +1,115 @@
+/* Shared by every widget skin (lowest skin layer; see app.css for the layer order,
+   skins/anatomy.ts for the parts, and docs/SKINS.md for how to write a skin).
+
+   Colour roles. A skin builds on these rather than raw colours, so it follows the palette,
+   the widget's own colour and light/dark mode:
+     --c        the widget's own colour, for lines and dots (border, tracks, key edges)
+     --c-solid  --c slightly faded into the background, for solid areas (faces, blocks, caps);
+                the ACTIVE green is never faded
+     --c-ink    text on a --c-solid fill: the plain foreground, since a half-faded colour
+                sits close to the background in either mode
+     --c-text   --c used as text (darkened in light mode, see tokens.css --accent-text)
+     --w-bg     the widget's background: a neutral grey, whatever its colour
+     --act      the app-wide ACTIVE green: pressed, on, filled, held
+     --act-ink  text on an --act fill
+   Dither fills (the pixel "tints"), resolved per widget: a var() inside a custom property
+   resolves where the property is declared, so these must sit on the widget, not :root.
+     --dither-50-act  every other pixel ACTIVE green
+     --dither-25-act  one pixel in four ACTIVE green
+     --dither-25-c    one pixel in four in the widget colour (grooves, tracks)
+
+   The same in every skin, so a desk reads the same whatever it wears (anatomy.test.ts holds
+   the skins to it): the typography (one font, one size; weights and case below), where titles
+   and values go (WidgetFrame), the markers (the fader's scale, the switch's ON/OFF, pad
+   numbers, the list's ▸), and the desk's plain background (no skin styles the desk). */
+@layer skin.base {
+  /* [data-part='frame'], not .frame: the app shell has a .frame of its own (App.svelte). */
+  [data-part='frame'] {
+    --c-text: var(--c);
+    --w-bg: color-mix(in srgb, var(--fg) 8%, var(--bg-2));
+    --c-solid: color-mix(in srgb, var(--c) 50%, var(--w-bg));
+    --c-ink: var(--fg);
+    --act: var(--active);
+    --act-ink: var(--active-ink);
+    --dither-50-act: repeating-conic-gradient(var(--act) 0 25%, transparent 0 50%) 0 0 / 4px 4px;
+    --dither-25-act: conic-gradient(at 2px 2px, transparent 75%, var(--act) 0) 0 0 / 4px 4px;
+    --dither-25-c: conic-gradient(at 2px 2px, transparent 75%, var(--c) 0) 0 0 / 4px 4px;
+  }
+  :root[data-mode='light'] [data-part='frame'] {
+    --c-text: color-mix(in srgb, var(--c) 50%, #000);
+  }
+
+  /* List options are <button>s: no native look under any skin. */
+  [data-part='frame'] [data-part='list.option'] {
+    border: 0;
+    background: none;
+  }
+
+  /* ---- typography: the app's font everywhere; titles bold capitals, and bold for what must
+     read at a glance (the value's marks, the current option) ---- */
+  [data-part='frame'] [data-part='frame.title'] {
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  [data-part='frame'] [data-part='button.hint'],
+  [data-part='frame'] [data-part='switch.legend'],
+  [data-part='frame'] [data-part='switch.grip'],
+  [data-part='frame'] [data-part='pads.num'],
+  [data-part='frame'] [data-part='list.option'][data-current] {
+    font-weight: 700;
+  }
+  [data-part='frame'] [data-part='list.option'] {
+    text-transform: uppercase;
+  }
+
+  /* ---- markers ---- */
+  /* The switch's legend says its state: OFF while off, ON while on. */
+  [data-part='frame'] [data-part='switch.legend'][data-side='on'],
+  [data-part='frame'][data-on] [data-part='switch.legend'][data-side='off'] {
+    opacity: 0;
+  }
+  [data-part='frame'][data-on] [data-part='switch.legend'][data-side='on'] {
+    opacity: 1;
+  }
+  /* The fader's printed scale either side of the track: ends and middle long, quarters short.
+     A skin colours it (--slider-tick-c), never moves or hides it. */
+  [data-part='frame'] [data-part='slider.ticks'] {
+    --t: var(--slider-tick-c, var(--fg-faint));
+    background:
+      linear-gradient(var(--t), var(--t)) 0% 0 / 1px 6px no-repeat,
+      linear-gradient(var(--t), var(--t)) 25% 0 / 1px 3px no-repeat,
+      linear-gradient(var(--t), var(--t)) 50% 0 / 1px 6px no-repeat,
+      linear-gradient(var(--t), var(--t)) 75% 0 / 1px 3px no-repeat,
+      linear-gradient(var(--t), var(--t)) 100% 0 / 1px 6px no-repeat,
+      linear-gradient(var(--t), var(--t)) 0% 100% / 1px 6px no-repeat,
+      linear-gradient(var(--t), var(--t)) 25% 100% / 1px 3px no-repeat,
+      linear-gradient(var(--t), var(--t)) 50% 100% / 1px 6px no-repeat,
+      linear-gradient(var(--t), var(--t)) 75% 100% / 1px 3px no-repeat,
+      linear-gradient(var(--t), var(--t)) 100% 100% / 1px 6px no-repeat;
+  }
+  [data-part='frame'][data-vertical] [data-part='slider.ticks'] {
+    background:
+      linear-gradient(var(--t), var(--t)) 0 0% / 6px 1px no-repeat,
+      linear-gradient(var(--t), var(--t)) 0 25% / 3px 1px no-repeat,
+      linear-gradient(var(--t), var(--t)) 0 50% / 6px 1px no-repeat,
+      linear-gradient(var(--t), var(--t)) 0 75% / 3px 1px no-repeat,
+      linear-gradient(var(--t), var(--t)) 0 100% / 6px 1px no-repeat,
+      linear-gradient(var(--t), var(--t)) 100% 0% / 6px 1px no-repeat,
+      linear-gradient(var(--t), var(--t)) 100% 25% / 3px 1px no-repeat,
+      linear-gradient(var(--t), var(--t)) 100% 50% / 6px 1px no-repeat,
+      linear-gradient(var(--t), var(--t)) 100% 75% / 3px 1px no-repeat,
+      linear-gradient(var(--t), var(--t)) 100% 100% / 6px 1px no-repeat;
+  }
+
+  /* Reduced motion, for every skin (important in the lowest layer beats every skin): no
+     flashes, blinks or fades. The hold fill stays: it shows how long is left to hold. */
+  @media (prefers-reduced-motion: reduce) {
+    [data-part='frame'] [data-flash],
+    [data-part='frame'] [data-part='button.armed'] {
+      animation: none !important;
+    }
+    [data-part='frame'] [data-part='graph.trail'] {
+      transition: none !important;
+    }
+  }
+}

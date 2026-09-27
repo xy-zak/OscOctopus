@@ -1,0 +1,334 @@
+/* GLASS: clear, rounded panes tinted with the widget colour, with a lit top edge, flat keys,
+   pill switches with a white knob, round fader knobs, a glowing cursor and smooth motion.
+   Every rule is keyed on .frame[data-base='glass']. Parts and states: skins/anatomy.ts; what
+   every skin keeps the same (font, label placement, markers, the desk background):
+   skins/base.css and docs/SKINS.md. */
+@layer skin.builtin {
+  /* ---- frame: a tinted pane with a lit top edge; the labels sit on its border line ---- */
+  .frame[data-base='glass'] {
+    --g-fill: color-mix(in srgb, var(--c) 12%, rgb(255 255 255 / 0.06));
+    --g-solid: color-mix(in srgb, var(--c) 34%, rgb(255 255 255 / 0.08));
+    --g-line: rgb(255 255 255 / 0.16);
+    --g-hi: rgb(255 255 255 / 0.22);
+    --g-shadow: rgb(0 0 0 / 0.45);
+    --g-well: rgb(0 0 0 / 0.25);
+    --g-knob: #fff;
+    --g-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --switch-inset: 3px;
+    --switch-thumb-len: calc(100cqh - 6px);
+    --slider-cap-len: 24px;
+    --slider-track-w: 6px;
+    --slider-tick-c: color-mix(in srgb, var(--fg) 30%, transparent);
+    --graph-cursor: 16px;
+    --graph-dot: 6px;
+    --pads-gap: 8px;
+    --list-gap: 4px;
+    --list-row-h: 24px;
+    border: 1px solid var(--g-line);
+    border-radius: 12px;
+    background: var(--g-fill);
+    box-shadow:
+      0 10px 30px -8px var(--g-shadow),
+      inset 0 1px 0 var(--g-hi);
+    transition:
+      scale 220ms var(--g-ease),
+      box-shadow 220ms ease,
+      border-color 220ms ease;
+  }
+  :root[data-mode='light'] .frame[data-base='glass'] {
+    --g-fill: color-mix(in srgb, var(--c) 14%, rgb(255 255 255 / 0.55));
+    --g-solid: color-mix(in srgb, var(--c) 38%, rgb(255 255 255 / 0.6));
+    --g-line: rgb(0 0 0 / 0.1);
+    --g-hi: rgb(255 255 255 / 0.9);
+    --g-shadow: rgb(60 50 30 / 0.25);
+    --g-well: rgb(0 0 0 / 0.08);
+  }
+  .frame[data-base='glass'][data-vertical] {
+    --switch-thumb-len: calc(100cqw - 6px);
+  }
+  .frame[data-base='glass'][data-active] {
+    border-color: color-mix(in srgb, var(--act) 60%, transparent);
+    box-shadow:
+      0 10px 30px -8px var(--g-shadow),
+      0 0 24px -4px color-mix(in srgb, var(--act) 55%, transparent),
+      inset 0 1px 0 var(--g-hi);
+  }
+  .frame[data-base='glass'][data-pressed] {
+    scale: 0.97;
+  }
+  [data-lifted] .frame[data-base='glass'] {
+    box-shadow:
+      0 24px 48px -12px rgb(0 0 0 / 0.55),
+      inset 0 1px 0 var(--g-hi);
+  }
+  /* The labels cut the border line with a rounded patch of the desk's colour. */
+  .frame[data-base='glass'] [data-part='frame.title'],
+  .frame[data-base='glass'] [data-part='frame.status'] {
+    background: var(--bg);
+    border-radius: 6px;
+    transition: color 200ms ease;
+  }
+  .frame[data-base='glass'] [data-part='frame.title'] {
+    color: var(--fg);
+  }
+  .frame[data-base='glass'][data-active] [data-part='frame.title'] {
+    color: var(--act);
+  }
+  .frame[data-base='glass'] [data-part='frame.status'] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='glass'][data-active] [data-part='frame.status'] {
+    color: var(--fg);
+  }
+
+  /* Release, for buttons, pads and list options: the ACTIVE light fades out. */
+  @keyframes glass-fade {
+    from {
+      background: color-mix(in srgb, var(--act) 85%, transparent);
+    }
+    to {
+      background: transparent;
+    }
+  }
+
+  /* ---- keys (buttons, pads): flat rounded tiles in the widget colour ---- */
+  .frame[data-base='glass'] [data-part='keycap.face'] {
+    border-radius: 10px;
+    background: var(--g-solid);
+    box-shadow:
+      inset 0 1px 0 var(--g-hi),
+      0 1px 2px rgb(0 0 0 / 0.25);
+    transition:
+      scale 160ms var(--g-ease),
+      box-shadow 200ms ease;
+  }
+  .frame[data-base='glass'] [data-part='keycap'][data-down] [data-part='keycap.face'] {
+    scale: 0.96;
+    box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.3);
+  }
+  .frame[data-base='glass'][data-lit] [data-part='keycap.face'] {
+    box-shadow:
+      0 0 18px -2px color-mix(in srgb, var(--act) 70%, transparent),
+      inset 0 1px 0 var(--g-hi);
+  }
+
+  /* ---- button ---- */
+  .frame[data-base='glass'] [data-part='button.fill'][data-on] {
+    background: color-mix(in srgb, var(--act) 85%, transparent);
+  }
+  .frame[data-base='glass'] [data-part='button.fill'][data-flash] {
+    animation: glass-fade 360ms ease-out forwards;
+  }
+  .frame[data-base='glass'] [data-part='button.armed'] {
+    background: color-mix(in srgb, var(--act) 35%, transparent);
+    animation: glass-pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes glass-pulse {
+    50% {
+      opacity: 0.35;
+    }
+  }
+  .frame[data-base='glass'] [data-part='button.hold'] {
+    background: color-mix(in srgb, var(--act) 80%, transparent);
+    animation: glass-hold var(--hold) linear forwards;
+  }
+  @keyframes glass-hold {
+    from {
+      clip-path: inset(100% 0 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  .frame[data-base='glass'] [data-part='button.hint'] {
+    color: var(--fg);
+  }
+
+  /* ---- switch: a pill with a white knob; the pill fills ACTIVE green when on ---- */
+  .frame[data-base='glass'] [data-part='switch.track'] {
+    border-radius: 999px;
+    background: var(--g-well);
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.35);
+    transition: background 220ms ease;
+  }
+  .frame[data-base='glass'][data-on] [data-part='switch.track'] {
+    background: var(--act);
+  }
+  .frame[data-base='glass'] [data-part='switch.legend'] {
+    transition: opacity 200ms ease;
+  }
+  .frame[data-base='glass'] [data-part='switch.legend'][data-side='off'] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='glass'] [data-part='switch.legend'][data-side='on'] {
+    color: var(--act-ink);
+  }
+  .frame[data-base='glass'] [data-part='switch.grip'] {
+    visibility: hidden;
+  }
+  .frame[data-base='glass'] [data-part='switch.thumb'] {
+    border-radius: 999px;
+    background: var(--g-knob);
+    box-shadow:
+      0 2px 6px rgb(0 0 0 / 0.3),
+      0 0 0 0.5px rgb(0 0 0 / 0.08);
+    transition: transform 280ms cubic-bezier(0.3, 1.3, 0.5, 1);
+  }
+  .frame[data-base='glass'][data-dragging] [data-part='switch.thumb'] {
+    transition: none;
+  }
+
+  /* ---- fader: a thin rounded groove filling ACTIVE green, and a round white knob ---- */
+  .frame[data-base='glass'] [data-part='slider.grip'] {
+    visibility: hidden;
+  }
+  .frame[data-base='glass'] [data-part='slider.track'] {
+    border-radius: 999px;
+    background: var(--g-well);
+    box-shadow: inset 0 1px 1px rgb(0 0 0 / 0.3);
+  }
+  .frame[data-base='glass'] [data-part='slider.fill'] {
+    border-radius: 999px;
+    background: var(--act);
+    transition: clip-path 220ms var(--g-ease);
+  }
+  .frame[data-base='glass'][data-dragging] [data-part='slider.fill'] {
+    transition: none;
+  }
+  .frame[data-base='glass'] [data-part='slider.cap'] {
+    transition: transform 220ms var(--g-ease);
+  }
+  .frame[data-base='glass'][data-dragging] [data-part='slider.cap'] {
+    transition: none;
+  }
+  /* The knob, centred on the cap itself (not a grid item: next to the hidden grip, the cap's
+     grid would split it into rows and lift the knob off the track). */
+  .frame[data-base='glass'] [data-part='slider.cap']::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    width: min(22px, 100%);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--g-knob);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.35);
+    transition: scale 160ms var(--g-ease);
+  }
+  .frame[data-base='glass'][data-dragging] [data-part='slider.cap']::before {
+    scale: 1.12;
+  }
+
+  /* ---- graph: a darker well with faint quarter lines and a glowing round cursor ---- */
+  .frame[data-base='glass'] [data-part='graph.plot'] {
+    --paper: transparent;
+    --g-grid: rgb(255 255 255 / 0.1);
+    border-radius: 10px;
+    background: var(--g-well);
+  }
+  :root[data-mode='light'] .frame[data-base='glass'] [data-part='graph.plot'] {
+    --g-grid: rgb(0 0 0 / 0.1);
+  }
+  .frame[data-base='glass'] [data-part='graph.grid'] {
+    background:
+      linear-gradient(to right, var(--g-grid) 1px, transparent 1px) 0 0 / 25% 100%,
+      linear-gradient(to bottom, var(--g-grid) 1px, transparent 1px) 0 0 / 100% 25%;
+  }
+  .frame[data-base='glass'] [data-part='graph.cross'] {
+    background: color-mix(in srgb, var(--act) 50%, transparent);
+    transition: transform 220ms var(--g-ease);
+  }
+  .frame[data-base='glass'] [data-part='graph.cursor'] {
+    border-radius: 50%;
+    background: var(--act);
+    box-shadow:
+      0 0 0 2px var(--g-knob),
+      0 0 16px var(--act);
+    transition: transform 220ms var(--g-ease);
+  }
+  .frame[data-base='glass'][data-dragging] [data-part='graph.cross'],
+  .frame[data-base='glass'][data-dragging] [data-part='graph.cursor'] {
+    transition: none;
+  }
+  .frame[data-base='glass'] [data-part='graph.lock'] {
+    border: 1.5px solid rgb(255 255 255 / 0.7);
+    border-radius: 50%;
+    opacity: 0;
+    transition:
+      inset 200ms var(--g-ease),
+      opacity 160ms ease;
+  }
+  .frame[data-base='glass'][data-dragging] {
+    --graph-lock-inset: -7px;
+  }
+  .frame[data-base='glass'][data-dragging] [data-part='graph.lock'] {
+    opacity: 1;
+  }
+  .frame[data-base='glass'] [data-part='graph.trail'] {
+    transition: opacity 500ms ease;
+  }
+  .frame[data-base='glass'] [data-part='graph.trail'][data-fading] {
+    opacity: 0;
+  }
+  .frame[data-base='glass'] [data-part='graph.dot'] {
+    border-radius: 50%;
+    background: var(--act);
+  }
+  .frame[data-base='glass'] [data-part='graph.tick'] {
+    color: var(--fg-dim);
+  }
+
+  /* ---- pads: rounded tiles; held or latched, ACTIVE green with a glow ---- */
+  .frame[data-base='glass'] [data-part='pads.pad'] [data-part='keycap.face'] {
+    border-radius: 8px;
+  }
+  .frame[data-base='glass'] [data-part='pads.pad'][data-on] [data-part='keycap.face'] {
+    box-shadow:
+      0 0 14px -2px color-mix(in srgb, var(--act) 70%, transparent),
+      inset 0 1px 0 var(--g-hi);
+  }
+  .frame[data-base='glass'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
+    background: var(--act);
+  }
+  .frame[data-base='glass'] [data-part='pads.fill'][data-flash] {
+    animation: glass-fade 360ms ease-out forwards;
+  }
+  .frame[data-base='glass'] [data-part='pads.num'] {
+    color: color-mix(in srgb, var(--fg) 85%, transparent);
+  }
+  .frame[data-base='glass'] [data-part='pads.pad'][data-on] [data-part='pads.num'] {
+    color: var(--act-ink);
+  }
+
+  /* ---- list: rounded rows tinted with the widget colour; the current one stronger ---- */
+  .frame[data-base='glass'] [data-part='list.option'] {
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--c) 16%, rgb(255 255 255 / 0.05));
+    color: var(--fg-dim);
+    transition:
+      background 180ms ease,
+      color 180ms ease;
+  }
+  .frame[data-base='glass'][data-live]
+    [data-part='list.option']:not([data-current]):not([data-held]):hover {
+    color: var(--fg);
+    background: color-mix(in srgb, var(--c) 24%, rgb(255 255 255 / 0.07));
+  }
+  .frame[data-base='glass'] [data-part='list.option'][data-current] {
+    background: color-mix(in srgb, var(--c) 42%, rgb(255 255 255 / 0.08));
+    color: var(--fg);
+  }
+  .frame[data-base='glass'] [data-part='list.option'][data-held] {
+    color: var(--act-ink);
+  }
+  .frame[data-base='glass'] [data-part='list.option'][data-held] [data-part='list.fill'] {
+    background: var(--act);
+  }
+  .frame[data-base='glass'] [data-part='list.fill'][data-flash] {
+    animation: glass-fade 360ms ease-out forwards;
+  }
+  .frame[data-base='glass'] [data-part='list.mark'] {
+    color: var(--act);
+  }
+}

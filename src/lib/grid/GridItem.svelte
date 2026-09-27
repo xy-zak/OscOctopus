@@ -137,6 +137,7 @@
   class:selected
   class:focused={focused && !editing}
   class:lifted={gesture?.moved}
+  data-lifted={gesture?.moved ? '' : undefined}
   class:held={editing && !!holder}
   style:--holder={holder?.color}
   class:invalid={gesture?.moved && !valid}
@@ -258,14 +259,18 @@
       opacity: 0;
     }
   }
+  /* Reduced motion: the ants stand still and the brackets appear in place. */
+  @media (prefers-reduced-motion: reduce) {
+    .item.selected::after,
+    .item.focused::after {
+      animation: none;
+    }
+  }
   .item.lifted {
     transition: none;
     z-index: 10;
     cursor: grabbing;
     translate: -3px -3px;
-  }
-  .item.lifted :global(.frame) {
-    box-shadow: 8px 8px 0 0 var(--shadow-px);
   }
   .item.lifted.invalid {
     opacity: 0.75;

@@ -2,6 +2,7 @@
   // DESK › PRESET: this desk's own preset. Name, save, export, import into this desk
   // (replacing its contents), duplicate as a new desk, remove the desk.
   import { presetStore } from '../lib/state/preset.svelte';
+  import { skinStore } from '../lib/state/skins.svelte';
   import Field from '../lib/ui/Field.svelte';
   import Icon from '../lib/ui/Icon.svelte';
   import Lockable from '../lib/ui/Lockable.svelte';
@@ -41,6 +42,18 @@
               presetStore.touch();
             }}
           />
+        </Field>
+        <Field label="Widget skin" hint="Just on this device, like the palette" wide>
+          <select
+            class="input"
+            value={skinStore.overrideOf(p.id) ?? ''}
+            onchange={(e) => skinStore.setDesk(p.id, e.currentTarget.value || null)}
+          >
+            <option value="">Same as all desks ({skinStore.global.name})</option>
+            {#each skinStore.available as s (s.id)}
+              <option value={s.id}>{s.name}</option>
+            {/each}
+          </select>
         </Field>
         <Field label="Grid">
           <span class="readout">{p.grid.cols}×{p.grid.rows} · gap {p.grid.gap}px</span>

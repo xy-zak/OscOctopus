@@ -16,6 +16,7 @@
   import type { ButtonWidget } from '../../model/preset';
   import { emitValue } from '../../osc/flow';
   import { tapHaptic } from '../../platform/haptics';
+  import { flag } from '../../skins/anatomy';
   import { feedback } from '../../state/feedback.svelte';
   import { numberValue } from '../../state/values.svelte';
   import { fitsIn } from '../../ui/textfit';
@@ -143,11 +144,15 @@
 </script>
 
 <WidgetFrame
-  class="button {live ? 'live' : ''}"
+  type="button"
+  {live}
   title={widget.label}
   color={widget.color}
   {status}
   active={lit}
+  data-lit={flag(lit)}
+  data-armed={flag(armed)}
+  data-holding={flag(holding)}
   role="button"
   aria-label={widget.label}
   tabindex={live ? 0 : -1}
@@ -160,96 +165,48 @@
   {#snippet children({ w })}
     <!-- The name sits in the border like every other widget's. Inside is a key cap standing
          out of the panel towards you; pressing sinks it back. -->
-    <div class="key" class:lit>
+    <div class="key" data-part="button.key">
       <Keycap depth={16} down={pressed || remoteOn}>
         {#key flashKey}
           <span
             class="fill"
-            class:on={(pressed && fired) || remoteOn}
-            class:dissolve={!fired && !remoteOn && flashKey > 0}
+            data-part="button.fill"
+            data-on={flag((pressed && fired) || remoteOn)}
+            data-flash={flag(!fired && !remoteOn && flashKey > 0)}
           ></span>
         {/key}
-        {#if armed}<span class="armed" aria-hidden="true"></span>{/if}
-        {#if holding}<span class="hold" style:--hold="{p.holdMs}ms" aria-hidden="true"></span>{/if}
-        {#if armed && fitsIn(ARMED_HINT, w * 0.7)}<span class="label">{ARMED_HINT}</span>{/if}
+        {#if armed}<span class="armed" data-part="button.armed" aria-hidden="true"></span>{/if}
+        {#if holding}<span
+            class="hold"
+            data-part="button.hold"
+            style:--hold="{p.holdMs}ms"
+            aria-hidden="true"
+          ></span>{/if}
+        {#if armed && fitsIn(ARMED_HINT, w * 0.7)}<span class="label" data-part="button.hint"
+            >{ARMED_HINT}</span
+          >{/if}
       </Keycap>
     </div>
   {/snippet}
 </WidgetFrame>
 
 <style>
-  :global(.frame.button.live) {
+  :global(.frame[data-type='button'][data-live]) {
     cursor: pointer;
   }
-  /* At rest the key is the widget colour: a solid face with shaded sides. */
-  .key {
-    --key-edge: var(--c);
-    --key-dots: color-mix(in srgb, var(--c) 55%, transparent);
-    --key-face: var(--c-solid);
-    position: absolute;
-    inset: 0;
-  }
-  /* Lit (fired, armed, holding): lines and shading turn the ACTIVE green. */
-  .key.lit {
-    --key-edge: var(--act);
-    --key-dots: color-mix(in srgb, var(--act) 55%, transparent);
-  }
-  /* ARMED: a blinking dithered wash; the next press fires. */
+  .key,
+  .fill,
   .armed {
     position: absolute;
     inset: 0;
-    background: var(--dither-50-act);
-    animation: armed-blink 0.6s steps(1) infinite;
   }
-  @keyframes armed-blink {
-    50% {
-      opacity: 0.25;
-    }
-  }
-  /* HOLD: a fill steps up the key; it fires when full. */
+  /* The hold fill covers the key; the skin reveals it from the bottom as the hold runs. */
   .hold {
     position: absolute;
     left: 0;
     right: 0;
     bottom: 0;
     height: 100%;
-    background: var(--act);
-    transform-origin: bottom;
-    animation: hold-fill var(--hold) steps(10, end) forwards;
-  }
-  @keyframes hold-fill {
-    from {
-      transform: scaleY(0);
-    }
-    to {
-      transform: scaleY(1);
-    }
-  }
-  .fill {
-    position: absolute;
-    inset: 0;
-  }
-  /* Pressed: the face goes ACTIVE green. */
-  .fill.on {
-    background: var(--act);
-  }
-  /* Pixel dissolve back to the widget colour: solid → 50% dither → 25% dither → gone. */
-  .fill.dissolve {
-    animation: dissolve 210ms steps(1, end) forwards;
-  }
-  @keyframes dissolve {
-    0% {
-      background: var(--act);
-    }
-    33% {
-      background: var(--dither-50-act);
-    }
-    66% {
-      background: var(--dither-25-act);
-    }
-    100% {
-      background: transparent;
-    }
   }
   /* ARMED hint, centred on the key. */
   .label {
@@ -257,8 +214,6 @@
     inset: 0;
     display: grid;
     place-items: center;
-    font-weight: 700;
     white-space: nowrap;
-    color: var(--c-ink);
   }
 </style>

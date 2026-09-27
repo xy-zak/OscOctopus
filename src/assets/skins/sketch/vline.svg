@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="12" height="96" viewBox="0 0 12 96" fill="none" stroke="#000" stroke-linecap="round">
+  <!-- hline.svg standing up, for tiling down (vertical fader grooves). -->
+  <path stroke-width="1.8" d="M6.4 0C5.2 16 7.1 32 6 48S5.3 80 6.3 96"/>
+  <path stroke-width="1" opacity=".5" d="M7.8 0C7.1 20 8.6 40 7.5 60S7.2 86 8 96"/>
+</svg>

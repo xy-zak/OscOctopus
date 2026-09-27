@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round">
+  <!-- A pencil rectangle for nine-slice masks (20px corners): one firm pass, and a lighter one
+       that overshoots the corners, as sketched boxes do. -->
+  <path stroke-width="2" d="M6.5 8.2C25 6.8 50 8.6 70 7.4S88 7.9 89.6 8.1C88.4 30 90.2 55 89 88.9C70 90.1 40 88.2 7.4 89.6C8.3 60 6.2 35 6.5 8.2Z"/>
+  <path stroke-width="1.2" opacity=".55" d="M4 10.5C30 9.2 60 11.4 92.5 9.6M87.8 4.4C90.6 30 88.1 62 91.2 92.6M92.8 86.9C60 88.4 35 91.7 4.2 87.9M9.6 93C6.8 64 9.9 30 7.8 4.6"/>
+</svg>

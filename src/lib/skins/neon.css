@@ -1,0 +1,382 @@
+/* NEON: glowing tubes on a dark wall. Every line is a 2px tube in the widget colour with a
+   soft bloom around it; fills stay dark and hollow, and anything pressed, on or held burns
+   ACTIVE green. In light mode the bloom is kept small, so the tubes read on a pale wall.
+   Every rule is keyed on .frame[data-base='neon']. Parts and states: skins/anatomy.ts; what
+   every skin keeps the same (font, label placement, markers, the desk background):
+   skins/base.css, docs/SKINS.md. */
+@layer skin.builtin {
+  /* ---- frame: a tube around the widget, glowing out and in; the labels break the tube ---- */
+  .frame[data-base='neon'] {
+    --n-tube: var(--c);
+    --n-glow: color-mix(in srgb, var(--n-tube) 60%, transparent);
+    --n-glow-act: color-mix(in srgb, var(--act) 70%, transparent);
+    --n-bloom: 10px;
+    --n-dark: color-mix(in srgb, var(--bg) 85%, #000);
+    --n-hollow: color-mix(in srgb, var(--c) 8%, var(--n-dark));
+    /* The bright core of a bead (switch knob, fader cap) and of the lit fader. */
+    --n-bead: color-mix(in srgb, var(--c) 45%, #fff);
+    --n-bead-act: color-mix(in srgb, var(--act) 45%, #fff);
+    --n-core-act: color-mix(in srgb, var(--act) 60%, #fff);
+    --switch-inset: 4px;
+    --slider-cap-len: 14px;
+    --slider-track-w: 4px;
+    --slider-tick-c: color-mix(in srgb, var(--c) 55%, transparent);
+    --graph-cursor: 12px;
+    --graph-dot: 3px;
+    --pads-gap: 7px;
+    --list-gap: 4px;
+    --list-row-h: 22px;
+    border: 2px solid var(--n-tube);
+    border-radius: 8px;
+    background: var(--n-hollow);
+    box-shadow:
+      0 0 var(--n-bloom) var(--n-glow),
+      inset 0 0 var(--n-bloom) var(--n-glow);
+    transition:
+      border-color 160ms ease,
+      box-shadow 160ms ease;
+  }
+  :root[data-mode='light'] .frame[data-base='neon'] {
+    --n-bloom: 5px;
+    --n-dark: var(--bg-2);
+    --n-hollow: color-mix(in srgb, var(--c) 6%, var(--bg-2));
+    --n-bead: var(--c-text);
+    --n-bead-act: var(--act);
+    --n-core-act: var(--act);
+  }
+  .frame[data-base='neon'][data-active] {
+    --n-tube: var(--act);
+  }
+  /* Pressed: the tube flares. */
+  .frame[data-base='neon'][data-pressed] {
+    box-shadow:
+      0 0 calc(2 * var(--n-bloom)) var(--n-glow),
+      inset 0 0 calc(2 * var(--n-bloom)) var(--n-glow);
+  }
+  [data-lifted] .frame[data-base='neon'] {
+    box-shadow:
+      0 0 calc(2.5 * var(--n-bloom)) var(--n-glow),
+      0 16px 30px rgb(0 0 0 / 0.5);
+  }
+  .frame[data-base='neon'] [data-part='frame.title'],
+  .frame[data-base='neon'] [data-part='frame.status'] {
+    background: var(--bg);
+    transition:
+      color 160ms ease,
+      text-shadow 160ms ease;
+  }
+  .frame[data-base='neon'] [data-part='frame.title'] {
+    color: var(--c-text);
+    text-shadow: 0 0 6px var(--n-glow);
+  }
+  .frame[data-base='neon'][data-active] [data-part='frame.title'] {
+    color: var(--act);
+  }
+  .frame[data-base='neon'] [data-part='frame.status'] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='neon'][data-active] [data-part='frame.status'] {
+    color: var(--fg);
+  }
+
+  /* Release: the green burns down. */
+  @keyframes neon-fade {
+    from {
+      background: var(--n-glow-act);
+    }
+    to {
+      background: transparent;
+    }
+  }
+
+  /* ---- keys (buttons, pads): a tube outline around a hollow face ---- */
+  .frame[data-base='neon'] [data-part='keycap.face'] {
+    --n-key: var(--c);
+    border: 2px solid var(--n-key);
+    border-radius: 6px;
+    background: var(--n-hollow);
+    box-shadow:
+      0 0 calc(0.8 * var(--n-bloom)) color-mix(in srgb, var(--n-key) 55%, transparent),
+      inset 0 0 calc(0.8 * var(--n-bloom)) color-mix(in srgb, var(--n-key) 40%, transparent);
+    transition:
+      border-color 120ms ease,
+      box-shadow 120ms ease,
+      scale 90ms ease-out;
+  }
+  .frame[data-base='neon'] [data-part='keycap'][data-down] [data-part='keycap.face'] {
+    scale: 0.97;
+  }
+  .frame[data-base='neon'][data-lit] [data-part='keycap.face'],
+  .frame[data-base='neon'] [data-part='pads.pad'][data-on] [data-part='keycap.face'] {
+    --n-key: var(--act);
+    box-shadow:
+      0 0 calc(1.6 * var(--n-bloom)) var(--n-glow-act),
+      inset 0 0 calc(1.6 * var(--n-bloom)) var(--n-glow-act);
+  }
+
+  /* ---- button: the face fills with a green glow while on ---- */
+  .frame[data-base='neon'] [data-part='button.fill'][data-on] {
+    background: radial-gradient(ellipse at center, var(--n-glow-act), transparent 80%);
+  }
+  .frame[data-base='neon'] [data-part='button.fill'][data-flash] {
+    animation: neon-fade 320ms ease-out forwards;
+  }
+  .frame[data-base='neon'] [data-part='button.armed'] {
+    background: radial-gradient(ellipse at center, var(--n-glow-act), transparent 70%);
+    animation: neon-flicker 1.4s steps(1) infinite;
+  }
+  /* A tube about to fail: mostly on, with the odd stutter. */
+  @keyframes neon-flicker {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    8% {
+      opacity: 0.3;
+    }
+    12% {
+      opacity: 1;
+    }
+    55% {
+      opacity: 0.45;
+    }
+    60% {
+      opacity: 1;
+    }
+  }
+  .frame[data-base='neon'] [data-part='button.hold'] {
+    background: var(--n-glow-act);
+    box-shadow: inset 0 2px 0 var(--act);
+    animation: neon-hold var(--hold) linear forwards;
+  }
+  @keyframes neon-hold {
+    from {
+      clip-path: inset(100% 0 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  .frame[data-base='neon'] [data-part='button.hint'] {
+    color: var(--act);
+    text-shadow: 0 0 6px var(--n-glow-act);
+  }
+
+  /* ---- switch: a tube loop with a glowing bead; the loop turns green when on ---- */
+  .frame[data-base='neon'] [data-part='switch.track'] {
+    --n-sw: var(--c);
+    border: 2px solid var(--n-sw);
+    border-radius: 999px;
+    background: var(--n-dark);
+    box-shadow:
+      0 0 calc(0.8 * var(--n-bloom)) color-mix(in srgb, var(--n-sw) 50%, transparent),
+      inset 0 0 calc(0.8 * var(--n-bloom)) color-mix(in srgb, var(--n-sw) 35%, transparent);
+    transition:
+      border-color 160ms ease,
+      box-shadow 160ms ease;
+  }
+  .frame[data-base='neon'][data-on] [data-part='switch.track'] {
+    --n-sw: var(--act);
+  }
+  .frame[data-base='neon'] [data-part='switch.tag'] {
+    background: none;
+  }
+  .frame[data-base='neon'] [data-part='switch.legend'] {
+    transition: opacity 160ms ease;
+  }
+  .frame[data-base='neon'] [data-part='switch.legend'][data-side='off'] {
+    color: var(--c-text);
+  }
+  .frame[data-base='neon'] [data-part='switch.legend'][data-side='on'] {
+    color: var(--act);
+    text-shadow: 0 0 6px var(--n-glow-act);
+  }
+  .frame[data-base='neon'] [data-part='switch.grip'] {
+    visibility: hidden;
+  }
+  .frame[data-base='neon'] [data-part='switch.thumb'] {
+    border-radius: 999px;
+    background: var(--n-bead);
+    box-shadow:
+      0 0 var(--n-bloom) var(--n-glow),
+      0 0 3px var(--c);
+    transition:
+      transform 220ms cubic-bezier(0.3, 1.3, 0.5, 1),
+      background 160ms ease,
+      box-shadow 160ms ease;
+  }
+  .frame[data-base='neon'][data-on] [data-part='switch.thumb'] {
+    background: var(--n-bead-act);
+    box-shadow:
+      0 0 calc(1.4 * var(--n-bloom)) var(--n-glow-act),
+      0 0 3px var(--act);
+  }
+  .frame[data-base='neon'][data-dragging] [data-part='switch.thumb'] {
+    transition:
+      background 160ms ease,
+      box-shadow 160ms ease;
+  }
+
+  /* ---- fader: a thin dim tube lit green up to the value, and a glowing bar for a cap ---- */
+  .frame[data-base='neon'] [data-part='slider.track'] {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--c) 30%, var(--n-dark));
+  }
+  .frame[data-base='neon'] [data-part='slider.fill'] {
+    border-radius: 999px;
+    background: var(--n-core-act);
+    box-shadow: 0 0 6px var(--act);
+    transition: clip-path 180ms ease-out;
+  }
+  .frame[data-base='neon'][data-dragging] [data-part='slider.fill'] {
+    transition: none;
+  }
+  .frame[data-base='neon'] [data-part='slider.cap'] {
+    transition: transform 180ms ease-out;
+  }
+  .frame[data-base='neon'][data-dragging] [data-part='slider.cap'] {
+    transition: none;
+  }
+  /* The cap is its grip: a short, bright tube across the track. */
+  .frame[data-base='neon'] [data-part='slider.grip'] {
+    width: 4px;
+    height: 80%;
+    border-radius: 999px;
+    background: var(--n-bead);
+    box-shadow:
+      0 0 var(--n-bloom) var(--n-glow),
+      0 0 3px var(--c);
+    transition:
+      background 140ms ease,
+      box-shadow 140ms ease;
+  }
+  .frame[data-base='neon'][data-vertical] [data-part='slider.grip'] {
+    width: 80%;
+    height: 4px;
+  }
+  .frame[data-base='neon'][data-dragging] [data-part='slider.grip'] {
+    background: var(--n-bead-act);
+    box-shadow:
+      0 0 calc(1.4 * var(--n-bloom)) var(--n-glow-act),
+      0 0 3px var(--act);
+  }
+
+  /* ---- graph: a dark tube-edged screen with a faint grid and a glowing ring cursor ---- */
+  .frame[data-base='neon'] [data-part='graph.plot'] {
+    --paper: var(--n-dark);
+    border: 2px solid var(--c);
+    border-radius: 6px;
+    background: var(--paper);
+    box-shadow:
+      0 0 calc(0.6 * var(--n-bloom)) var(--n-glow),
+      inset 0 0 calc(0.6 * var(--n-bloom)) var(--n-glow);
+  }
+  .frame[data-base='neon'] [data-part='graph.grid'] {
+    --g: color-mix(in srgb, var(--c) 22%, transparent);
+    background:
+      linear-gradient(to right, var(--g) 1px, transparent 1px) 0 0 / 25% 100%,
+      linear-gradient(to bottom, var(--g) 1px, transparent 1px) 0 0 / 100% 25%;
+  }
+  .frame[data-base='neon'] [data-part='graph.cross'] {
+    background: color-mix(in srgb, var(--act) 55%, transparent);
+    box-shadow: 0 0 4px var(--n-glow-act);
+    transition: transform 180ms ease-out;
+  }
+  .frame[data-base='neon'] [data-part='graph.cursor'] {
+    border: 2px solid color-mix(in srgb, var(--act) 50%, #fff);
+    border-radius: 50%;
+    box-shadow:
+      0 0 var(--n-bloom) var(--act),
+      inset 0 0 4px var(--act);
+    transition: transform 180ms ease-out;
+  }
+  .frame[data-base='neon'][data-dragging] [data-part='graph.cross'],
+  .frame[data-base='neon'][data-dragging] [data-part='graph.cursor'] {
+    transition: none;
+  }
+  .frame[data-base='neon'] [data-part='graph.lock'] {
+    border: 1px solid var(--act);
+    border-radius: 50%;
+    box-shadow: 0 0 6px var(--n-glow-act);
+    opacity: 0;
+    transition:
+      inset 200ms ease-out,
+      opacity 140ms ease;
+  }
+  .frame[data-base='neon'][data-dragging] {
+    --graph-lock-inset: -6px;
+  }
+  .frame[data-base='neon'][data-dragging] [data-part='graph.lock'] {
+    opacity: 1;
+  }
+  .frame[data-base='neon'] [data-part='graph.trail'] {
+    transition: opacity 600ms ease;
+  }
+  .frame[data-base='neon'] [data-part='graph.trail'][data-fading] {
+    opacity: 0;
+  }
+  .frame[data-base='neon'] [data-part='graph.dot'] {
+    border-radius: 50%;
+    background: var(--act);
+    box-shadow: 0 0 4px var(--act);
+  }
+  .frame[data-base='neon'] [data-part='graph.tick'] {
+    color: var(--c-text);
+    background: var(--paper);
+  }
+
+  /* ---- pads: tube squares; held or latched, a green bloom fills them ---- */
+  .frame[data-base='neon'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
+    background: radial-gradient(ellipse at center, var(--n-glow-act), transparent 85%);
+  }
+  .frame[data-base='neon'] [data-part='pads.fill'][data-flash] {
+    animation: neon-fade 320ms ease-out forwards;
+  }
+  .frame[data-base='neon'] [data-part='pads.num'] {
+    color: var(--c-text);
+  }
+  .frame[data-base='neon'] [data-part='pads.pad'][data-on] [data-part='pads.num'] {
+    color: var(--fg);
+    text-shadow: 0 0 4px var(--act);
+  }
+
+  /* ---- list: dim tube rows; the current one lit in the widget colour, held ones green ---- */
+  .frame[data-base='neon'] [data-part='list.option'] {
+    border: 1px solid color-mix(in srgb, var(--c) 40%, transparent);
+    border-radius: 5px;
+    color: var(--fg-dim);
+    transition:
+      border-color 140ms ease,
+      box-shadow 140ms ease,
+      color 140ms ease;
+  }
+  .frame[data-base='neon'][data-live]
+    [data-part='list.option']:not([data-current]):not([data-held]):hover {
+    color: var(--fg);
+    border-color: color-mix(in srgb, var(--c) 70%, transparent);
+  }
+  /* Thicker by a shadow, not the border, so the text stays put. */
+  .frame[data-base='neon'] [data-part='list.option'][data-current] {
+    border-color: var(--c);
+    color: var(--fg);
+    box-shadow:
+      inset 0 0 0 1px var(--c),
+      0 0 calc(0.6 * var(--n-bloom)) var(--n-glow),
+      inset 0 0 calc(0.6 * var(--n-bloom)) var(--n-glow);
+  }
+  .frame[data-base='neon'] [data-part='list.option'][data-held] {
+    border-color: var(--act);
+    color: var(--fg);
+    box-shadow: 0 0 var(--n-bloom) var(--n-glow-act);
+  }
+  .frame[data-base='neon'] [data-part='list.option'][data-held] [data-part='list.fill'] {
+    background: var(--n-glow-act);
+  }
+  .frame[data-base='neon'] [data-part='list.fill'][data-flash] {
+    animation: neon-fade 320ms ease-out forwards;
+  }
+  .frame[data-base='neon'] [data-part='list.mark'] {
+    color: var(--c);
+    text-shadow: 0 0 6px var(--n-glow);
+  }
+}

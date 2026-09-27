@@ -6,7 +6,6 @@ import type { Widget, WidgetType } from '../model/preset';
 import type { WidgetValue } from '../osc/value';
 import { buttonDef } from './button/def';
 import { graphDef } from './graph/def';
-import { knobDef } from './knob/def';
 import { listDef } from './list/def';
 import { padsDef } from './pads/def';
 import { sliderDef } from './slider/def';
@@ -18,7 +17,6 @@ export const DEFS: { [T in WidgetType]: WidgetDef<WidgetOf<T>> } = {
   button: buttonDef,
   switch: switchDef,
   slider: sliderDef,
-  knob: knobDef,
   graph: graphDef,
   pads: padsDef,
   list: listDef,

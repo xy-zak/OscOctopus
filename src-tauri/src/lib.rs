@@ -6,6 +6,7 @@ pub mod input;
 pub mod net;
 pub mod osc;
 pub mod presets;
+pub mod skins;
 pub mod sync;
 
 use std::path::PathBuf;
@@ -46,6 +47,8 @@ pub struct AppState {
     pub input_subscribers: Subscribers<InputBatch>,
     pub sync_subscribers: Subscribers<SyncBatch>,
     pub presets_dir: PathBuf,
+    /// User-made widget skins, one JSON file each (see [`skins`]).
+    pub skins_dir: PathBuf,
     /// The profile this instance runs as (see [`PROFILE_ENV`]).
     pub profile: Option<String>,
 }
@@ -111,6 +114,8 @@ pub fn run() {
             }
             let presets_dir = data_dir.join("presets");
             std::fs::create_dir_all(&presets_dir)?;
+            let skins_dir = data_dir.join("skins");
+            std::fs::create_dir_all(&skins_dir)?;
 
             let debug = Arc::new(DebugHub::new(DEBUG_HISTORY, DEBUG_PENDING));
             let status_handle = app.handle().clone();
@@ -156,6 +161,7 @@ pub fn run() {
                 input_subscribers,
                 sync_subscribers,
                 presets_dir,
+                skins_dir,
                 profile,
             });
             Ok(())
@@ -199,6 +205,10 @@ pub fn run() {
             commands::preset_read_file,
             commands::preset_export,
             commands::preset_dir,
+            commands::skin_list,
+            commands::skin_save,
+            commands::skin_delete,
+            commands::skin_export,
         ])
         .run(tauri::generate_context!())
         .expect("error while running OscOctopus");

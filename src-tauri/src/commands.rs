@@ -1,4 +1,5 @@
-//! IPC surface. Thin wrappers only: all logic lives in `net`, `debug`, `presets` and `sync`.
+//! IPC surface. Thin wrappers only: all logic lives in `net`, `debug`, `presets`, `skins` and
+//! `sync`.
 //! Commands are named `<area>_<verb>`.
 
 use std::path::PathBuf;
@@ -15,6 +16,7 @@ use crate::net::interfaces::{self, NetInterface};
 use crate::net::{EndpointStatus, NetworkConfig};
 use crate::osc::OscMessage;
 use crate::presets::{self, PresetSummary};
+use crate::skins::{self, SkinFile};
 use crate::sync::docs;
 use crate::sync::identity::{derive_psk, new_session_key, normalize_session, RememberedSession};
 use crate::sync::wire::AppKind;
@@ -202,6 +204,33 @@ pub async fn preset_export(state: State<'_, AppState>, id: String, path: PathBuf
 #[tauri::command]
 pub fn preset_dir(state: State<'_, AppState>) -> String {
     state.presets_dir.display().to_string()
+}
+
+/// Every saved user skin (unreadable files listed with their error).
+#[tauri::command]
+pub async fn skin_list(state: State<'_, AppState>) -> AppResult<Vec<SkinFile>> {
+    let dir = state.skins_dir.clone();
+    blocking(move || skins::list(&dir)).await
+}
+
+/// Saves a skin the frontend has validated (it is also imported this way).
+#[tauri::command]
+pub async fn skin_save(state: State<'_, AppState>, skin: Value) -> AppResult<()> {
+    let dir = state.skins_dir.clone();
+    blocking(move || skins::save(&dir, &skin)).await
+}
+
+#[tauri::command]
+pub async fn skin_delete(state: State<'_, AppState>, id: String) -> AppResult<()> {
+    let dir = state.skins_dir.clone();
+    blocking(move || skins::delete(&dir, &id)).await
+}
+
+/// Copies a saved skin to a user-chosen `.json` file.
+#[tauri::command]
+pub async fn skin_export(state: State<'_, AppState>, id: String, path: PathBuf) -> AppResult<()> {
+    let dir = state.skins_dir.clone();
+    blocking(move || skins::export(&dir, &id, &path)).await
 }
 
 #[tauri::command]

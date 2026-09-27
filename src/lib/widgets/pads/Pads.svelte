@@ -11,6 +11,7 @@
   import { emitValue } from '../../osc/flow';
   import { padEvent } from '../../osc/value';
   import { tapHaptic } from '../../platform/haptics';
+  import { flag } from '../../skins/anatomy';
   import { feedback } from '../../state/feedback.svelte';
   import { begin } from '../../state/touch';
   import { charWidth } from '../../ui/textfit';
@@ -69,7 +70,8 @@
 </script>
 
 <WidgetFrame
-  class="pads {live ? 'live' : ''}"
+  type="pads"
+  {live}
   title={widget.label}
   status="{p.rows}×{p.cols}"
   color={widget.color}
@@ -81,17 +83,29 @@
   onpointercancel={onpointerup}
 >
   {#snippet children()}
-    <div class="grid" bind:clientWidth={bw} style:--rows={p.rows} style:--cols={p.cols}>
+    <div
+      class="grid"
+      data-part="pads.grid"
+      bind:clientWidth={bw}
+      style:--rows={p.rows}
+      style:--cols={p.cols}
+    >
       {#each pads as n (n)}
         {@const on = !!down[n] || !!lit[n]}
         {@const flash = (flashes[n] ?? 0) + (remoteFlashes[n] ?? 0)}
         <!-- Each pad is a small key cap; held (or latched) pads sit sunk into the panel. -->
-        <div class="pad" class:on data-pad={n}>
+        <div class="pad" data-part="pads.pad" data-on={flag(on)} data-pad={n}>
           <Keycap depth={8} down={on}>
             {#key flash}
-              <span class="fill" class:dissolve={!on && flash > 0}></span>
+              <span
+                class="fill"
+                data-part="pads.fill"
+                data-on={flag(on)}
+                data-flash={flag(!on && flash > 0)}
+              ></span>
             {/key}
-            {#if showNumbers}<span class="num">{n}</span>{/if}
+            {#if showNumbers}<span class="num" data-part="pads.num" data-on={flag(on)}>{n}</span
+              >{/if}
           </Keycap>
         </div>
       {/each}
@@ -100,7 +114,7 @@
 </WidgetFrame>
 
 <style>
-  :global(.frame.pads.live) {
+  :global(.frame[data-type='pads'][data-live]) {
     cursor: pointer;
   }
   .grid {
@@ -109,56 +123,22 @@
     display: grid;
     grid-template-columns: repeat(var(--cols), 1fr);
     grid-template-rows: repeat(var(--rows), 1fr);
-    gap: 4px;
+    gap: var(--pads-gap, 4px);
   }
-  /* At rest each pad is a key in the widget colour; held or latched, it goes ACTIVE green. */
   .pad {
-    --key-edge: var(--c);
-    --key-dots: color-mix(in srgb, var(--c) 55%, transparent);
-    --key-face: var(--c-solid);
     position: relative;
     min-width: 0;
     min-height: 0;
   }
-  .pad.on {
-    --key-edge: var(--act);
-    --key-dots: color-mix(in srgb, var(--act) 55%, transparent);
-  }
   .fill {
     position: absolute;
     inset: 0;
-  }
-  .on .fill {
-    background: var(--act);
-  }
-  /* Release: the same pixel dissolve as the button. */
-  .fill.dissolve {
-    animation: dissolve 210ms steps(1, end) forwards;
-  }
-  @keyframes dissolve {
-    0% {
-      background: var(--act);
-    }
-    33% {
-      background: var(--dither-50-act);
-    }
-    66% {
-      background: var(--dither-25-act);
-    }
-    100% {
-      background: transparent;
-    }
   }
   .num {
     position: absolute;
     inset: 0;
     display: grid;
     place-items: center;
-    color: var(--c-ink);
-    font-weight: 700;
     pointer-events: none;
-  }
-  .on .num {
-    color: var(--act-ink);
   }
 </style>

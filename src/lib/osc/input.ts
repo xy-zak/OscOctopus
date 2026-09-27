@@ -220,13 +220,10 @@ export function receiveProblem(widget: Widget, binding: Binding): string | null 
   return null;
 }
 
-/** Why received input must never be forwarded through this binding, or null. */
-export function forwardProblem(widget: Widget, binding: Binding): string | null {
+/** Why received input must never be forwarded through this widget's messages, or null. */
+export function forwardProblem(widget: Widget): string | null {
   if (widget.type === 'button' && widget.props.arm !== 'none') {
     return 'an armed button only fires from a deliberate local press';
-  }
-  if (binding.args.some((a) => a.kind === 'value' && a.channel === 'delta')) {
-    return 'deltas are never forwarded: an echoing device would turn the knob forever';
   }
   return null;
 }

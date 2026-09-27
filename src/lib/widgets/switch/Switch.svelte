@@ -1,10 +1,13 @@
 <script lang="ts">
-  // A slide switch in a frame: a solid block that sits on one half of a dithered track.
-  // Tap to flip; or drag the block, which follows the finger and settles on the nearer side.
+  // A slide switch in a frame: a thumb that sits at one end of a track (TERMINAL: a solid block
+  // on one half of a dithered groove). Tap to flip; or drag the thumb, which follows the finger
+  // and settles on the nearer side. The skin sizes the thumb (--switch-thumb-len), so the drag
+  // travel is measured from it rather than assumed.
   import { clamp } from '../../util';
   import type { SwitchWidget } from '../../model/preset';
   import { emitValue } from '../../osc/flow';
   import { tapHaptic, tickHaptic } from '../../platform/haptics';
+  import { flag } from '../../skins/anatomy';
   import { numberValue } from '../../state/values.svelte';
   import WidgetFrame from '../WidgetFrame.svelte';
 
@@ -18,13 +21,22 @@
   let bw = $state(0);
   let bh = $state(0);
   const vertical = $derived(bh > bw * 1.15);
-  const travel = $derived((vertical ? bh : bw) / 2);
+  let thumb = $state<HTMLElement>();
+
+  /** How far the thumb moves from off to on: the track less the thumb and its insets. */
+  function travel(): number {
+    if (!thumb) return (vertical ? bh : bw) / 2;
+    const inset = thumb.offsetLeft;
+    const t = vertical ? bh - thumb.offsetHeight : bw - thumb.offsetWidth;
+    return Math.max(1, t - 2 * inset);
+  }
 
   interface Drag {
     id: number;
     start: number;
     startPos: number;
     moved: boolean;
+    travel: number;
   }
   let drag = $state<Drag | null>(null);
   let dragPos = $state(0);
@@ -42,7 +54,13 @@
   function onpointerdown(e: PointerEvent) {
     if (!live || drag) return;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    drag = { id: e.pointerId, start: coord(e), startPos: on ? 1 : 0, moved: false };
+    drag = {
+      id: e.pointerId,
+      start: coord(e),
+      startPos: on ? 1 : 0,
+      moved: false,
+      travel: travel(),
+    };
     dragPos = drag.startPos;
     tapHaptic('light');
   }
@@ -52,7 +70,7 @@
     const d = coord(e) - drag.start;
     if (!drag.moved && Math.abs(d) < TAP_SLOP) return;
     drag.moved = true;
-    const next = clamp(drag.startPos + d / (travel || 1), 0, 1);
+    const next = clamp(drag.startPos + d / drag.travel, 0, 1);
     if (next > 0.5 !== dragPos > 0.5) tickHaptic();
     dragPos = next;
   }
@@ -75,12 +93,16 @@
 </script>
 
 <WidgetFrame
-  class="switch {live ? 'live' : ''}"
+  type="switch"
+  {live}
   title={widget.label}
   status={String(value)}
   color={widget.color}
   active={on}
   pressed={drag !== null}
+  data-on={flag(on)}
+  data-vertical={flag(vertical)}
+  data-dragging={flag(drag?.moved)}
   role="switch"
   aria-checked={on}
   aria-label={widget.label}
@@ -94,35 +116,34 @@
   {#snippet children()}
     <div
       class="track"
-      class:on
       class:vertical
-      class:dragging={drag?.moved}
+      data-part="switch.track"
       style:--pos={pos}
       bind:clientWidth={bw}
       bind:clientHeight={bh}
     >
-      <span class="legend off-legend"><span class="tag">OFF</span></span>
-      <span class="legend on-legend"><span class="tag">ON</span></span>
-      <span class="block"><span class="grip">{vertical ? '═' : '║'}</span></span>
+      <span class="legend off" data-part="switch.legend" data-side="off"
+        ><span class="tag" data-part="switch.tag">OFF</span></span
+      >
+      <span class="legend on" data-part="switch.legend" data-side="on"
+        ><span class="tag" data-part="switch.tag">ON</span></span
+      >
+      <span class="thumb" data-part="switch.thumb" bind:this={thumb}
+        ><span data-part="switch.grip">{vertical ? '═' : '║'}</span></span
+      >
     </div>
   {/snippet}
 </WidgetFrame>
 
 <style>
-  :global(.frame.switch.live) {
+  :global(.frame[data-type='switch'][data-live]) {
     cursor: pointer;
   }
+  /* A size container, so the thumb's travel can be written in the track's own units. */
   .track {
     position: absolute;
     inset: 0;
-    border: 1px solid var(--c);
-    /* Dithered groove in the widget colour; ACTIVE green when on. */
-    background: var(--dither-25-c);
-    transition: border-color var(--t-ui) steps(2);
-  }
-  .track.on {
-    border-color: var(--act);
-    background: var(--dither-25-act);
+    container-type: size;
   }
   .legend {
     position: absolute;
@@ -131,28 +152,15 @@
     width: 50%;
     display: grid;
     place-items: center;
-    font-weight: 700;
-    transition: opacity var(--t-ui) steps(2);
   }
-  /* A patch behind the word, so it reads on the coloured dots. */
   .tag {
     padding: 0 0.5ch;
-    background: var(--w-bg);
   }
-  .off-legend {
+  .legend.off {
     right: 0;
-    color: var(--c-text);
   }
-  .on-legend {
+  .legend.on {
     left: 0;
-    color: var(--act);
-    opacity: 0;
-  }
-  .on .off-legend {
-    opacity: 0;
-  }
-  .on .on-legend {
-    opacity: 1;
   }
   .vertical .legend {
     width: auto;
@@ -160,49 +168,35 @@
     left: 0;
     right: 0;
   }
-  .vertical .off-legend {
+  .vertical .legend.off {
     top: 0;
     bottom: auto;
   }
-  .vertical .on-legend {
+  .vertical .legend.on {
     top: auto;
     bottom: 0;
   }
-  /* The block: slides with a spring when tapped, follows the finger while dragged. */
-  .block {
+  /* The thumb starts at the off end, inset from the track, and travels --pos (0 … 1) of the
+     way to the other end: the track less the thumb itself and both insets. */
+  .thumb {
+    --inset: var(--switch-inset, 2px);
     position: absolute;
-    top: 2px;
-    bottom: 2px;
-    left: 2px;
-    width: calc(50% - 4px);
+    top: var(--inset);
+    bottom: var(--inset);
+    left: var(--inset);
+    width: var(--switch-thumb-len, calc(50cqw - 2 * var(--inset)));
     display: grid;
     place-items: center;
-    background: var(--c-solid);
-    color: var(--c-ink);
-    box-shadow: 2px 2px 0 0 var(--shadow-px);
-    transform: translateX(calc(var(--pos) * (100% + 4px)));
-    transition:
-      transform var(--t-release) var(--ease-spring),
-      background var(--t-ui) steps(2);
+    transform: translateX(calc(var(--pos) * (100cqw - 100% - 2 * var(--inset))));
     will-change: transform;
   }
-  .on .block {
-    background: var(--act);
-    color: var(--act-ink);
-  }
-  .vertical .block {
+  .vertical .thumb {
     top: auto;
-    left: 2px;
-    right: 2px;
-    bottom: 2px;
+    left: var(--inset);
+    right: var(--inset);
+    bottom: var(--inset);
     width: auto;
-    height: calc(50% - 4px);
-    transform: translateY(calc(var(--pos) * -1 * (100% + 4px)));
-  }
-  .dragging .block {
-    transition: background var(--t-ui) steps(2);
-  }
-  .grip {
-    font-weight: 700;
+    height: var(--switch-thumb-len, calc(50cqh - 2 * var(--inset)));
+    transform: translateY(calc(var(--pos) * -1 * (100cqh - 100% - 2 * var(--inset))));
   }
 </style>

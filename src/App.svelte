@@ -23,6 +23,7 @@
   import { inputStore } from './lib/state/input.svelte';
   import { persistSetting } from './lib/state/persist';
   import { presetStore } from './lib/state/preset.svelte';
+  import { skinStore } from './lib/state/skins.svelte';
   import { sharedDesks, startSharedDesks } from './lib/sync/app.svelte';
   import { syncSession } from './lib/sync/session.svelte';
   import {
@@ -33,6 +34,7 @@
     toggleEditMode,
     ui,
   } from './lib/state/ui.svelte';
+  import { applySkinSheets } from './lib/skins/sheets';
   import { colorVars, paletteVars } from './lib/theme/palettes';
   import ConfirmDialog from './lib/ui/ConfirmDialog.svelte';
   import LockButton from './lib/ui/LockButton.svelte';
@@ -73,6 +75,7 @@
       await inputStore.setEnabled((await getSetting('inputEnabled')) ?? true);
       ui.locked = (await getSetting('locked')) ?? false;
       await presetStore.init();
+      await skinStore.load();
       ui.infoOpen = (await getSetting('infoOpen')) ?? true;
       Object.assign(ui.inspectorOpen, await getSetting('inspectorSections'));
       Object.assign(ui.infoSections, await getSetting('infoSections'));
@@ -134,11 +137,14 @@
   // Global palette → CSS variables (registered with @property, so changes crossfade).
   $effect(() => {
     const root = document.documentElement.style;
-    const { palette, accent, mode } = appearance.theme;
-    for (const [k, v] of Object.entries(paletteVars(palette, accent))) root.setProperty(k, v);
+    const { accent, mode } = appearance.theme;
+    const vars = paletteVars(appearance.palette.colors, accent);
+    for (const [k, v] of Object.entries(vars)) root.setProperty(k, v);
     // Light/dark background: tokens.css switches the base colours on data-mode.
     document.documentElement.dataset.mode = mode;
   });
+  // User skins' stylesheets (built-in skins are in app.css).
+  $effect(() => applySkinSheets(skinStore.user));
 
   const desk = $derived(presetStore.current);
   const deskFailing = $derived(
@@ -294,7 +300,7 @@
           >
         {/each}
       </nav>
-      <!-- The EDIT / LIVE switch lives on the desk itself, in its top-right cell (see Desk). -->
+      <!-- The EDIT switch is in the desk's own tool row, next to INFO (see Desk). -->
     </div>
 
     <main class:locked={ui.locked}>

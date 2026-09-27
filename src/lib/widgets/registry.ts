@@ -6,8 +6,6 @@ import Button from './button/Button.svelte';
 import ButtonInspector from './button/ButtonInspector.svelte';
 import Graph from './graph/Graph.svelte';
 import GraphInspector from './graph/GraphInspector.svelte';
-import Knob from './knob/Knob.svelte';
-import KnobInspector from './knob/KnobInspector.svelte';
 import List from './list/List.svelte';
 import ListInspector from './list/ListInspector.svelte';
 import Pads from './pads/Pads.svelte';
@@ -30,7 +28,6 @@ export const VIEWS: { [T in WidgetType]: WidgetViews<WidgetOf<T>> } = {
   button: { component: Button, inspector: ButtonInspector },
   switch: { component: Switch, inspector: SwitchInspector },
   slider: { component: Slider, inspector: SliderInspector },
-  knob: { component: Knob, inspector: KnobInspector },
   graph: { component: Graph, inspector: GraphInspector },
   pads: { component: Pads, inspector: PadsInspector },
   list: { component: List, inspector: ListInspector },

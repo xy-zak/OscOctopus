@@ -101,25 +101,6 @@ describe('Throttle', () => {
   });
 });
 
-describe('Throttle with merge', () => {
-  it('merges held-back values instead of replacing them', async () => {
-    const { clock, advance } = fakeClock();
-    const sent: number[] = [];
-    const t = new Throttle<number>(async (v) => void sent.push(v), {
-      maxHz: 10,
-      clock,
-      merge: (a, b) => a + b,
-    });
-    t.push(1); // immediate
-    t.push(1);
-    t.push(1);
-    t.push(1);
-    await advance(200);
-    expect(sent).toEqual([1, 3]);
-    expect(t.stats.coalesced).toBe(2);
-  });
-});
-
 describe('OrderedQueue', () => {
   it('sends every value in order, one at a time', async () => {
     const sent: number[] = [];

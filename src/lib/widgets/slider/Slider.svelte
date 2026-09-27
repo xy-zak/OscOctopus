@@ -1,11 +1,13 @@
 <script lang="ts">
-  // A fader, built like the Switch: a narrow dithered track in the widget colour that fills
-  // with ACTIVE green dots, and a solid cap wider than the track, like a real fader knob, that
-  // tracks the exact value 1:1 under the finger. Scale marks sit either side of the track.
+  // A fader: a narrow track that fills up to the value, and a cap wider than the track, like a
+  // real fader knob, that tracks the exact value 1:1 under the finger, with a scale either side
+  // of the track. TERMINAL draws it like the Switch: a dithered groove filling with ACTIVE
+  // green dots and a solid cap.
   import type { SliderWidget } from '../../model/preset';
   import { sliderPosition, sliderValue } from '../../osc/curves';
   import { emitValue } from '../../osc/flow';
   import { tapHaptic, tickHaptic } from '../../platform/haptics';
+  import { flag } from '../../skins/anatomy';
   import { numberValue } from '../../state/values.svelte';
   import { clamp } from '../../util';
   import { decimalsFor, doubleTap, dragScale, keyStep } from '../interaction';
@@ -95,11 +97,14 @@
 </script>
 
 <WidgetFrame
-  class="slider {live ? 'live' : ''} {drag ? 'dragging' : ''}"
+  type="slider"
+  {live}
   title={widget.label}
   status={value.toFixed(decimals)}
   color={widget.color}
   active={drag !== null}
+  data-vertical={flag(vertical)}
+  data-dragging={flag(drag !== null)}
   role="slider"
   aria-label={widget.label}
   aria-orientation={p.orientation}
@@ -114,33 +119,32 @@
   {onkeydown}
 >
   {#snippet children()}
-    <div class="rail" class:vertical class:dragging={drag !== null} style:--pos={pos}>
-      <div class="ticks"></div>
-      <div bind:this={meter} class="track">
-        <div class="lit"></div>
+    <div class="rail" class:vertical data-part="slider.rail" style:--pos={pos}>
+      <div class="ticks" data-part="slider.ticks"></div>
+      <div bind:this={meter} class="track" data-part="slider.track">
+        <div class="fill" data-part="slider.fill"></div>
       </div>
-      <div class="cap"><span class="grip"></span></div>
+      <div class="cap" data-part="slider.cap"><span data-part="slider.grip"></span></div>
     </div>
   {/snippet}
 </WidgetFrame>
 
 <style>
-  :global(.frame.slider.live) {
+  :global(.frame[data-type='slider'][data-live]) {
     cursor: grab;
   }
-  :global(.frame.slider.dragging) {
+  :global(.frame[data-type='slider'][data-dragging]) {
     cursor: grabbing;
   }
   /* --cap: cap thickness along the travel. The track is inset by half of it at each end, so
      the cap's centre line sits exactly on the edge of the fill. */
   .rail {
-    --cap: 10px;
-    --track: clamp(8px, 34%, 26px);
+    --cap: var(--slider-cap-len, 10px);
+    --track: var(--slider-track-w, clamp(8px, 34%, 26px));
     position: absolute;
     inset: 0;
     container-type: size;
   }
-  /* The Switch's groove, in the widget colour: a 25% dither. */
   .track {
     position: absolute;
     left: calc(var(--cap) / 2);
@@ -148,9 +152,6 @@
     top: 50%;
     height: var(--track);
     translate: 0 -50%;
-    border: 1px solid var(--c);
-    background: var(--dither-25-c);
-    transition: border-color var(--t-ui) steps(2);
   }
   .vertical .track {
     left: 50%;
@@ -161,43 +162,21 @@
     height: auto;
     translate: -50% 0;
   }
-  .dragging .track {
-    border-color: var(--act);
-  }
-  /* The fill: ACTIVE green dots, denser than the groove's, revealed up to the value. It has its
-     own backing so the groove's dots don't show through. */
-  .lit {
+  /* The fill, revealed up to the value. */
+  .fill {
     position: absolute;
     inset: 0;
-    background: var(--dither-50-act), var(--w-bg);
     clip-path: inset(0 calc((1 - var(--pos)) * 100%) 0 0);
-    transition: clip-path var(--t-release) var(--ease-out);
   }
-  .vertical .lit {
+  .vertical .fill {
     clip-path: inset(calc((1 - var(--pos)) * 100%) 0 0 0);
   }
-  .dragging .lit {
-    transition: none;
-  }
-  /* Printed scale either side of the track: ends and middle long, quarters short. */
   .ticks {
-    --t: var(--fg-faint);
     position: absolute;
     top: 0;
     bottom: 0;
     left: calc(var(--cap) / 2);
     right: calc(var(--cap) / 2);
-    background:
-      linear-gradient(var(--t), var(--t)) 0% 0 / 1px 6px no-repeat,
-      linear-gradient(var(--t), var(--t)) 25% 0 / 1px 3px no-repeat,
-      linear-gradient(var(--t), var(--t)) 50% 0 / 1px 6px no-repeat,
-      linear-gradient(var(--t), var(--t)) 75% 0 / 1px 3px no-repeat,
-      linear-gradient(var(--t), var(--t)) 100% 0 / 1px 6px no-repeat,
-      linear-gradient(var(--t), var(--t)) 0% 100% / 1px 6px no-repeat,
-      linear-gradient(var(--t), var(--t)) 25% 100% / 1px 3px no-repeat,
-      linear-gradient(var(--t), var(--t)) 50% 100% / 1px 6px no-repeat,
-      linear-gradient(var(--t), var(--t)) 75% 100% / 1px 3px no-repeat,
-      linear-gradient(var(--t), var(--t)) 100% 100% / 1px 6px no-repeat;
     pointer-events: none;
   }
   .vertical .ticks {
@@ -205,20 +184,8 @@
     bottom: calc(var(--cap) / 2);
     left: 0;
     right: 0;
-    background:
-      linear-gradient(var(--t), var(--t)) 0 0% / 6px 1px no-repeat,
-      linear-gradient(var(--t), var(--t)) 0 25% / 3px 1px no-repeat,
-      linear-gradient(var(--t), var(--t)) 0 50% / 6px 1px no-repeat,
-      linear-gradient(var(--t), var(--t)) 0 75% / 3px 1px no-repeat,
-      linear-gradient(var(--t), var(--t)) 0 100% / 6px 1px no-repeat,
-      linear-gradient(var(--t), var(--t)) 100% 0% / 6px 1px no-repeat,
-      linear-gradient(var(--t), var(--t)) 100% 25% / 3px 1px no-repeat,
-      linear-gradient(var(--t), var(--t)) 100% 50% / 6px 1px no-repeat,
-      linear-gradient(var(--t), var(--t)) 100% 75% / 3px 1px no-repeat,
-      linear-gradient(var(--t), var(--t)) 100% 100% / 6px 1px no-repeat;
   }
-  /* The cap: a solid block in the widget colour across the full width, like the Switch's block,
-     with a grip line. Green while held. */
+  /* The cap, across the full width of the rail. */
   .cap {
     position: absolute;
     top: 0;
@@ -227,12 +194,7 @@
     width: var(--cap);
     display: grid;
     place-items: center;
-    background: var(--c-solid);
-    box-shadow: 2px 2px 0 0 var(--shadow-px);
     transform: translateX(calc(var(--pos) * (100cqw - var(--cap))));
-    transition:
-      transform var(--t-release) var(--ease-out),
-      background var(--t-ui) steps(2);
     will-change: transform;
   }
   .vertical .cap {
@@ -241,21 +203,5 @@
     width: auto;
     height: var(--cap);
     transform: translateY(calc(var(--pos) * -1 * (100cqh - var(--cap))));
-  }
-  .dragging .cap {
-    background: var(--act);
-    transition: background var(--t-ui) steps(2);
-  }
-  .grip {
-    width: 1px;
-    height: 60%;
-    background: var(--c-ink);
-  }
-  .dragging .grip {
-    background: var(--act-ink);
-  }
-  .vertical .grip {
-    width: 60%;
-    height: 1px;
   }
 </style>

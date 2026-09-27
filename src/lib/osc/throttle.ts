@@ -3,8 +3,6 @@
 //   2. At most one send is in flight, so messages can't reach the socket out of order.
 //   3. At most `maxHz` sends per second while dragging.
 // Values replaced before they could be sent are counted as `coalesced` and shown in the UI.
-// With a `merge` function, a held-back value is combined with the next one instead of being
-// replaced (an encoder's +1 +1 +1 becomes +3, so no turns are lost).
 //
 // Discrete widgets (buttons, pads, lists) use `OrderedQueue` instead: every event is a fact
 // (a pad hit, a selection) and must be sent, in order, never coalesced.
@@ -27,11 +25,9 @@ const realClock: Clock = {
   clearTimeout: (h) => clearTimeout(h as ReturnType<typeof setTimeout>),
 };
 
-export interface ThrottleOptions<T> {
+export interface ThrottleOptions {
   /** Sends per second while values keep coming; 0 = no limit (still one in flight). */
   maxHz: number;
-  /** Combines a held-back value with the next one instead of replacing it. */
-  merge?: (held: T, next: T) => T;
   onStats?: (s: ThrottleStats) => void;
   clock?: Clock;
 }
@@ -45,26 +41,20 @@ export class Throttle<T> {
   private lastSend = -Infinity;
   private timer: unknown = null;
   private readonly clock: Clock;
-  private readonly merge?: (held: T, next: T) => T;
   private readonly onStats?: (s: ThrottleStats) => void;
 
   constructor(
     private readonly send: (value: T) => Promise<unknown>,
-    opts: ThrottleOptions<T>,
+    opts: ThrottleOptions,
   ) {
     this.maxHz = opts.maxHz;
     this.clock = opts.clock ?? realClock;
-    this.merge = opts.merge;
     this.onStats = opts.onStats;
   }
 
   push(value: T): void {
-    if (this.pending) {
-      this.stats.coalesced++;
-      this.pending = { value: this.merge ? this.merge(this.pending.value, value) : value };
-    } else {
-      this.pending = { value };
-    }
+    if (this.pending) this.stats.coalesced++;
+    this.pending = { value };
     this.pump();
   }
 

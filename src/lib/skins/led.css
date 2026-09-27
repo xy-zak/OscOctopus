@@ -1,0 +1,335 @@
+/* LED MATRIX: every surface is a grid of round LEDs on a dark panel. Unlit LEDs show faintly in
+   the widget colour; parts light up as LEDs in the widget colour, in the text colour, or
+   ACTIVE green. Borders are dotted, the fader lights LED by LED, and the XY cursor is a 3 × 3
+   cluster. Every rule is keyed on .frame[data-base='led']. Parts and states:
+   skins/anatomy.ts; what every skin keeps the same (font, label placement, markers, the desk
+   background): skins/base.css, docs/SKINS.md. */
+@layer skin.builtin {
+  /* ---- frame: a dark panel of unlit LEDs inside a dotted border ---- */
+  .frame[data-base='led'] {
+    --led-pitch: 5px;
+    --led-r: 1.5px;
+    --led-ink: var(--c);
+    --led-panel: color-mix(in srgb, var(--bg) 70%, #000);
+    --led-unlit: color-mix(in srgb, var(--led-ink) 16%, transparent);
+    --led-border: var(--led-ink);
+    /* A grid of LEDs, one per colour: unlit, widget colour, text colour, ACTIVE green. */
+    --led-off: radial-gradient(
+        circle,
+        var(--led-unlit) var(--led-r),
+        transparent calc(var(--led-r) + 0.5px)
+      )
+      0 0 / var(--led-pitch) var(--led-pitch);
+    --led-c: radial-gradient(
+        circle,
+        var(--led-ink) var(--led-r),
+        transparent calc(var(--led-r) + 0.5px)
+      )
+      0 0 / var(--led-pitch) var(--led-pitch);
+    --led-fg: radial-gradient(
+        circle,
+        var(--fg) var(--led-r),
+        transparent calc(var(--led-r) + 0.5px)
+      )
+      0 0 / var(--led-pitch) var(--led-pitch);
+    --led-act: radial-gradient(
+        circle,
+        var(--act) var(--led-r),
+        transparent calc(var(--led-r) + 0.5px)
+      )
+      0 0 / var(--led-pitch) var(--led-pitch);
+    /* Every other LED lit, for fades and the armed wash. */
+    --led-act-half: radial-gradient(
+        circle,
+        var(--act) var(--led-r),
+        transparent calc(var(--led-r) + 0.5px)
+      )
+      0 0 / calc(2 * var(--led-pitch)) calc(2 * var(--led-pitch));
+    /* The halo lit LEDs throw on the panel. */
+    --led-halo-act: color-mix(in srgb, var(--act) 18%, transparent);
+    /* The same halo as an image, for under other layers (only the last can be a colour). */
+    --led-glow: linear-gradient(var(--led-halo-act), var(--led-halo-act));
+    --switch-inset: 3px;
+    --slider-cap-len: 15px;
+    --slider-track-w: 10px;
+    --slider-tick-c: color-mix(in srgb, var(--led-ink) 70%, transparent);
+    --graph-cursor: 15px;
+    --graph-dot: 4px;
+    --pads-gap: 5px;
+    --list-gap: 3px;
+    --list-row-h: 21px;
+    border: 2px dotted var(--led-border);
+    border-radius: 3px;
+    background: var(--led-off), var(--led-panel);
+    transition: border-color 120ms steps(2);
+  }
+  :root[data-mode='light'] .frame[data-base='led'] {
+    --led-ink: var(--c-text);
+    --led-panel: var(--w-bg);
+    --led-unlit: color-mix(in srgb, var(--led-ink) 30%, transparent);
+  }
+  .frame[data-base='led'][data-active] {
+    --led-border: var(--act);
+  }
+  [data-lifted] .frame[data-base='led'] {
+    box-shadow: 0 12px 26px rgb(0 0 0 / 0.5);
+  }
+  .frame[data-base='led'] [data-part='frame.title'],
+  .frame[data-base='led'] [data-part='frame.status'] {
+    background: var(--bg);
+    transition: color 120ms steps(2);
+  }
+  .frame[data-base='led'] [data-part='frame.title'] {
+    color: var(--fg);
+  }
+  .frame[data-base='led'][data-active] [data-part='frame.title'] {
+    color: var(--act);
+  }
+  .frame[data-base='led'] [data-part='frame.status'] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='led'][data-active] [data-part='frame.status'] {
+    color: var(--fg);
+  }
+
+  /* Release: the LEDs go out, half of them first. */
+  @keyframes led-out {
+    0% {
+      background: var(--led-act), var(--led-halo-act);
+    }
+    45% {
+      background: var(--led-act-half);
+    }
+    100% {
+      background: transparent;
+    }
+  }
+
+  /* ---- keys (buttons, pads): a dotted outline around unlit LEDs ---- */
+  .frame[data-base='led'] [data-part='keycap.face'] {
+    --led-key: color-mix(in srgb, var(--led-ink) 70%, transparent);
+    border: 2px dotted var(--led-key);
+    border-radius: 3px;
+    background: var(--led-off);
+  }
+  .frame[data-base='led'] [data-part='keycap'][data-down] [data-part='keycap.face'],
+  .frame[data-base='led'][data-lit] [data-part='keycap.face'] {
+    --led-key: var(--act);
+  }
+
+  /* ---- button: every LED lights green while on ---- */
+  .frame[data-base='led'] [data-part='button.fill'][data-on] {
+    background: var(--led-act), var(--led-halo-act);
+  }
+  .frame[data-base='led'] [data-part='button.fill'][data-flash] {
+    animation: led-out 240ms steps(1, end) forwards;
+  }
+  .frame[data-base='led'] [data-part='button.armed'] {
+    background: var(--led-act-half);
+    animation: led-blink 0.6s steps(1) infinite;
+  }
+  @keyframes led-blink {
+    50% {
+      opacity: 0.2;
+    }
+  }
+  .frame[data-base='led'] [data-part='button.hold'] {
+    background: var(--led-act), var(--led-halo-act);
+    animation: led-hold var(--hold) steps(8, end) forwards;
+  }
+  @keyframes led-hold {
+    from {
+      clip-path: inset(100% 0 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  /* A dark halo, so the word reads over lit LEDs. */
+  .frame[data-base='led'] [data-part='button.hint'] {
+    color: var(--fg);
+    text-shadow:
+      0 0 2px var(--led-panel),
+      0 0 3px var(--led-panel),
+      0 0 5px var(--led-panel);
+  }
+
+  /* ---- switch: a dotted slot; the block is lit in the widget colour, green when on ---- */
+  .frame[data-base='led'] [data-part='switch.track'] {
+    border: 2px dotted color-mix(in srgb, var(--led-ink) 70%, transparent);
+    border-radius: 3px;
+    background: var(--led-off);
+  }
+  .frame[data-base='led'][data-on] [data-part='switch.track'] {
+    border-color: var(--act);
+  }
+  .frame[data-base='led'] [data-part='switch.tag'] {
+    background: var(--led-panel);
+  }
+  .frame[data-base='led'] [data-part='switch.legend'] {
+    transition: opacity 120ms steps(2);
+  }
+  .frame[data-base='led'] [data-part='switch.legend'][data-side='off'] {
+    color: var(--c-text);
+  }
+  .frame[data-base='led'] [data-part='switch.legend'][data-side='on'] {
+    color: var(--act);
+  }
+  .frame[data-base='led'] [data-part='switch.grip'] {
+    visibility: hidden;
+  }
+  .frame[data-base='led'] [data-part='switch.thumb'] {
+    background: var(--led-c), var(--led-panel);
+    transition: transform 120ms steps(4, end);
+  }
+  .frame[data-base='led'][data-on] [data-part='switch.thumb'] {
+    background: var(--led-act), var(--led-glow), var(--led-panel);
+  }
+  .frame[data-base='led'][data-dragging] [data-part='switch.thumb'] {
+    transition: none;
+  }
+
+  /* ---- fader: a strip of unlit LEDs lit green up to the value, and a bar of white LEDs for
+     the cap ---- */
+  .frame[data-base='led'] [data-part='slider.track'] {
+    background: var(--led-off);
+  }
+  .frame[data-base='led'] [data-part='slider.fill'] {
+    background: var(--led-act), var(--led-halo-act);
+    transition: clip-path 120ms steps(3, end);
+  }
+  .frame[data-base='led'][data-dragging] [data-part='slider.fill'] {
+    transition: none;
+  }
+  .frame[data-base='led'] [data-part='slider.grip'] {
+    visibility: hidden;
+  }
+  .frame[data-base='led'] [data-part='slider.cap'] {
+    background: var(--led-fg), var(--led-panel);
+    box-shadow: 0 0 0 1px var(--led-panel);
+    transition: transform 120ms steps(3, end);
+  }
+  .frame[data-base='led'][data-dragging] [data-part='slider.cap'] {
+    background: var(--led-act), var(--led-glow), var(--led-panel);
+    transition: none;
+  }
+
+  /* ---- graph: a matrix with brighter LEDs on the quarter lines, dotted crosshairs and a
+     3 × 3 cluster for the cursor ---- */
+  .frame[data-base='led'] [data-part='graph.plot'] {
+    --paper: var(--led-panel);
+    border: 2px dotted color-mix(in srgb, var(--led-ink) 70%, transparent);
+    background: var(--led-off), var(--paper);
+  }
+  .frame[data-base='led'] [data-part='graph.grid'] {
+    --q: color-mix(in srgb, var(--led-ink) 55%, transparent);
+    background:
+      radial-gradient(circle, var(--q) var(--led-r), transparent calc(var(--led-r) + 0.5px)) 0 0 /
+        var(--led-pitch) 25%,
+      radial-gradient(circle, var(--q) var(--led-r), transparent calc(var(--led-r) + 0.5px)) 0 0 /
+        25% var(--led-pitch);
+  }
+  .frame[data-base='led'] [data-part='graph.cross'] {
+    transition: transform 120ms steps(3, end);
+  }
+  .frame[data-base='led'] [data-part='graph.cross'][data-axis='x'] {
+    background: repeating-linear-gradient(to right, var(--act) 0 2px, transparent 2px 5px);
+  }
+  .frame[data-base='led'] [data-part='graph.cross'][data-axis='y'] {
+    background: repeating-linear-gradient(to bottom, var(--act) 0 2px, transparent 2px 5px);
+  }
+  .frame[data-base='led'] [data-part='graph.cursor'] {
+    background: var(--led-act), radial-gradient(circle, var(--led-halo-act), transparent 70%);
+    filter: drop-shadow(0 0 3px var(--act));
+    transition: transform 120ms steps(3, end);
+  }
+  .frame[data-base='led'][data-dragging] [data-part='graph.cross'],
+  .frame[data-base='led'][data-dragging] [data-part='graph.cursor'] {
+    transition: none;
+  }
+  .frame[data-base='led'] [data-part='graph.lock'] {
+    border: 2px dotted var(--fg);
+    opacity: 0;
+    transition:
+      inset 150ms steps(3, end),
+      opacity 80ms steps(1);
+  }
+  .frame[data-base='led'][data-dragging] {
+    --graph-lock-inset: -7px;
+  }
+  .frame[data-base='led'][data-dragging] [data-part='graph.lock'] {
+    opacity: 1;
+  }
+  .frame[data-base='led'] [data-part='graph.trail'] {
+    transition: opacity 500ms steps(5, end);
+  }
+  .frame[data-base='led'] [data-part='graph.trail'][data-fading] {
+    opacity: 0;
+  }
+  .frame[data-base='led'] [data-part='graph.dot'] {
+    border-radius: 50%;
+    background: var(--act);
+  }
+  .frame[data-base='led'] [data-part='graph.tick'] {
+    color: var(--c-text);
+    background: var(--paper);
+  }
+
+  /* ---- pads: dotted squares; held or latched, all their LEDs light green ---- */
+  .frame[data-base='led'] [data-part='pads.pad'][data-on] [data-part='keycap.face'] {
+    --led-key: var(--act);
+  }
+  .frame[data-base='led'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
+    background: var(--led-act), var(--led-halo-act);
+  }
+  .frame[data-base='led'] [data-part='pads.fill'][data-flash] {
+    animation: led-out 240ms steps(1, end) forwards;
+  }
+  .frame[data-base='led'] [data-part='pads.num'] {
+    color: var(--fg);
+    text-shadow:
+      0 0 2px var(--led-panel),
+      0 0 3px var(--led-panel),
+      0 0 5px var(--led-panel);
+  }
+
+  /* ---- list: rows on the dark panel, underlined in dots; the current one's dots lit ---- */
+  .frame[data-base='led'] [data-part='list.option'] {
+    border-bottom: 2px dotted color-mix(in srgb, var(--led-ink) 35%, transparent);
+    background: var(--led-panel);
+    color: var(--fg-dim);
+    transition: color 120ms steps(2);
+  }
+  .frame[data-base='led'][data-live]
+    [data-part='list.option']:not([data-current]):not([data-held]):hover {
+    color: var(--fg);
+  }
+  .frame[data-base='led'] [data-part='list.option'][data-current] {
+    border-bottom-color: var(--led-ink);
+    color: var(--fg);
+  }
+  .frame[data-base='led'] [data-part='list.option'][data-held] {
+    border-bottom-color: var(--act);
+    color: var(--fg);
+  }
+  .frame[data-base='led'] [data-part='list.option'][data-held] [data-part='list.fill'] {
+    background: color-mix(in srgb, var(--act) 30%, transparent);
+  }
+  .frame[data-base='led'] [data-part='list.fill'][data-flash] {
+    animation: led-list-out 240ms steps(1, end) forwards;
+  }
+  @keyframes led-list-out {
+    0% {
+      background: color-mix(in srgb, var(--act) 30%, transparent);
+    }
+    50% {
+      background: color-mix(in srgb, var(--act) 12%, transparent);
+    }
+    100% {
+      background: transparent;
+    }
+  }
+  .frame[data-base='led'] [data-part='list.mark'] {
+    color: var(--act);
+  }
+}

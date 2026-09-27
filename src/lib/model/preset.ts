@@ -5,7 +5,7 @@ import { z } from 'zod';
 import type { InputConfig, NetworkConfig, OutputConfig } from '../ipc/types';
 import { PALETTE_IDS, PALETTE_SIZE } from '../theme/palettes';
 
-export const CURRENT_SCHEMA_VERSION = 8;
+export const CURRENT_SCHEMA_VERSION = 9;
 
 /**
  * Every numeric range the schema enforces. The zod schemas below and the editor fields
@@ -17,13 +17,15 @@ export const LIMITS = {
   reconnectMs: { min: 100 },
   armTimeoutMs: { min: 300, max: 20000 },
   holdMs: { min: 200, max: 5000 },
-  detentPx: { min: 2, max: 200 },
   /** Rows and columns of a pads widget. */
   padsSide: { min: 1, max: 8 },
   listOptions: { min: 1, max: 64 },
   /** Columns and rows of a desk's grid. */
   gridSide: { min: 1, max: 48 },
   gridGap: { min: 0, max: 48 },
+  /** Custom palettes (GLOBAL SETTINGS › LOOK) and the length of their names. */
+  customPalettes: { min: 0, max: 32 },
+  paletteName: { min: 1, max: 12 },
 } as const;
 
 /**
@@ -35,7 +37,6 @@ export const EDITOR_LIMITS = {
   knownPort: { min: 1, max: LIMITS.port.max },
   reconnectMs: { ...LIMITS.reconnectMs, max: 600_000 },
   maxRateHz: { min: 0, max: 1000 },
-  deltaStep: { min: 0.000001 },
 } as const;
 
 type Range = { readonly min: number; readonly max?: number };
@@ -106,7 +107,7 @@ export type ConstArgType = z.infer<typeof ConstArgType>;
 
 /**
  * Which part of a widget's value an argument carries: a named channel of a record value
- * (graph: x y · knob: value delta · pads: number row col on · list: index label value), or an index into a list value. Single-value widgets ignore it.
+ * (graph: x y · pads: number row col on · list: index label value), or an index into a list value. Single-value widgets ignore it.
  */
 export const Channel = z.string().max(32);
 export type Channel = z.infer<typeof Channel>;
@@ -213,22 +214,6 @@ export const GraphPropsSchema = z.object({
 });
 export type GraphProps = z.infer<typeof GraphPropsSchema>;
 
-/** Rotary control. bounded: a pot with a range, like a fader · endless: an encoder. */
-export const KnobPropsSchema = z.object({
-  mode: z.enum(['bounded', 'endless']),
-  min: z.number(),
-  max: z.number(),
-  step: z.number().min(0),
-  curve: z.enum(['linear', 'exp', 'log']),
-  defaultValue: z.number(),
-  /** Endless: size of one detent's delta (sent as channel `delta`). */
-  deltaStep: z.number().positive(),
-  /** Endless: drag distance in px per detent. */
-  detentPx: inRange(z.number(), LIMITS.detentPx),
-  maxRateHz: z.number().min(0),
-});
-export type KnobProps = z.infer<typeof KnobPropsSchema>;
-
 /**
  * A grid of numbered pads, 1…rows×cols in reading order (top-left = 1). Every hit sends
  * {number, row, col, on}; row and col count from 1 at the top-left.
@@ -268,10 +253,6 @@ export const GraphWidgetSchema = WidgetBase.extend({
   type: z.literal('graph'),
   props: GraphPropsSchema,
 });
-export const KnobWidgetSchema = WidgetBase.extend({
-  type: z.literal('knob'),
-  props: KnobPropsSchema,
-});
 export const PadsWidgetSchema = WidgetBase.extend({
   type: z.literal('pads'),
   props: PadsPropsSchema,
@@ -284,7 +265,6 @@ export const WidgetSchema = z.discriminatedUnion('type', [
   ButtonWidgetSchema,
   SwitchWidgetSchema,
   SliderWidgetSchema,
-  KnobWidgetSchema,
   GraphWidgetSchema,
   PadsWidgetSchema,
   ListWidgetSchema,
@@ -293,7 +273,6 @@ export const WidgetSchema = z.discriminatedUnion('type', [
 export type ButtonWidget = z.infer<typeof ButtonWidgetSchema>;
 export type SwitchWidget = z.infer<typeof SwitchWidgetSchema>;
 export type SliderWidget = z.infer<typeof SliderWidgetSchema>;
-export type KnobWidget = z.infer<typeof KnobWidgetSchema>;
 export type GraphWidget = z.infer<typeof GraphWidgetSchema>;
 export type PadsWidget = z.infer<typeof PadsWidgetSchema>;
 export type ListWidget = z.infer<typeof ListWidgetSchema>;
@@ -310,13 +289,35 @@ export const GridSchema = z.object({
 });
 export type Grid = z.infer<typeof GridSchema>;
 
+export const HexColor = z.string().regex(/^#[0-9a-f]{6}$/);
+
+/** Id of a custom palette, e.g. `custom-k3x9q0a1b2` (never a built-in palette's id). */
+export const CustomPaletteId = z.string().regex(/^custom-[a-z0-9]{1,32}$/);
+
+/**
+ * A palette made in LOOK from one source colour (see theme/generate.ts). `colors` is the truth;
+ * `source` and `overridden` are kept so editing it later regenerates only the colours that
+ * weren't picked by hand.
+ */
+export const CustomPaletteSchema = z.object({
+  id: CustomPaletteId,
+  name: z.string().trim().min(LIMITS.paletteName.min).max(LIMITS.paletteName.max),
+  source: HexColor,
+  colors: z.array(HexColor).length(PALETTE_SIZE),
+  overridden: z.array(z.boolean()).length(PALETTE_SIZE),
+});
+export type CustomPalette = z.infer<typeof CustomPaletteSchema>;
+
 /** The app-wide look (a global setting since v4, no longer part of a preset). */
 export const ThemeSchema = z.object({
-  palette: z.enum(PALETTE_IDS),
+  /** A built-in palette, or one of `custom` (a missing one shows as RAINBOW). */
+  palette: z.union([z.enum(PALETTE_IDS), CustomPaletteId]),
   /** Palette index used for the UI accent and for widgets without their own colour. */
   accent: ColorIndex,
   /** Background: dark (default) or light. Older saved themes without it are dark. */
   mode: z.enum(['dark', 'light']).default('dark'),
+  /** The palettes made on this device. Older saved themes have none. */
+  custom: z.array(CustomPaletteSchema).max(LIMITS.customPalettes.max).default([]),
 });
 export type Theme = z.infer<typeof ThemeSchema>;
 

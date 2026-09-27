@@ -79,10 +79,8 @@ once *every* message of a value has settled (`Promise.allSettled`), so none can 
 
 Each widget's def picks its gate (`gate()` in `widgets/<type>/def.ts`; see `Gate` in
 `widgets/types.ts`), and `sender.ts` builds it:
-- **`throttle`: continuous widgets (fader, graph, bounded knob).** A `Throttle`: under a fast drag
-  only the newest value matters.
-- **`merge`: the endless knob.** A `Throttle` that *merges* instead of replacing (`mergeDeltas`:
-  +1 +1 +1 → +3), so deltas are never lost.
+- **`throttle`: continuous widgets (fader, graph).** A `Throttle`: under a fast drag only the
+  newest value matters.
 - **`queue`: discrete widgets (button, switch, pads, list).** An `OrderedQueue`. It is FIFO with
   one send in flight and never merges, so every press, pad hit and selection goes out, in order.
   Rust bounds how long a send can take (see *Safety guarantees*), so the queue always drains.
@@ -90,12 +88,11 @@ Each widget's def picks its gate (`gate()` in `widgets/<type>/def.ts`; see `Gate
 ## Widget values and channels
 
 A widget's live value is a `WidgetValue` (`lib/osc/value.ts`):
-- a `Scalar` (number, string or bool): Button, Switch, Fader, bounded Knob;
+- a `Scalar` (number, string or bool): Button, Switch, Fader;
 - a `ValueList` of scalars (unused by the built-in widgets, but carried end to end for future
   ones);
 - a `ValueRecord` of named channels:
   - Graph: `{x, y}`
-  - endless Knob: `{value, delta}`
   - Pads: `{number, row, col}` (1-based, reading order from the top-left) plus `on`
   - List: `{index, label, value}`
 
@@ -180,7 +177,7 @@ Input mapping lets received OSC drive widgets. A binding (`BindingSchema`, prese
 4. **Local touch wins:** a held widget (or pad), and 250 ms after release, ignores input.
 5. **Own echoes are dropped** (`expect.ts`): values this app just sent, within a tolerance.
 6. **Forward safety:** forward only when the widget's wire output changed (f32 fingerprint),
-   never for armed buttons or delta bindings, and a breaker trips at 40 forwards/s on
+   never for armed buttons, and a breaker trips at 40 forwards/s on
    queue-gated widgets (TRAFFIC error, re-arm in the Inspector).
 
 ## Sync (peer-to-peer shared desks)
@@ -246,8 +243,8 @@ transport that never reads app payloads (Rust) with desk semantics owned by the 
   `docs/backups/<desk>` (at most every 5 minutes, the last 10), restorable as a copy.
 - **Soft locks** (`locks.ts`): presence says which widget a device has open. Others see a
   badge; for them the Inspector is read-only and dragging is refused, until they *Take over*.
-- **Conflicts** (`conflicts.ts`): overlaps, widgets outside the grid or on the EDIT cell, and
-  messages to missing endpoints are shown in a banner, never fixed automatically.
+- **Conflicts** (`conflicts.ts`): overlaps, widgets outside the grid, and messages to
+  missing endpoints are shown in a banner, never fixed automatically.
 - **Live values** (`values.ts`): each widget's value (each pad's, for pads) is a register.
   - Sent at ≤ 30 Hz (presses at once), with a full refresh every 2 s. A new joiner gets
     them in the desk's state.
@@ -346,27 +343,107 @@ write-locked while sockets are bound, never during a DNS lookup (see *Safety gua
   darkened mixes of the hue, so bright colours stay readable on paper. Fills and borders keep
   the raw colour.
 - **Colour.** The UI is near-black/near-white. Only active things are coloured, from the global
-  palette (a device setting since preset schema v4, `state/appearance.svelte.ts`) (`lib/theme/palettes.ts`: fourteen palettes × ten colours: RAINBOW, NEON and PASTEL through every hue, the themed ones across one colour's neighbouring hues, most ending with two contrasting accents). `App.svelte` writes
+  palette (a device setting since preset schema v4, `state/appearance.svelte.ts`) (`lib/theme/palettes.ts`: fourteen palettes × ten colours: RAINBOW, NEON and PASTEL through every hue, the themed ones across one colour's neighbouring hues, most ending with two contrasting accents), or a custom palette made in LOOK. `App.svelte` writes
   `--p0…--p9`, their reverse-video inks `--pN-ink`, and `--accent` to `:root`. They are
   registered with `@property`, so a palette change crossfades. A widget's colour is a palette
   index; `null` (AUTO) takes its desk's colour (`--auto-c`, set by `GridCanvas`).
+- **Custom palettes.** Saved in the device's theme (`Theme.custom`, at most 32), each with its
+  ten `colors`, its `source` and which colours were `overridden` by hand. `colors` is the truth,
+  so a saved palette never changes if the generator does. `resolvePalette` finds a built-in or
+  custom one; a theme pointing at a deleted palette shows RAINBOW. `lib/theme/generate.ts` makes
+  the ten colours in OKLCH: a light-to-dark ramp with the source kept exactly as colour 5 (the
+  default accent; nearer 0 or 9 for a near-white or near-black source), lights drifting towards
+  yellow and darks towards violet by the shortest way round, which is the rule the built-in themed
+  palettes follow. Changing the source regenerates only the colours not picked by hand.
 - **Pixel motion.** Hard offset shadows that widgets sink into when pressed. `steps()` easing
   for state changes (tabs, toggles, lit segments). Dither patterns (inline conic gradients) for
   dissolves and grooves. Continuous things still follow the finger 1:1: fader caps, the graph
   cursor, the switch block while dragged.
-- **Widgets.**
-  - Button: reverse-video fill, then a dither dissolve on release.
-  - Switch: a sliding block on a dithered track.
-  - Fader: LED segments that snap to whole segments, plus an exact cap line.
-  - Graph: a dot-grid plot, a dashed crosshair, a pixel cursor with lock-on brackets, and a
-    trail of pixels that fade out.
-  - Knob: a curved fader. The fader's 5 px segments and 2 px gaps, its lit fill, its exact cap
-    line and its quarter ticks are bent round a 270° arc (a full ring when endless). They are
-    rasterised onto a 2 px cell grid (`widgets/knob/ring.ts`), so the edges step like pixel art.
-    Nothing sits in the middle. Endless mode shows a short stepped trail behind the cap.
-  - Pads: numbered keys that sink into their shadow.
-  - List: a reverse-video cursor that slides to the selection.
-  - Armed button: a blinking dither wash. Hold-to-fire: a fill that steps up the key.
+- **Widget skins.** A widget's look is a skin's, not the component's.
+  - **Parts and states.** `lib/skins/anatomy.ts` names every visual part (`switch.thumb`,
+    `slider.fill`, `keycap.face`…), the states it shows, and the geometry tokens a skin may
+    set (`--slider-cap-len`, `--frame-inset-t`…). Components mark parts with
+    `data-part="…"` and states with `data-<state>` (on the frame: `data-on`, `data-pressed`,
+    `data-dragging`, `data-vertical`…; on items: `data-current`, `data-held`, `data-flash`…).
+    They keep only structure: position, layout, and geometry read from the tokens with their
+    defaults as fallbacks. `lib/skins/anatomy.test.ts` fails on any colour, border, shadow,
+    font, opacity, transition or animation in a widget component, on a token set there, and
+    on a part name the anatomy doesn't know.
+  - **Cascade layers** (declared at the top of `app.css`), lowest first: `reset` (element
+    resets, so they never beat a skin), `skin.base` (`lib/skins/base.css`: the colour roles
+    `--c`, `--c-solid`, `--act`…, the dithers, reduced motion), `skin.builtin` and
+    `skin.user`. Unlayered CSS beats every layer, which is why components can't paint: a skin
+    could never override them.
+  - **Every rule is keyed on the frame**, e.g. `.frame[data-base='terminal']`, so widgets
+    with different skins can sit side by side.
+  - **The same in every skin** (`lib/skins/base.css`, and `anatomy.test.ts` holds the skins to
+    it): the typography (the app's one font and size; the weights and case of titles, values,
+    legends, pad numbers and options), where titles and values go (`WidgetFrame`, set into the
+    border by `lib/widgets/labels.ts`), the markers (the fader's scale, drawn by base.css and only
+    coloured by a skin, `--slider-tick-c`; the switch's ON/OFF; pad numbers; the list's `▸`),
+    and the desk's plain background (`--bg`: no skin rule reaches outside its own frames).
+    How to write a skin: [SKINS.md](SKINS.md).
+  - **Which skin.** `lib/skins/builtin.ts` lists the skins; `state/skins.svelte.ts` holds the
+    choice: one for every desk (LOOK) and optionally one per desk (DESK › PRESET), per device
+    like the palette (nothing in the preset, nothing synced). It is its own setting (`skins`),
+    not part of `theme`, and each field falls back on its own, so a bad entry never costs the
+    palettes or the rest of the choice. Deleting a preset drops its desk's choice; closing a
+    tab keeps it. `GridCanvas` provides its desk's skin to the widgets through a Svelte context
+    (`lib/skins/context.ts`); previews use `SkinScope`. Without a provider it's TERMINAL.
+  - **What CSS can't do**, a skin says in `params`: whether keys stand out (`bevel`) or are
+    `flat` (just the face: no walls, edge lines or measuring).
+  - **TERMINAL** (`lib/skins/terminal.css`), the built-in look: 1px lines in the widget colour,
+    hard offset shadows the frame sinks into when pressed, and `steps()` motion.
+    - Button: a key cap with dotted walls, whose face fills ACTIVE green while pressed and
+      dissolves through two dither steps on release. Armed: a blinking dither wash.
+      Hold-to-fire: a fill that steps up the key.
+    - Switch: a solid block sliding on a dithered groove.
+    - Fader: a dithered track filling with denser green dots, a solid cap with a grip line,
+      and a printed scale.
+    - Graph: a dot-grid plot with dashed crosshairs, a pixel cursor with lock-on brackets and
+      a trail of pixels that fade out.
+    - Pads: numbered key caps that sink when held.
+    - List: blocks in the widget colour, the current one bold with `▸`. An option lights
+      green only while pressed, then dissolves like the pads.
+  - **GLASS** (`lib/skins/glass.css`): clear, rounded panes tinted with the widget colour and
+    lit along the top edge, flat keys, pill switches with a white knob, round fader knobs, a
+    glowing cursor, and smooth motion.
+  - **SKETCH** (`lib/skins/sketch.css`): coloured pencil. Outlines are hand-drawn line art
+    (`src/assets/skins/sketch/*.svg`) used as masks (`-webkit-mask-box-image` nine-slice, or
+    `mask`), so they take the widget's colour and turn ACTIVE green when on. They sit on a
+    part's `::before`/`::after`, never as a mask on the part itself, which would clip its
+    contents. Fills are hatching, cross-hatching when pressed or on.
+  - **WOBBLY** (`lib/skins/wobbly.css`): clean, flat, lightly tinted widgets whose lines are even
+    waves: a nine-slice mask (`src/assets/skins/wobbly/box.svg`, generated from a sine) whose
+    edges hold whole periods, tiled with `round` so the waves stay even at any size; wavy
+    grooves, grid lines and crosshairs; scalloped knobs and cursor.
+  - **PIXELATED** (`lib/skins/pixelated.css`): an 8-bit game screen from one chunky pixel size
+    (`--px`): thick borders with notched corners, bevelled blocks lit from the top-left that sink
+    when pressed, big dithers, a segmented LED fader meter, stepped motion.
+  - **HARDWARE** (`lib/skins/hardware.css`): a mixing desk: anodised panels with a channel
+    strip along the top, rubber keys that glow from behind, a metal switch block in a sunk slot,
+    ridged metal fader caps with the channel colour on their line, an LED fill, a black XY screen.
+  - **NEON** (`lib/skins/neon.css`): 2px tubes in the widget colour with a bloom outside and in,
+    hollow dark fills, glowing beads for the switch and fader; everything lit burns green.
+  - **BLUEPRINT** (`lib/skins/blueprint.css`): a technical drawing: hairlines on squared paper,
+    registration crosses at the corners, section hatching (denser and green when lit),
+    dash-dot centre lines and crosshairs, a drafting target for the cursor.
+  - **BRUTALIST** (`lib/skins/brutalist.css`): 3px borders in the text colour, hard offset
+    shadows in the widget colour that a press drives into, flat blocks of colour with near-black
+    type, titles on solid blocks.
+  - **LED MATRIX** (`lib/skins/led.css`): every surface a grid of round LEDs, faintly lit at
+    rest; dotted borders; the fader lights LED by LED; the cursor is a 3 × 3 cluster.
+  - **CRT** (`lib/skins/crt.css`): rounded, vignetted screens with scanlines under the text, a
+    glowing edge, a rolling band for ARMED, and slow phosphor decay for releases and the trail.
+  - **ARCADE** (`lib/skins/arcade.css`): domed buttons and pads in black bezels with a chrome
+    ring (the key face gives up a margin for them), a chrome ball switch, ball-top fader levers
+    and a joystick-ball cursor.
+  - **Screenshots.** `npm run shots -- compare` renders every widget scenario of the dev
+    gallery (`src/dev/gallery/`, open `/src/dev/gallery/?skin=glass` on the dev server) in
+    every built-in skin, dark and light, and pixel-diffs it against `.shots/baseline`
+    (`npm run shots -- save baseline`). Gestures (press, drag, arm, hold) are real mouse input;
+    preview widgets aren't on a desk, so nothing is sent. Baselines are per machine and not
+    committed.
 
 ## Interaction model
 
@@ -393,7 +470,7 @@ missing.
    - `create` (default props and messages);
    - `initialValue`;
    - `channels` (the named parts of its value; `[]` for a single value);
-   - `gate` (`queue` for discrete events, `throttle` or `merge` for continuous values);
+   - `gate` (`queue` for discrete events, `throttle` for continuous values);
    - `input` (the value a received message sets; it must set, never flip);
    - `echoTolerance` (how close a received value must be to one just sent to be our echo);
    - `isValue` (whether a value from a sync peer is one this widget can hold);
@@ -403,7 +480,11 @@ missing.
    Add it to `DEFS` in `lib/widgets/defs.ts`.
 3. **Views.**
    - `lib/widgets/x/X.svelte` takes `{ widget, live }` and calls `emitValue`. Build it on
-     `WidgetFrame`, and use `interaction.ts` for double-tap, fine drag and key steps.
+     `WidgetFrame` (`type="x"`), and use `interaction.ts` for double-tap, fine drag and key
+     steps. Keep its CSS structural (see *Widget skins*): mark each visual part with
+     `data-part="x.<part>"` and each state with a `data-<state>` attribute, add the parts to
+     `PARTS` in `lib/skins/anatomy.ts`, and style them in every built-in skin
+     (`lib/skins/*.css`). Add a scenario per state to `src/dev/gallery/scenarios.ts`.
    - `lib/widgets/x/XInspector.svelte` takes `{ widget = $bindable(), onchange }`. It edits only
      the type's props, and the Inspector shows it as its INTERACTION section. The Inspector's
      other foldable sections (`lib/ui/Collapsible.svelte`) are the same for every type: VISUAL
@@ -424,6 +505,8 @@ missing.
      old channels were remapped: `index`/`note` → `number`, `velocity` → `on`, `m` → `i number`.
    - v7→v8 turned a binding's `enabled` into `send`, and added `receive`, `sourceIds` and
      `forward` (input mapping), all off.
+   - v8→v9 removed the knob widget. Each knob became a fader with the same place, range, curve,
+     rate and messages; an endless knob's `value`/`delta` channels became the fader's one value.
 
 ## Safety guarantees
 
@@ -470,7 +553,7 @@ missing.
     is the widget type `slider`, shown as **Fader**: it is persisted in presets, so renaming it
     would need a migration.
 - **Pure logic is separate and tested.** `grid/engine.ts`, `osc/*.ts` (except `sender.ts`),
-  `widgets/*/def.ts`, `widgets/interaction.ts`, `knob/ring.ts` and the sync core (`hlc`,
+  `widgets/*/def.ts`, `widgets/interaction.ts` and the sync core (`hlc`,
   `paths`, `deskdoc`, `reconcile`, `conflicts`, `locks`, `values`, `bus`) import no Svelte
   components. `SharedDesks` takes its collaborators as parameters, so tests run several
   devices against each other over an in-memory network (`sync/fake.ts`).

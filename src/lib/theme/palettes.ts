@@ -7,7 +7,9 @@
 // (indices 8 and 9, like UNDERWATER's pink and peach). GREYSCALE is pure grey. The picker lists
 // the themed ones around the colour wheel. Index 5, the default accent, is a clear mid colour in
 // each. Some follow the look of other software (a green-screen terminal, VS Code themes); hover
-// one in the picker to see which.
+// one in the picker to see which. Custom palettes, made in LOOK from one colour (generate.ts),
+// are listed after these; `resolvePalette` finds either kind.
+import type { CustomPalette, Theme } from '../model/preset';
 
 export const PALETTE_IDS = [
   'rainbow',
@@ -32,10 +34,14 @@ export const PALETTE_SIZE = 10;
 /** Palette index of the default accent, also the first desk's identity colour. */
 export const DEFAULT_ACCENT = 5;
 
-export const PALETTES: Record<
-  PaletteId,
-  { name: string; colors: readonly string[]; /** What it follows, if anything. */ note?: string }
-> = {
+export interface Palette {
+  name: string;
+  colors: readonly string[];
+  /** What it follows, if anything. */
+  note?: string;
+}
+
+export const PALETTES: Record<PaletteId, Palette> = {
   rainbow: {
     name: 'RAINBOW',
     colors: [
@@ -299,9 +305,35 @@ export function nearestIndex(hex: string, palette: PaletteId): number {
   return best;
 }
 
-/** CSS custom properties for a palette: --p0…--p9, their inks, and the accent. */
-export function paletteVars(palette: PaletteId, accent: number): Record<string, string> {
-  const colors = PALETTES[palette].colors;
+export const isBuiltIn = (id: string): id is PaletteId =>
+  (PALETTE_IDS as readonly string[]).includes(id);
+
+/** A theme's palette: built-in, or one of its custom ones. One that was deleted is RAINBOW. */
+export function resolvePalette(id: string, custom: readonly CustomPalette[]): Palette {
+  if (isBuiltIn(id)) return PALETTES[id];
+  return custom.find((p) => p.id === id) ?? PALETTES.rainbow;
+}
+
+/** The theme with `palette` added, or replacing the custom palette with the same id. */
+export function withCustomPalette(theme: Theme, palette: CustomPalette): Theme {
+  const i = theme.custom.findIndex((p) => p.id === palette.id);
+  const custom = [...theme.custom];
+  if (i === -1) custom.push(palette);
+  else custom[i] = palette;
+  return { ...theme, custom };
+}
+
+/** The theme without that custom palette; if it was in use, RAINBOW takes its place. */
+export function withoutCustomPalette(theme: Theme, id: string): Theme {
+  return {
+    ...theme,
+    palette: theme.palette === id ? 'rainbow' : theme.palette,
+    custom: theme.custom.filter((p) => p.id !== id),
+  };
+}
+
+/** CSS custom properties for a palette's colours: --p0…--p9, their inks, and the accent. */
+export function paletteVars(colors: readonly string[], accent: number): Record<string, string> {
   const vars: Record<string, string> = {};
   colors.forEach((c, i) => {
     vars[`--p${i}`] = c;

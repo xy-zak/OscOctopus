@@ -111,22 +111,6 @@ export function findFreeSpot(
   return null;
 }
 
-/** Id of the reserved cell in collision checks; never a real widget id. */
-export const EDIT_CELL_ID = '__edit';
-
-/**
- * The top-right cell always holds the desk's EDIT / LIVE switch, so no widget may use it. It
- * moves with the right edge when the column count changes.
- */
-export function editCell(grid: GridSize): Placed {
-  return { id: EDIT_CELL_ID, x: grid.cols - 1, y: 0, w: 1, h: 1 };
-}
-
-/** Widgets plus the reserved EDIT cell: what placement and collision checks run against. */
-export function withEditCell(items: readonly Placed[], grid: GridSize): Placed[] {
-  return [...items, editCell(grid)];
-}
-
 /** Items that no longer fit after the grid shrinks. */
 export function outOfBounds(items: readonly Placed[], grid: GridSize): string[] {
   return items.filter((it) => !inBounds(it, grid)).map((it) => it.id);

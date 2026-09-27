@@ -1,0 +1,354 @@
+/* PIXELATED: widgets as an 8-bit game UI, built from chunky pixels (--px): thick borders with
+   notched corners, bevelled blocks lit from the top-left, big dithers, a segmented LED meter,
+   and stepped motion. Every rule is keyed on .frame[data-base='pixelated']. Parts and states:
+   skins/anatomy.ts; what every skin keeps the same (font, label placement, markers, the desk
+   background): skins/base.css, docs/SKINS.md.
+
+   The notches are corner squares of the desk's colour painted over the border: the desk is
+   always plain --bg, so they read as cut away. */
+@layer skin.builtin {
+  /* ---- frame: a thick pixel border with notched corners, a bevel and a hard shadow ---- */
+  .frame[data-base='pixelated'] {
+    --px: 3px;
+    --px2: calc(2 * var(--px));
+    --pp-hi: rgb(255 255 255 / 0.28);
+    --pp-lo: rgb(0 0 0 / 0.4);
+    /* Bevels: raised (lit top-left) and sunk (the other way round). */
+    --pp-raised:
+      inset var(--px) var(--px) 0 0 var(--pp-hi),
+      inset calc(-1 * var(--px)) calc(-1 * var(--px)) 0 0 var(--pp-lo);
+    --pp-sunk:
+      inset var(--px) var(--px) 0 0 var(--pp-lo),
+      inset calc(-1 * var(--px)) calc(-1 * var(--px)) 0 0 var(--pp-hi);
+    /* Chunky dithers: every other pixel, and one pixel in four. */
+    --pp-d50-act: repeating-conic-gradient(var(--act) 0 25%, transparent 0 50%) 0 0 / var(--px2)
+      var(--px2);
+    --pp-d25-act: conic-gradient(at var(--px) var(--px), transparent 75%, var(--act) 0) 0 0 /
+      var(--px2) var(--px2);
+    --pp-d25-c: conic-gradient(at var(--px) var(--px), transparent 75%, var(--c) 0) 0 0 / var(--px2)
+      var(--px2);
+    --frame-inset-t: 12px;
+    --frame-inset-x: 9px;
+    --frame-inset-b: 9px;
+    --switch-inset: 3px;
+    --slider-cap-len: 15px;
+    --slider-track-w: 15px;
+    --slider-tick-c: var(--fg-dim);
+    --graph-cursor: 12px;
+    --graph-dot: 6px;
+    --pads-gap: 6px;
+    --list-gap: 3px;
+    --list-row-h: 22px;
+    border: var(--px) solid var(--c);
+    background: var(--w-bg);
+    box-shadow:
+      var(--pp-raised),
+      var(--px2) var(--px2) 0 0 var(--shadow-px);
+  }
+  .frame[data-base='pixelated']::before {
+    content: '';
+    position: absolute;
+    inset: calc(-1 * var(--px));
+    background:
+      linear-gradient(var(--bg), var(--bg)) top left / var(--px) var(--px) no-repeat,
+      linear-gradient(var(--bg), var(--bg)) top right / var(--px) var(--px) no-repeat,
+      linear-gradient(var(--bg), var(--bg)) bottom left / var(--px) var(--px) no-repeat,
+      linear-gradient(var(--bg), var(--bg)) bottom right / var(--px) var(--px) no-repeat;
+    pointer-events: none;
+  }
+  .frame[data-base='pixelated'][data-active] {
+    border-color: var(--act);
+  }
+  .frame[data-base='pixelated'][data-pressed] {
+    translate: var(--px) var(--px);
+    box-shadow:
+      var(--pp-sunk),
+      var(--px) var(--px) 0 0 var(--shadow-px);
+  }
+  [data-lifted] .frame[data-base='pixelated'] {
+    box-shadow:
+      var(--pp-raised),
+      calc(3 * var(--px)) calc(3 * var(--px)) 0 0 var(--shadow-px);
+  }
+  .frame[data-base='pixelated'] [data-part='frame.title'],
+  .frame[data-base='pixelated'] [data-part='frame.status'] {
+    background: var(--bg);
+  }
+  .frame[data-base='pixelated'] [data-part='frame.title'] {
+    color: var(--fg);
+  }
+  .frame[data-base='pixelated'][data-active] [data-part='frame.title'] {
+    color: var(--act);
+  }
+  .frame[data-base='pixelated'] [data-part='frame.status'] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='pixelated'][data-active] [data-part='frame.status'] {
+    color: var(--fg);
+  }
+
+  /* Release, for buttons, pads and list options: ACTIVE green breaks up into big pixels. */
+  @keyframes pixelated-dissolve {
+    0% {
+      background: var(--act);
+    }
+    33% {
+      background: var(--pp-d50-act);
+    }
+    66% {
+      background: var(--pp-d25-act);
+    }
+    100% {
+      background: transparent;
+    }
+  }
+
+  /* ---- keys (buttons, pads): bevelled blocks that sink when pressed ---- */
+  .frame[data-base='pixelated'] [data-part='keycap.face'] {
+    border: var(--px) solid color-mix(in srgb, var(--c) 70%, #000);
+    background: var(--c-solid);
+    box-shadow: var(--pp-raised);
+  }
+  .frame[data-base='pixelated'] [data-part='keycap'][data-down] [data-part='keycap.face'] {
+    translate: 0 var(--px);
+    box-shadow: var(--pp-sunk);
+  }
+
+  /* ---- button ---- */
+  .frame[data-base='pixelated'] [data-part='button.fill'][data-on] {
+    background: var(--act);
+    box-shadow: var(--pp-sunk);
+  }
+  .frame[data-base='pixelated'] [data-part='button.fill'][data-flash] {
+    animation: pixelated-dissolve 240ms steps(1, end) forwards;
+  }
+  .frame[data-base='pixelated'] [data-part='button.armed'] {
+    background: var(--pp-d50-act);
+    animation: pixelated-blink 0.5s steps(1) infinite;
+  }
+  @keyframes pixelated-blink {
+    50% {
+      opacity: 0.2;
+    }
+  }
+  .frame[data-base='pixelated'] [data-part='button.hold'] {
+    background: var(--act);
+    animation: pixelated-hold var(--hold) steps(8, end) forwards;
+  }
+  @keyframes pixelated-hold {
+    from {
+      clip-path: inset(100% 0 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  .frame[data-base='pixelated'] [data-part='button.hint'] {
+    color: var(--c-ink);
+  }
+
+  /* ---- switch: a bevelled block on a chunky dithered groove ---- */
+  .frame[data-base='pixelated'] [data-part='switch.track'] {
+    border: var(--px) solid var(--c);
+    background: var(--pp-d25-c);
+    box-shadow: var(--pp-sunk);
+  }
+  .frame[data-base='pixelated'][data-on] [data-part='switch.track'] {
+    border-color: var(--act);
+    background: var(--pp-d25-act);
+  }
+  .frame[data-base='pixelated'] [data-part='switch.tag'] {
+    background: var(--w-bg);
+  }
+  .frame[data-base='pixelated'] [data-part='switch.legend'][data-side='off'] {
+    color: var(--c-text);
+  }
+  .frame[data-base='pixelated'] [data-part='switch.legend'][data-side='on'] {
+    color: var(--act);
+  }
+  .frame[data-base='pixelated'] [data-part='switch.thumb'] {
+    background: var(--c-solid);
+    color: var(--c-ink);
+    box-shadow: var(--pp-raised);
+    transition: transform 120ms steps(3, end);
+  }
+  .frame[data-base='pixelated'][data-on] [data-part='switch.thumb'] {
+    background: var(--act);
+    color: var(--act-ink);
+  }
+  .frame[data-base='pixelated'][data-dragging] [data-part='switch.thumb'] {
+    transition: none;
+  }
+
+  /* ---- fader: a sunk groove, a segmented LED meter up to the value, a bevelled cap ---- */
+  .frame[data-base='pixelated'] [data-part='slider.track'] {
+    border: var(--px) solid var(--c);
+    background: var(--bg);
+    box-shadow: var(--pp-sunk);
+  }
+  .frame[data-base='pixelated'][data-dragging] [data-part='slider.track'] {
+    border-color: var(--act);
+  }
+  .frame[data-base='pixelated'] [data-part='slider.fill'] {
+    background: repeating-linear-gradient(
+      to right,
+      var(--act) 0 var(--px2),
+      transparent var(--px2) calc(3 * var(--px))
+    );
+    transition: clip-path 90ms steps(2, end);
+  }
+  .frame[data-base='pixelated'][data-vertical] [data-part='slider.fill'] {
+    background: repeating-linear-gradient(
+      to top,
+      var(--act) 0 var(--px2),
+      transparent var(--px2) calc(3 * var(--px))
+    );
+  }
+  .frame[data-base='pixelated'][data-dragging] [data-part='slider.fill'] {
+    transition: none;
+  }
+  .frame[data-base='pixelated'] [data-part='slider.cap'] {
+    background: var(--c-solid);
+    box-shadow:
+      var(--pp-raised),
+      var(--px) var(--px) 0 0 var(--shadow-px);
+    transition: transform 90ms steps(2, end);
+  }
+  .frame[data-base='pixelated'][data-dragging] [data-part='slider.cap'] {
+    background: var(--act);
+    transition: none;
+  }
+  .frame[data-base='pixelated'] [data-part='slider.grip'] {
+    width: var(--px);
+    height: 50%;
+    background: var(--c-ink);
+  }
+  .frame[data-base='pixelated'][data-vertical] [data-part='slider.grip'] {
+    width: 50%;
+    height: var(--px);
+  }
+  .frame[data-base='pixelated'][data-dragging] [data-part='slider.grip'] {
+    background: var(--act-ink);
+  }
+
+  /* ---- graph: a sunk screen with pixel dots every 10% and quarter lines ---- */
+  .frame[data-base='pixelated'] [data-part='graph.plot'] {
+    --paper: var(--bg-2);
+    border: var(--px) solid var(--c);
+    background: var(--paper);
+    box-shadow: var(--pp-sunk);
+  }
+  .frame[data-base='pixelated'] [data-part='graph.grid'] {
+    --g: color-mix(in srgb, var(--c) 40%, transparent);
+    background:
+      conic-gradient(at 2px 2px, transparent 75%, var(--c) 0) 0 0 / 10% 10%,
+      linear-gradient(to right, var(--g) 2px, transparent 2px) 0 0 / 25% 100%,
+      linear-gradient(to bottom, var(--g) 2px, transparent 2px) 0 0 / 100% 25%;
+  }
+  .frame[data-base='pixelated'] [data-part='graph.cross'][data-axis='x'] {
+    background: repeating-linear-gradient(
+      to right,
+      var(--act) 0 var(--px2),
+      transparent var(--px2) calc(4 * var(--px))
+    );
+  }
+  .frame[data-base='pixelated'] [data-part='graph.cross'][data-axis='y'] {
+    background: repeating-linear-gradient(
+      to bottom,
+      var(--act) 0 var(--px2),
+      transparent var(--px2) calc(4 * var(--px))
+    );
+  }
+  .frame[data-base='pixelated'] [data-part='graph.cross'],
+  .frame[data-base='pixelated'] [data-part='graph.cursor'] {
+    transition: transform 90ms steps(2, end);
+  }
+  .frame[data-base='pixelated'][data-dragging] [data-part='graph.cross'],
+  .frame[data-base='pixelated'][data-dragging] [data-part='graph.cursor'] {
+    transition: none;
+  }
+  .frame[data-base='pixelated'] [data-part='graph.cursor'] {
+    background: var(--act);
+    box-shadow:
+      var(--pp-raised),
+      0 0 0 var(--px) var(--bg);
+  }
+  .frame[data-base='pixelated'] [data-part='graph.lock'] {
+    --b: var(--fg);
+    opacity: 0;
+    background:
+      linear-gradient(var(--b), var(--b)) top left / var(--px2) var(--px) no-repeat,
+      linear-gradient(var(--b), var(--b)) top left / var(--px) var(--px2) no-repeat,
+      linear-gradient(var(--b), var(--b)) top right / var(--px2) var(--px) no-repeat,
+      linear-gradient(var(--b), var(--b)) top right / var(--px) var(--px2) no-repeat,
+      linear-gradient(var(--b), var(--b)) bottom left / var(--px2) var(--px) no-repeat,
+      linear-gradient(var(--b), var(--b)) bottom left / var(--px) var(--px2) no-repeat,
+      linear-gradient(var(--b), var(--b)) bottom right / var(--px2) var(--px) no-repeat,
+      linear-gradient(var(--b), var(--b)) bottom right / var(--px) var(--px2) no-repeat;
+    transition:
+      inset 120ms steps(3, end),
+      opacity 40ms steps(1);
+  }
+  .frame[data-base='pixelated'][data-dragging] {
+    --graph-lock-inset: -9px;
+  }
+  .frame[data-base='pixelated'][data-dragging] [data-part='graph.lock'] {
+    opacity: 1;
+  }
+  .frame[data-base='pixelated'] [data-part='graph.trail'] {
+    transition: opacity 400ms steps(4, end);
+  }
+  .frame[data-base='pixelated'] [data-part='graph.trail'][data-fading] {
+    opacity: 0;
+  }
+  .frame[data-base='pixelated'] [data-part='graph.dot'] {
+    background: var(--act);
+  }
+  .frame[data-base='pixelated'] [data-part='graph.tick'] {
+    color: var(--c-text);
+    background: var(--paper);
+  }
+
+  /* ---- pads: bevelled blocks; held or latched, ACTIVE green ---- */
+  .frame[data-base='pixelated'] [data-part='pads.pad'][data-on] [data-part='keycap.face'] {
+    border-color: color-mix(in srgb, var(--act) 60%, #000);
+  }
+  .frame[data-base='pixelated'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
+    background: var(--act);
+    box-shadow: var(--pp-sunk);
+  }
+  .frame[data-base='pixelated'] [data-part='pads.fill'][data-flash] {
+    animation: pixelated-dissolve 240ms steps(1, end) forwards;
+  }
+  .frame[data-base='pixelated'] [data-part='pads.num'] {
+    color: var(--c-ink);
+  }
+  .frame[data-base='pixelated'] [data-part='pads.pad'][data-on] [data-part='pads.num'] {
+    color: var(--act-ink);
+  }
+
+  /* ---- list: bevelled rows; the current one raised brighter, a pressed one green ---- */
+  .frame[data-base='pixelated'] [data-part='list.option'] {
+    background: color-mix(in srgb, var(--c) 30%, var(--w-bg));
+    color: color-mix(in srgb, var(--c-ink) 65%, var(--c-solid));
+    box-shadow: var(--pp-raised);
+  }
+  .frame[data-base='pixelated'][data-live]
+    [data-part='list.option']:not([data-current]):not([data-held]):hover {
+    color: var(--c-ink);
+  }
+  .frame[data-base='pixelated'] [data-part='list.option'][data-current] {
+    background: var(--c-solid);
+    color: var(--c-ink);
+  }
+  .frame[data-base='pixelated'] [data-part='list.option'][data-held] {
+    color: var(--act-ink);
+    box-shadow: var(--pp-sunk);
+  }
+  .frame[data-base='pixelated'] [data-part='list.option'][data-held] [data-part='list.fill'] {
+    background: var(--act);
+  }
+  .frame[data-base='pixelated'] [data-part='list.fill'][data-flash] {
+    animation: pixelated-dissolve 240ms steps(1, end) forwards;
+  }
+}

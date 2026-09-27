@@ -29,6 +29,7 @@ export type { PeerStats } from './bindings/PeerStats';
 export type { PeerStatus } from './bindings/PeerStatus';
 export type { PresetSummary } from './bindings/PresetSummary';
 export type { Profile } from './bindings/Profile';
+export type { SkinFile } from './bindings/SkinFile';
 export type { SyncBatch } from './bindings/SyncBatch';
 export type { SyncConfig } from './bindings/SyncConfig';
 export type { SyncEvent } from './bindings/SyncEvent';

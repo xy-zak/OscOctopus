@@ -13,7 +13,7 @@
   import { showDesk, ui, type InspectorSection } from '../lib/state/ui.svelte';
   import { lockedBy, takeOver } from '../lib/sync/app.svelte';
   import { syncSession } from '../lib/sync/session.svelte';
-  import { colorVars, PALETTES } from '../lib/theme/palettes';
+  import { colorVars } from '../lib/theme/palettes';
   import Collapsible from '../lib/ui/Collapsible.svelte';
   import Field from '../lib/ui/Field.svelte';
   import Icon from '../lib/ui/Icon.svelte';
@@ -94,7 +94,7 @@
           <input class="input" bind:value={widget.label} oninput={touch} />
         </Field>
         <Field
-          label="Colour · {PALETTES[appearance.theme.palette].name}"
+          label="Colour · {appearance.palette.name}"
           hint="AUTO follows the desk’s colour"
           wide
         >

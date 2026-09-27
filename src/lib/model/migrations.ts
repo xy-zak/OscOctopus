@@ -1,6 +1,5 @@
-import { collisions, editCell } from '../grid/engine';
 import { nearestIndex, PALETTE_SIZE } from '../theme/palettes';
-import { CURRENT_SCHEMA_VERSION, GridSchema, PresetSchema, type Preset } from './preset';
+import { CURRENT_SCHEMA_VERSION, PresetSchema, type Preset } from './preset';
 
 type Raw = Record<string, unknown>;
 
@@ -82,6 +81,15 @@ const steps: Record<number, (preset: Raw) => Raw> = {
       })),
     })),
   }),
+  // v9: the knob widget is gone. Each knob becomes a fader in the same place, with the same
+  // range, curve, rate and messages, so nothing it sent or received is lost.
+  8: (p) => ({
+    ...p,
+    schemaVersion: 9,
+    widgets: ((p.widgets as Raw[] | undefined) ?? []).map((w) =>
+      w.type === 'knob' ? knobToFader(w) : w,
+    ),
+  }),
 };
 
 const OLD_PAD_CHANNELS: Record<string, string> = {
@@ -107,6 +115,40 @@ function padsToNumbers(w: Raw): Raw {
     }),
   }));
   return { ...w, props: { rows, cols, mode }, bindings };
+}
+
+/**
+ * A knob as a fader. A fader has one value, so an endless knob's `value` and `delta` channels
+ * (in arguments and `{placeholders}`) both become that value: without this, a received
+ * `delta` would set nothing.
+ */
+function knobToFader(w: Raw): Raw {
+  const { min, max, step, curve, defaultValue, maxRateHz } = (w.props ?? {}) as Raw;
+  const bindings = ((w.bindings as Raw[] | undefined) ?? []).map((b) => ({
+    ...b,
+    address: String(b.address ?? '').replace(/\{delta\}/g, '{value}'),
+    args: ((b.args as Raw[] | undefined) ?? []).map((a) => {
+      if (a.kind !== 'value') return a;
+      const rest = { ...a };
+      delete rest.channel;
+      return rest;
+    }),
+  }));
+  return {
+    ...w,
+    type: 'slider',
+    props: {
+      orientation: Number(w.h) >= Number(w.w) ? 'vertical' : 'horizontal',
+      min,
+      max,
+      step,
+      curve,
+      touch: 'relative',
+      defaultValue,
+      maxRateHz,
+    },
+    bindings,
+  };
 }
 
 export class PresetError extends Error {}
@@ -148,21 +190,5 @@ export function migratePreset(input: unknown): Preset {
       .join('; ');
     throw new PresetError(`preset is invalid: ${issues}`);
   }
-  return freeEditCell(result.data);
-}
-
-/**
- * The top-right cell belongs to the desk's EDIT / LIVE switch. A desk laid out before that (or
- * edited by hand) with a widget there gets a new, empty top row instead: every widget moves
- * down one row together, so the layout itself stays exactly as it was.
- */
-export function freeEditCell(preset: Preset): Preset {
-  const { grid, widgets } = preset;
-  const maxRows = GridSchema.shape.rows.maxValue ?? grid.rows;
-  if (collisions(editCell(grid), widgets).length === 0 || grid.rows >= maxRows) return preset;
-  return {
-    ...preset,
-    grid: { ...grid, rows: grid.rows + 1 },
-    widgets: widgets.map((w) => ({ ...w, y: w.y + 1 })),
-  };
+  return result.data;
 }

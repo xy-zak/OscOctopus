@@ -1,0 +1,389 @@
+/* BLUEPRINT: widgets as a technical drawing. Hairline outlines in the widget colour on
+   drafting paper, registration crosses at the frame's corners, 45° section hatching for solid
+   parts (denser and ACTIVE green when pressed, on or filled), dash-dot centre lines, and a
+   drafting target for the XY cursor. Every rule is keyed on .frame[data-base='blueprint'].
+   Parts and states: skins/anatomy.ts; what every skin keeps the same (font, label placement,
+   markers, the desk background): skins/base.css, docs/SKINS.md. */
+@layer skin.builtin {
+  /* ---- frame: a hairline box on faintly squared paper, a cross on each corner ---- */
+  .frame[data-base='blueprint'] {
+    --bp-ink: var(--c);
+    --bp-line: color-mix(in srgb, var(--bp-ink) 80%, transparent);
+    --bp-faint: color-mix(in srgb, var(--bp-ink) 10%, transparent);
+    --bp-paper: color-mix(in srgb, var(--bp-ink) 5%, var(--w-bg));
+    --bp-mark: var(--bp-ink);
+    /* Section hatching: sparse for a part at rest, dense when it is lit. */
+    --bp-hatch: repeating-linear-gradient(
+      45deg,
+      color-mix(in srgb, var(--bp-ink) 45%, transparent) 0 1px,
+      transparent 1px 6px
+    );
+    --bp-hatch-act: repeating-linear-gradient(45deg, var(--act) 0 1px, transparent 1px 3px);
+    --bp-cross-act:
+      repeating-linear-gradient(45deg, var(--act) 0 1px, transparent 1px 4px),
+      repeating-linear-gradient(-45deg, var(--act) 0 1px, transparent 1px 4px);
+    /* A dash-dot centre line, drawn along x or y. */
+    --bp-dashdot-x: repeating-linear-gradient(
+      to right,
+      var(--bp-line) 0 8px,
+      transparent 8px 10px,
+      var(--bp-line) 10px 11px,
+      transparent 11px 13px
+    );
+    --bp-dashdot-y: repeating-linear-gradient(
+      to bottom,
+      var(--bp-line) 0 8px,
+      transparent 8px 10px,
+      var(--bp-line) 10px 11px,
+      transparent 11px 13px
+    );
+    --switch-inset: 3px;
+    --slider-cap-len: 12px;
+    --slider-track-w: 10px;
+    --slider-tick-c: var(--bp-line);
+    --graph-cursor: 16px;
+    --graph-dot: 3px;
+    --pads-gap: 5px;
+    --list-gap: 3px;
+    border: 1px solid var(--bp-line);
+    background:
+      linear-gradient(to right, var(--bp-faint) 1px, transparent 1px) 0 0 / 8px 8px,
+      linear-gradient(to bottom, var(--bp-faint) 1px, transparent 1px) 0 0 / 8px 8px,
+      var(--bp-paper);
+    transition:
+      border-color 120ms ease,
+      translate 90ms ease-out;
+  }
+  :root[data-mode='light'] .frame[data-base='blueprint'] {
+    --bp-ink: var(--c-text);
+  }
+  /* Registration crosses, centred on the corners and reaching past them. */
+  .frame[data-base='blueprint']::before {
+    --m: var(--bp-mark);
+    content: '';
+    position: absolute;
+    inset: -6px;
+    pointer-events: none;
+    background:
+      linear-gradient(var(--m), var(--m)) 0 5px / 11px 1px no-repeat,
+      linear-gradient(var(--m), var(--m)) 5px 0 / 1px 11px no-repeat,
+      linear-gradient(var(--m), var(--m)) 100% 5px / 11px 1px no-repeat,
+      linear-gradient(var(--m), var(--m)) calc(100% - 5px) 0 / 1px 11px no-repeat,
+      linear-gradient(var(--m), var(--m)) 0 calc(100% - 5px) / 11px 1px no-repeat,
+      linear-gradient(var(--m), var(--m)) 5px 100% / 1px 11px no-repeat,
+      linear-gradient(var(--m), var(--m)) 100% calc(100% - 5px) / 11px 1px no-repeat,
+      linear-gradient(var(--m), var(--m)) calc(100% - 5px) 100% / 1px 11px no-repeat;
+  }
+  .frame[data-base='blueprint'][data-active] {
+    --bp-line: var(--act);
+    --bp-mark: var(--act);
+  }
+  .frame[data-base='blueprint'][data-pressed] {
+    translate: 1px 1px;
+  }
+  /* Picked up: the paper throws a soft shadow, like a sheet lifted off the table. */
+  [data-lifted] .frame[data-base='blueprint'] {
+    box-shadow: 0 10px 24px rgb(0 0 0 / 0.45);
+  }
+  .frame[data-base='blueprint'] [data-part='frame.title'],
+  .frame[data-base='blueprint'] [data-part='frame.status'] {
+    background: var(--bg);
+    transition: color 120ms ease;
+  }
+  .frame[data-base='blueprint'] [data-part='frame.title'] {
+    color: var(--fg);
+  }
+  .frame[data-base='blueprint'][data-active] [data-part='frame.title'] {
+    color: var(--act);
+  }
+  .frame[data-base='blueprint'] [data-part='frame.status'] {
+    color: var(--c-text);
+  }
+  .frame[data-base='blueprint'][data-active] [data-part='frame.status'] {
+    color: var(--fg);
+  }
+
+  /* Release: the hatching thins out and is rubbed away. */
+  @keyframes blueprint-erase {
+    0% {
+      background: var(--bp-cross-act);
+    }
+    40% {
+      background: var(--bp-hatch-act);
+    }
+    75% {
+      background: repeating-linear-gradient(45deg, var(--act) 0 1px, transparent 1px 7px);
+    }
+    100% {
+      background: transparent;
+    }
+  }
+
+  /* ---- keys (buttons, pads): a hairline box with section hatching ---- */
+  .frame[data-base='blueprint'] [data-part='keycap.face'] {
+    border: 1px solid var(--bp-line);
+    background: var(--bp-hatch), var(--bp-paper);
+    transition: border-color 100ms ease;
+  }
+  .frame[data-base='blueprint'] [data-part='keycap'][data-down] [data-part='keycap.face'] {
+    border-color: var(--act);
+    box-shadow: inset 0 0 0 1px var(--act);
+  }
+  .frame[data-base='blueprint'][data-lit] [data-part='keycap.face'] {
+    border-color: var(--act);
+  }
+
+  /* ---- button ---- */
+  .frame[data-base='blueprint'] [data-part='button.fill'][data-on] {
+    background: var(--bp-cross-act);
+  }
+  .frame[data-base='blueprint'] [data-part='button.fill'][data-flash] {
+    animation: blueprint-erase 300ms steps(1, end) forwards;
+  }
+  .frame[data-base='blueprint'] [data-part='button.armed'] {
+    background: var(--bp-hatch-act);
+    animation: blueprint-blink 0.8s steps(1) infinite;
+  }
+  @keyframes blueprint-blink {
+    50% {
+      opacity: 0.3;
+    }
+  }
+  .frame[data-base='blueprint'] [data-part='button.hold'] {
+    background: var(--bp-cross-act);
+    box-shadow: inset 0 1px 0 var(--act);
+    animation: blueprint-hold var(--hold) linear forwards;
+  }
+  @keyframes blueprint-hold {
+    from {
+      clip-path: inset(100% 0 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  /* A halo of paper, so the word reads over the hatching. */
+  .frame[data-base='blueprint'] [data-part='button.hint'] {
+    color: var(--fg);
+    text-shadow:
+      0 0 2px var(--bp-paper),
+      0 0 2px var(--bp-paper),
+      0 0 4px var(--bp-paper);
+  }
+
+  /* ---- switch: a slot with its centre line drawn in, and a hatched block ---- */
+  .frame[data-base='blueprint'] [data-part='switch.track'] {
+    border: 1px solid var(--bp-line);
+    background: var(--bp-dashdot-x) 0 50% / 100% 1px no-repeat;
+    transition: border-color 120ms ease;
+  }
+  .frame[data-base='blueprint'][data-vertical] [data-part='switch.track'] {
+    background: var(--bp-dashdot-y) 50% 0 / 1px 100% no-repeat;
+  }
+  .frame[data-base='blueprint'][data-on] [data-part='switch.track'] {
+    border-color: var(--act);
+  }
+  .frame[data-base='blueprint'] [data-part='switch.tag'] {
+    background: var(--bp-paper);
+  }
+  .frame[data-base='blueprint'] [data-part='switch.legend'] {
+    transition: opacity 120ms ease;
+  }
+  .frame[data-base='blueprint'] [data-part='switch.legend'][data-side='off'] {
+    color: var(--c-text);
+  }
+  .frame[data-base='blueprint'] [data-part='switch.legend'][data-side='on'] {
+    color: var(--act);
+  }
+  .frame[data-base='blueprint'] [data-part='switch.grip'] {
+    visibility: hidden;
+  }
+  .frame[data-base='blueprint'] [data-part='switch.thumb'] {
+    border: 1px solid var(--bp-line);
+    background: var(--bp-hatch), var(--bp-paper);
+    transition: transform 160ms ease-out;
+  }
+  .frame[data-base='blueprint'][data-on] [data-part='switch.thumb'] {
+    border-color: var(--act);
+    background: var(--bp-cross-act), var(--bp-paper);
+  }
+  .frame[data-base='blueprint'][data-dragging] [data-part='switch.thumb'] {
+    transition: none;
+  }
+
+  /* ---- fader: a slot with a dash-dot centre line, hatched green up to the value, and a
+     cap drawn as a box with a centre mark ---- */
+  .frame[data-base='blueprint'] [data-part='slider.track'] {
+    border: 1px solid var(--bp-line);
+    background: var(--bp-dashdot-x) 0 50% / 100% 1px no-repeat;
+  }
+  .frame[data-base='blueprint'][data-vertical] [data-part='slider.track'] {
+    background: var(--bp-dashdot-y) 50% 0 / 1px 100% no-repeat;
+  }
+  .frame[data-base='blueprint'][data-dragging] [data-part='slider.track'] {
+    border-color: var(--act);
+  }
+  .frame[data-base='blueprint'] [data-part='slider.fill'] {
+    background: var(--bp-hatch-act), var(--bp-paper);
+    transition: clip-path 160ms ease-out;
+  }
+  .frame[data-base='blueprint'][data-dragging] [data-part='slider.fill'] {
+    transition: none;
+  }
+  .frame[data-base='blueprint'] [data-part='slider.cap'] {
+    border: 1px solid var(--bp-line);
+    background: var(--bp-paper);
+    transition: transform 160ms ease-out;
+  }
+  .frame[data-base='blueprint'][data-dragging] [data-part='slider.cap'] {
+    border-color: var(--act);
+    background: var(--bp-hatch-act), var(--bp-paper);
+    transition: none;
+  }
+  .frame[data-base='blueprint'] [data-part='slider.grip'] {
+    width: 1px;
+    height: 100%;
+    background: var(--bp-dashdot-y);
+  }
+  .frame[data-base='blueprint'][data-vertical] [data-part='slider.grip'] {
+    width: 100%;
+    height: 1px;
+    background: var(--bp-dashdot-x);
+  }
+
+  /* ---- graph: squared paper, dash-dot crosshairs and a drafting target ---- */
+  .frame[data-base='blueprint'] [data-part='graph.plot'] {
+    --paper: var(--bp-paper);
+    border: 1px solid var(--bp-line);
+    background: var(--paper);
+  }
+  /* Fine squares every 10%, heavier lines every quarter. */
+  .frame[data-base='blueprint'] [data-part='graph.grid'] {
+    --g: color-mix(in srgb, var(--bp-ink) 18%, transparent);
+    --q: color-mix(in srgb, var(--bp-ink) 45%, transparent);
+    background:
+      linear-gradient(to right, var(--q) 1px, transparent 1px) 0 0 / 25% 100%,
+      linear-gradient(to bottom, var(--q) 1px, transparent 1px) 0 0 / 100% 25%,
+      linear-gradient(to right, var(--g) 1px, transparent 1px) 0 0 / 10% 100%,
+      linear-gradient(to bottom, var(--g) 1px, transparent 1px) 0 0 / 100% 10%;
+  }
+  .frame[data-base='blueprint'] [data-part='graph.cross'] {
+    transition: transform 160ms ease-out;
+  }
+  .frame[data-base='blueprint'] [data-part='graph.cross'][data-axis='x'] {
+    background: repeating-linear-gradient(
+      to right,
+      var(--act) 0 8px,
+      transparent 8px 10px,
+      var(--act) 10px 11px,
+      transparent 11px 13px
+    );
+  }
+  .frame[data-base='blueprint'] [data-part='graph.cross'][data-axis='y'] {
+    background: repeating-linear-gradient(
+      to bottom,
+      var(--act) 0 8px,
+      transparent 8px 10px,
+      var(--act) 10px 11px,
+      transparent 11px 13px
+    );
+  }
+  /* A ring with a cross through it, the draughtsman's centre mark. */
+  .frame[data-base='blueprint'] [data-part='graph.cursor'] {
+    border: 1px solid var(--act);
+    border-radius: 50%;
+    background:
+      linear-gradient(var(--act), var(--act)) 50% 50% / 1px 60% no-repeat,
+      linear-gradient(var(--act), var(--act)) 50% 50% / 60% 1px no-repeat,
+      color-mix(in srgb, var(--bp-paper) 70%, transparent);
+    transition: transform 160ms ease-out;
+  }
+  .frame[data-base='blueprint'][data-dragging] [data-part='graph.cross'],
+  .frame[data-base='blueprint'][data-dragging] [data-part='graph.cursor'] {
+    transition: none;
+  }
+  .frame[data-base='blueprint'] [data-part='graph.lock'] {
+    border: 1px dashed var(--fg);
+    opacity: 0;
+    transition:
+      inset 180ms ease-out,
+      opacity 120ms ease;
+  }
+  .frame[data-base='blueprint'][data-dragging] {
+    --graph-lock-inset: -6px;
+  }
+  .frame[data-base='blueprint'][data-dragging] [data-part='graph.lock'] {
+    opacity: 1;
+  }
+  .frame[data-base='blueprint'] [data-part='graph.trail'] {
+    transition: opacity 500ms ease;
+  }
+  .frame[data-base='blueprint'] [data-part='graph.trail'][data-fading] {
+    opacity: 0;
+  }
+  .frame[data-base='blueprint'] [data-part='graph.dot'] {
+    border-radius: 50%;
+    background: var(--act);
+  }
+  .frame[data-base='blueprint'] [data-part='graph.tick'] {
+    color: var(--c-text);
+    background: var(--paper);
+  }
+
+  /* ---- pads: hatched boxes; held or latched, cross-hatched green ---- */
+  .frame[data-base='blueprint'] [data-part='pads.pad'][data-on] [data-part='keycap.face'] {
+    border-color: var(--act);
+  }
+  .frame[data-base='blueprint'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
+    background: var(--bp-hatch-act);
+  }
+  .frame[data-base='blueprint'] [data-part='pads.fill'][data-flash] {
+    animation: blueprint-erase 300ms steps(1, end) forwards;
+  }
+  .frame[data-base='blueprint'] [data-part='pads.num'] {
+    color: var(--fg);
+    text-shadow:
+      0 0 2px var(--bp-paper),
+      0 0 2px var(--bp-paper),
+      0 0 4px var(--bp-paper);
+  }
+
+  /* ---- list: rows ruled in hairline; the current one boxed and hatched ---- */
+  .frame[data-base='blueprint'] [data-part='list.option'] {
+    border: 1px solid color-mix(in srgb, var(--bp-ink) 30%, transparent);
+    color: var(--fg-dim);
+    transition:
+      border-color 120ms ease,
+      color 120ms ease;
+  }
+  .frame[data-base='blueprint'][data-live]
+    [data-part='list.option']:not([data-current]):not([data-held]):hover {
+    color: var(--fg);
+  }
+  .frame[data-base='blueprint'] [data-part='list.option'][data-current] {
+    border-color: var(--bp-line);
+    background: var(--bp-hatch);
+    color: var(--fg);
+  }
+  .frame[data-base='blueprint'] [data-part='list.option'][data-held] {
+    border-color: var(--act);
+    color: var(--fg);
+  }
+  .frame[data-base='blueprint'] [data-part='list.option'][data-held] [data-part='list.fill'] {
+    background: var(--bp-hatch-act);
+  }
+  .frame[data-base='blueprint'] [data-part='list.fill'][data-flash] {
+    animation: blueprint-erase 300ms steps(1, end) forwards;
+  }
+  .frame[data-base='blueprint'] [data-part='list.mark'] {
+    color: var(--act);
+  }
+  /* On a hatched row, a halo of paper behind the words. */
+  .frame[data-base='blueprint'] [data-part='list.text'][data-current],
+  .frame[data-base='blueprint'] [data-part='list.text'][data-held] {
+    text-shadow:
+      0 0 2px var(--bp-paper),
+      0 0 2px var(--bp-paper),
+      0 0 4px var(--bp-paper);
+  }
+}

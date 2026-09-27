@@ -9,13 +9,36 @@ Scripts.
 
 ### Added
 
+- **Widget skins** (GLOBAL SETTINGS › LOOK › _Widget skin_): how widgets are drawn, apart from
+  their colours. TERMINAL is the pixel look so far; GLASS draws clear, rounded panes tinted
+  with the widget colour, with pill switches and round knobs; SKETCH draws them in coloured
+  pencil, with hatching; WOBBLY keeps them clean and flat with every line an even wave; PIXELATED
+  draws an 8-bit game screen of chunky pixels, notched borders and bevelled blocks. Seven more:
+  HARDWARE (a mixing desk: metal panels, rubber keys, ridged fader caps), NEON (glowing tubes),
+  BLUEPRINT (a technical drawing), BRUTALIST (thick borders, hard offset shadows), LED MATRIX
+  (a grid of round LEDs), CRT (scanlines, vignette, phosphor glow) and ARCADE (domed buttons in
+  chrome rings, ball-top levers). The text, the markers (fader scale, ON/OFF, pad numbers) and
+  the desk's background are the same in every skin. A desk can have its own skin (DESK › PRESET).
+  Per device, like the palette: a shared desk shows in each person's own skin. How to make one:
+  docs/SKINS.md.
+- **User skins:** skin files (JSON, with their images embedded) build on a built-in skin and
+  change only what they list. _Import skin…_ in LOOK adds one (a copy, if its id is taken);
+  _Export…_ saves one as a file for another device; _Delete_ removes it, and desks wearing it go
+  back to TERMINAL. A file that isn't a valid skin is listed with the reason, so it can be
+  deleted.
+- **Custom palettes** (GLOBAL SETTINGS › LOOK › _New palette_). Pick a source colour and ten
+  colours are generated from it, lightest to darkest, with the source as colour 5 (the default
+  accent). Lighter colours drift towards yellow and darker ones towards violet, like the built-in
+  themed palettes, so neighbours stay distinct. Any colour can then be picked by hand, and it
+  stays when the source changes, until reset. Saved palettes are listed with the built-in ones
+  (_Edit_ to change or delete one) and kept per device, like the rest of LOOK.
 - **OSC input drives widgets.** A widget's message can now also _receive_: from one of the
   desk's inputs, or from replies arriving on an output (X32-style devices). An external OSC
-  sender or device can move faders, switches, knobs and graphs, light pads, pick list items,
+  sender or device can move faders, switches and graphs, light pads, pick list items,
   and flash buttons. Addresses can have `{placeholders}`, and incoming OSC wildcards are matched.
 - **Loop-safe by design.**
   - Received OSC only moves the widget. Re-sending it (_forward_) is opt-in per message, never
-    goes back to where it came from, and is never allowed on armed buttons or encoder deltas.
+    goes back to where it came from, and is never allowed on armed buttons.
   - Packets this app (or a sync peer) sent itself are recognised and never applied.
   - A widget you are touching ignores input, and our own echoes are dropped.
   - A breaker stops a widget that forwards more than 40 times a second.
@@ -40,6 +63,13 @@ Scripts.
 
 ### Changed
 
+- **Widget styles are skins:** each widget keeps only its layout; every colour, line, fill and
+  animation is in a skin stylesheet, and widget parts are named (see ARCHITECTURE › Widget
+  skins). The TERMINAL look is unchanged pixel for pixel.
+- **Reduced motion** now also stops the release flashes, the armed blink, the selection ants
+  and the lock-on brackets (before, it only shortened transitions).
+- **Lists with many options** no longer turn into a cramped horizontal strip: AUTO only goes
+  horizontal while each option still gets a few characters.
 - **Preset schema v8:** a message's `enabled` became `send`, next to the new `receive`,
   `sourceIds` and `forward` (migrated automatically, all off).
 - The master bar gained **SYNC** (connected devices) and **IN**. Desks gained **F5 SYNC**,
@@ -49,9 +79,11 @@ Scripts.
   ACTIVITY. Which ones are open is remembered per device.
 - **The app icon is the pixel octopus** from the UI, in the default accent on a transparent
   background, drawn pixel-exact at every size (`scripts/make_icons.py`).
-- **The EDIT / LIVE switch is a toggle switch in one cell:** it takes only the top-right cell
-  (it used to take two). Its bat lever flips left for LIVE (green) and right for EDIT. The lamp
-  is gone.
+- **EDIT is a switch in the desk's tool row:** `[■] EDIT`, at the right end next to INFO, in
+  the same shape as the master bar's switches. It no longer sits on the grid, so widgets can use
+  every cell, the top-right one included.
+- **The desk grid shows only in EDIT**, and more clearly: every cell is an outlined slot in the
+  desk's colour. LIVE has no background grid, just the widgets.
 - **One look for the master bar:** OUT and SYNC are status readouts (a lamp; click to open
   them), then the switches IN, PAUSE and LOCK, from least to most restrictive. All share one
   size and border. Each switch shows `[■]` when on and fills with a colour in its safety state,
@@ -99,12 +131,16 @@ Scripts.
 - **Internal names match the UI:** sections are `network`, `traffic` and so on; the view `global`
   is GLOBAL SETTINGS. `Debug.svelte` → `Traffic.svelte`, `Network.svelte` → `DeskNetwork.svelte`,
   and the IPC command `presets_dir` → `preset_dir`.
-- **The graph's arrow keys follow each axis's step**, like the fader and knob.
+- **The graph's arrow keys follow each axis's step**, like the fader.
 - **Stricter TypeScript** (`noUnusedLocals`, `noUnusedParameters`,
   `noFallthroughCasesInSwitch`) and `clippy -D warnings`.
 
 ### Removed
 
+- **The knob widget.** Saved desks are migrated (preset schema v9): each knob becomes a fader in
+  the same place, with the same range, curve, rate limit and messages. An endless knob's
+  `value` and `delta` both become the fader's value. Devices on schema v8 can't join a v9
+  sync session.
 - **The per-packet `osc://incoming` event.** It had no consumer and cost one IPC message per
   inbound packet. Future widget feedback reads `IN` events from the batched debug stream instead.
 

@@ -13,6 +13,7 @@ import type {
   NetworkConfig,
   OscMessage,
   PresetSummary,
+  SkinFile,
   SyncBatch,
   SyncConfig,
   SyncStatus,
@@ -109,6 +110,14 @@ export const debug = {
   clear: () => invoke<void>('debug_clear'),
   /** Writes Rust's own event history (not the UI's filtered view) to `path`. */
   exportTo: (path: string) => invoke<number>('debug_export', { path }),
+};
+
+/** User-made widget skins, one file each (the format is lib/skins/schema.ts). */
+export const skins = {
+  list: () => invoke<SkinFile[]>('skin_list'),
+  save: (skin: unknown) => invoke<void>('skin_save', { skin }),
+  remove: (id: string) => invoke<void>('skin_delete', { id }),
+  exportTo: (id: string, path: string) => invoke<void>('skin_export', { id, path }),
 };
 
 export const presets = {

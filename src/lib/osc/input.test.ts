@@ -177,18 +177,10 @@ describe('what a binding may do', () => {
     expect(receiveProblem({ ...s, props: { onValue: 1, offValue: 1 } }, b)).toMatch(/same/);
     expect(receiveProblem(s, { ...b, args: [{ kind: 'value', type: 'm' }] })).toMatch(/MIDI/);
   });
-  it('never forwards armed buttons or deltas', () => {
+  it('never forwards armed buttons', () => {
     const btn = newWidget('button', rect, []);
-    expect(forwardProblem(btn, btn.bindings[0]!)).toBeNull();
-    expect(
-      forwardProblem({ ...btn, props: { ...btn.props, arm: 'double' } }, btn.bindings[0]!),
-    ).toMatch(/armed/);
-    const knob = newWidget('knob', rect, []);
-    const delta: Binding = {
-      ...knob.bindings[0]!,
-      args: [{ kind: 'value', type: 'f', channel: 'delta' }],
-    };
-    expect(forwardProblem(knob, delta)).toMatch(/deltas/);
+    expect(forwardProblem(btn)).toBeNull();
+    expect(forwardProblem({ ...btn, props: { ...btn.props, arm: 'double' } })).toMatch(/armed/);
   });
   it('compares what goes on the wire, at float32 precision', () => {
     const s = newWidget('slider', rect, ['out']);
@@ -205,8 +197,6 @@ function sample(type: Widget['type']): { widget: Widget; value: WidgetValue } {
   switch (widget.type) {
     case 'slider':
       return { widget, value: 0.3 };
-    case 'knob':
-      return { widget, value: 0.7 };
     case 'graph':
       return { widget, value: { x: 0.2, y: 0.8 } };
     case 'button':
@@ -251,15 +241,5 @@ describe('send → receive is the identity, for every widget type', () => {
     expect(close(current, value), `${JSON.stringify(current)} ≈ ${JSON.stringify(value)}`).toBe(
       true,
     );
-  });
-
-  it('endless knob: an absolute value is set, with the real change as its delta', () => {
-    const knob = newWidget('knob', rect, ['out']);
-    knob.props.mode = 'endless';
-    expect(inputValue(knob, { value: 5 }, { value: 2, delta: 0 })).toEqual({ value: 5, delta: 3 });
-    expect(inputValue(knob, { delta: -1 }, { value: 2, delta: 0 })).toEqual({
-      value: 1,
-      delta: -1,
-    });
   });
 });

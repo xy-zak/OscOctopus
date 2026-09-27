@@ -11,7 +11,8 @@ sent and received.
 **Look:** a terminal UI in JetBrains Mono Nerd Font (bundled), near-black on near-white, coloured
 from one of fourteen palettes: RAINBOW, NEON and PASTEL (every hue), themed ones inspired by one
 colour that travel across its neighbours, most with two contrasting accents (SUNSET, UNDERWATER,
-PHOSPHOR, AMBER, CRIMSON, SAKURA, VIOLET, COBALT, FROST, SAND), and GREYSCALE.
+PHOSPHOR, AMBER, CRIMSON, SAKURA, VIOLET, COBALT, FROST, SAND), and GREYSCALE. Or make your own
+from one colour.
 **Targets:** Windows, Linux, Android (next: macOS, iOS).
 
 ## Quick start
@@ -59,7 +60,7 @@ The screen always shows **where you are**, by containment:
 [■ DESK A ●][■ ⇄ DESK B ●][+]  [GLOBAL SETTINGS] │ ● 3/3 OUT  ● 2 SYNC │ [■] IN ON  [ ] PAUSE  [ ] LOCK
 ╔ frame in the active tab's colour ════════════════════════════════════════════════════╗
 ║ F1 CONTROLS  F2 NETWORK  F3 TRAFFIC  F4 PRESET  F5 SYNC                                ║
-║                              the desk's top-right grid cell → [LIVE ●━◯ EDIT]        ║
+║ desk tool row: + ADD … (EDIT) or [ ] INFO (LIVE)                             [ ] EDIT ║
 ║ …                                                                                     ║
 ```
 
@@ -72,10 +73,10 @@ The screen always shows **where you are**, by containment:
 
 | Desk (per desk) | | GLOBAL SETTINGS (all desks / this device) | |
 | --- | --- | --- | --- |
-| **F1 CONTROLS** | The widgets. *Live* plays them (multi-touch; the side panel shows the exact messages of the last-touched widget). *EDIT* adds, moves, resizes and edits them. The EDIT / LIVE toggle switch in the top-right cell flips between the two: lever left = LIVE (green), right = EDIT. | **F1 NETWORK** | This device's interfaces and broadcast addresses, plus a read-only table of every desk's endpoints. Click one to edit it in that desk. |
+| **F1 CONTROLS** | The widgets. *Live* plays them (multi-touch; the side panel shows the exact messages of the last-touched widget). *EDIT* adds, moves, resizes and edits them. The `[■] EDIT` switch at the right end of the desk's tool row (or Alt+E) flips between the two; the grid shows only while editing. | **F1 NETWORK** | This device's interfaces and broadcast addresses, plus a read-only table of every desk's endpoints. Click one to edit it in that desk. |
 | **F2 NETWORK** | This desk's outputs and inputs (UDP unicast/broadcast/multicast, TCP SLIP or length-prefix), with live status and the OS's own errors. | **F2 TRAFFIC** | Every packet and lifecycle event of all desks, sequence-numbered, filterable. Hex/ASCII, decoded view, export. |
 | **F3 TRAFFIC** | The traffic of this desk only. | **F3 LIBRARY** | Every saved desk preset: open as desk, delete, new blank desk, import as new desk. |
-| **F4 PRESET** | This desk's name and colour, save, export, *import into this desk*, duplicate, remove. | **F4 LOOK** | Dark (default) or light background, plus the palette and accent. All are shared by every desk. |
+| **F4 PRESET** | This desk's name and colour, save, export, *import into this desk*, duplicate, remove. | **F4 LOOK** | Dark (default) or light background, plus the palette and accent. All are shared by every desk. *New palette* makes a custom one: pick a colour and ten are generated from it (light to dark), then pick any of them by hand. Custom palettes are listed with the others; *Edit* changes or deletes one. The **widget skin** says how widgets are drawn: TERMINAL (pixel lines), GLASS (tinted rounded panes), SKETCH (coloured pencil), WOBBLY (every line an even wave), PIXELATED (an 8-bit game screen), HARDWARE (a mixing desk), NEON (glowing tubes), BLUEPRINT (a technical drawing), BRUTALIST (thick borders, hard shadows), LED MATRIX (round LEDs), CRT (scanlines and glow) or ARCADE (domed buttons, ball-top levers). Text, markers and the background are the same in every skin. A desk can have its own (DESK › PRESET). |
 | **F5 SYNC** | Share this desk with the sync session, see who else is on it, choose the device that forwards input, restore an earlier version. | **F5 SYNC** | This device's name, colour and fingerprint; join or leave a session; listen port, LAN discovery and devices by address; the desks shared in the session (*Open*); every device with its state, round trip and clock. |
 
 - **The master bar sits outside every tab and frame** (top right), because it affects all desks.
@@ -100,8 +101,6 @@ The screen always shows **where you are**, by containment:
   arms it, a second press within the timeout fires) or *hold* (fires only after being held for
   N ms). Nothing is sent until it fires.
 - **Switch**, and **Fader** (range, step, curve, relative or absolute touch, rate limit).
-- **Knob**: a curved fader. *Bounded* (a 270° arc with a range) or *endless* (an encoder that sends
-  `{value, delta}` per detent; held-back deltas add up rather than being dropped).
 - **Graph**: an XY pad with channels `x` and `y`.
 - **Pads**: a grid of up to 8×8 numbered pads (1…N from the top-left; momentary / toggle /
   trigger), multi-touch. Each hit sends `{number, row, col, on}`, and no hit is ever merged
@@ -114,7 +113,7 @@ The screen always shows **where you are**, by containment:
   (receive from the desk's inputs, or replies on an output, and set the widget). **FORWARD**
   re-sends a received change to the outputs (a bridge), never back to where it came from.
 - **Channels:** each value argument can pick a channel of the widget's value (e.g. `x`,
-  `delta`, `number`). With `(default)` it takes `value` if the widget has one, otherwise its first
+  `row`, `number`). With `(default)` it takes `value` if the widget has one, otherwise its first
   channel.
 - **Placeholders:** the address can contain channels in braces, e.g. `/grid/{row}/{col}` or
   `/scene/{label}`.

@@ -113,7 +113,7 @@ export function planBatch(
     let result: Outcome['result'] = 'applied';
     const wantsForward =
       binding.forward &&
-      !forwardProblem(widget, binding) &&
+      !forwardProblem(widget) &&
       deps.mayForward(hit.deskId) &&
       wireFingerprint(widget, current) !== wireFingerprint(widget, next);
     if (wantsForward) {
