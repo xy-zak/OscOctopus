@@ -36,7 +36,7 @@ export const GLOBAL_SECTIONS: readonly Section<GlobalView>[] = [
   { id: 'network', label: 'NETWORK', hint: 'This device’s interfaces, and every desk’s endpoints' },
   { id: 'traffic', label: 'TRAFFIC', hint: 'Traffic of all desks together' },
   { id: 'library', label: 'LIBRARY', hint: 'All saved desk presets on this device' },
-  { id: 'look', label: 'LOOK', hint: 'Background, palette and accent, shared by every desk' },
+  { id: 'look', label: 'LOOK', hint: 'Background, palette and widget skin, for every desk' },
   { id: 'sync', label: 'SYNC', hint: 'Share desks live with other OscOctopus devices' },
 ];
 
@@ -66,9 +66,9 @@ export const ui = $state({
   locked: false,
   /**
    * PRESENTING: the active desk's widgets fill the screen, live. Only the desk tabs and the
-   * master switches (OSC-IN, OSC-OUT, LOCK, PRESENT to stop) stay; the sections, the desk's tool row, the side
-   * panel and the banners are hidden, and nothing can navigate away from the widgets (see
-   * `setPresenting`).
+   * master switches (OSC-IN, OSC-OUT, LOCK, PRESENT to stop) stay; the sections, the desk's
+   * tool row, the side panel and the banners are hidden, and nothing can navigate away from
+   * the widgets (see `setPresenting`).
    */
   presenting: false,
   /** Bumped when something locked is touched, so the LOCK button can hint how to unlock. */
@@ -126,6 +126,15 @@ export function confirmAction(opts: {
       },
     };
   });
+}
+
+/** Locks or unlocks. Locking ends any edit in progress: edit mode and an open confirmation. */
+export function setLocked(locked: boolean) {
+  ui.locked = locked;
+  if (!locked) return;
+  ui.mode = 'live';
+  ui.selectedId = null;
+  ui.confirm?.resolve(false);
 }
 
 /** Live ⇄ edit on the desk surface. Refused while LOCKED or PRESENTING. */

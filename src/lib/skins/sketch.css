@@ -19,7 +19,7 @@
     );
     --sk-hatch-act: repeating-linear-gradient(-45deg, var(--act) 0 1.5px, transparent 1.5px 5px);
     --sk-cross-act:
-      repeating-linear-gradient(-45deg, var(--act) 0 1.5px, transparent 1.5px 5px),
+      var(--sk-hatch-act),
       repeating-linear-gradient(45deg, var(--act) 0 1.5px, transparent 1.5px 5px);
     /* A halo of the desk's colour around text on hatching, so it stays readable. */
     --sk-halo: 0 0 2px var(--sk-paper), 0 0 2px var(--sk-paper), 0 0 4px var(--sk-paper);
@@ -42,7 +42,7 @@
   .frame[data-base='sketch'][data-active] {
     --sk-line: var(--act);
   }
-  /* Pressed: nudged on the page. */
+  /* Pressed (a switch while held): nudged on the page. */
   .frame[data-base='sketch'][data-pressed] {
     translate: 1px 1px;
     rotate: -0.5deg;
@@ -72,11 +72,34 @@
     color: var(--fg-dim);
   }
 
-  /* Release, for buttons, pads and list options: the green hatching fades off the page. */
+  /* Pressed buttons, held or latched pads and held list options are hatched green
+     (--sk-flash). On release the hatching fades off the page; it is drawn by the keyframes, so
+     without motion a released one is simply clear. */
+  .frame[data-base='sketch'] [data-part='button.fill'],
+  .frame[data-base='sketch'] [data-part='pads.fill'] {
+    --sk-flash: var(--sk-cross-act);
+  }
+  .frame[data-base='sketch'] [data-part='list.fill'] {
+    --sk-flash: var(--sk-hatch-act);
+  }
+  .frame[data-base='sketch'] [data-part='button.fill'][data-on],
+  .frame[data-base='sketch'] [data-part='pads.pad'][data-on] [data-part='pads.fill'],
+  .frame[data-base='sketch'] [data-part='list.option'][data-held] [data-part='list.fill'] {
+    background: var(--sk-flash);
+  }
   @keyframes sketch-fade {
+    from {
+      background: var(--sk-flash);
+    }
     to {
+      background: var(--sk-flash);
       opacity: 0;
     }
+  }
+  .frame[data-base='sketch'] [data-part='button.fill'][data-flash],
+  .frame[data-base='sketch'] [data-part='pads.fill'][data-flash],
+  .frame[data-base='sketch'] [data-part='list.fill'][data-flash] {
+    animation: sketch-fade 280ms ease-out forwards;
   }
 
   /* ---- keys (buttons, pads): pencil boxes, hatched in the widget colour ---- */
@@ -84,7 +107,9 @@
     background: var(--sk-hatch);
     transition: scale 120ms ease;
   }
-  .frame[data-base='sketch'] [data-part='keycap.face']::after {
+  /* Its pencil box, and the graph's. */
+  .frame[data-base='sketch'] [data-part='keycap.face']::after,
+  .frame[data-base='sketch'] [data-part='graph.plot']::after {
     content: '';
     position: absolute;
     inset: 0;
@@ -97,13 +122,6 @@
   }
 
   /* ---- button ---- */
-  .frame[data-base='sketch'] [data-part='button.fill'][data-on],
-  .frame[data-base='sketch'] [data-part='button.fill'][data-flash] {
-    background: var(--sk-cross-act);
-  }
-  .frame[data-base='sketch'] [data-part='button.fill'][data-flash] {
-    animation: sketch-fade 280ms ease-out forwards;
-  }
   .frame[data-base='sketch'] [data-part='button.armed'] {
     background: var(--sk-hatch-act);
     animation: sketch-blink 0.8s steps(1) infinite;
@@ -195,6 +213,7 @@
     transition: transform 160ms ease-out;
   }
   .frame[data-base='sketch'][data-dragging] [data-part='slider.cap'] {
+    background: var(--sk-cross-act);
     transition: none;
   }
   .frame[data-base='sketch'] [data-part='slider.cap']::before {
@@ -205,21 +224,10 @@
     -webkit-mask-box-image: url('../../assets/skins/sketch/rect.svg') 20 / 6px round;
     pointer-events: none;
   }
-  .frame[data-base='sketch'][data-dragging] [data-part='slider.cap'] {
-    background: var(--sk-cross-act);
-  }
 
   /* ---- graph: a pencil box of paper with faint quarter lines and a circled cursor ---- */
   .frame[data-base='sketch'] [data-part='graph.plot'] {
     --paper: var(--sk-paper);
-  }
-  .frame[data-base='sketch'] [data-part='graph.plot']::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--sk-line);
-    -webkit-mask-box-image: url('../../assets/skins/sketch/rect.svg') 20 / 14px round;
-    pointer-events: none;
   }
   .frame[data-base='sketch'] [data-part='graph.grid'] {
     --g: color-mix(in srgb, var(--c) 30%, transparent);
@@ -296,13 +304,6 @@
   .frame[data-base='sketch'] [data-part='pads.pad'][data-on] {
     --sk-line: var(--act);
   }
-  .frame[data-base='sketch'] [data-part='pads.pad'][data-on] [data-part='pads.fill'],
-  .frame[data-base='sketch'] [data-part='pads.fill'][data-flash] {
-    background: var(--sk-cross-act);
-  }
-  .frame[data-base='sketch'] [data-part='pads.fill'][data-flash] {
-    animation: sketch-fade 280ms ease-out forwards;
-  }
   .frame[data-base='sketch'] [data-part='pads.num'] {
     color: var(--fg);
     text-shadow: var(--sk-halo);
@@ -330,13 +331,6 @@
   }
   .frame[data-base='sketch'] [data-part='list.text'] {
     text-shadow: var(--sk-halo);
-  }
-  .frame[data-base='sketch'] [data-part='list.option'][data-held] [data-part='list.fill'],
-  .frame[data-base='sketch'] [data-part='list.fill'][data-flash] {
-    background: var(--sk-hatch-act);
-  }
-  .frame[data-base='sketch'] [data-part='list.fill'][data-flash] {
-    animation: sketch-fade 280ms ease-out forwards;
   }
   .frame[data-base='sketch'] [data-part='list.mark'] {
     color: var(--sk-line);

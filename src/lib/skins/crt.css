@@ -47,7 +47,7 @@
   .frame[data-base='crt'][data-active] {
     --crt-line: var(--act);
   }
-  /* Pressed: the picture brightens. */
+  /* Pressed (a switch while held): the picture brightens. */
   .frame[data-base='crt'][data-pressed] {
     box-shadow:
       0 0 16px var(--crt-bleed),
@@ -79,7 +79,13 @@
     color: var(--fg);
   }
 
-  /* Release: the phosphor decays, slowly. */
+  /* Pressed buttons, held or latched pads and held list options light ACTIVE green, under the
+     scanlines, so the lines show through. Release: the phosphor decays, slowly. */
+  .frame[data-base='crt'] [data-part='button.fill'][data-on],
+  .frame[data-base='crt'] [data-part='pads.pad'][data-on] [data-part='pads.fill'],
+  .frame[data-base='crt'] [data-part='list.option'][data-held] [data-part='list.fill'] {
+    background: var(--crt-scan), var(--act);
+  }
   @keyframes crt-decay {
     from {
       background: var(--act);
@@ -90,6 +96,11 @@
     to {
       background: transparent;
     }
+  }
+  .frame[data-base='crt'] [data-part='button.fill'][data-flash],
+  .frame[data-base='crt'] [data-part='pads.fill'][data-flash],
+  .frame[data-base='crt'] [data-part='list.fill'][data-flash] {
+    animation: crt-decay 650ms ease-out forwards;
   }
 
   /* ---- keys (buttons, pads): small rounded screens of the widget colour ---- */
@@ -118,13 +129,7 @@
       inset 0 0 8px rgb(0 0 0 / 0.45);
   }
 
-  /* ---- button: the lights sit under the scanlines, so the lines show through them ---- */
-  .frame[data-base='crt'] [data-part='button.fill'][data-on] {
-    background: var(--crt-scan), var(--act);
-  }
-  .frame[data-base='crt'] [data-part='button.fill'][data-flash] {
-    animation: crt-decay 650ms ease-out forwards;
-  }
+  /* ---- button ---- */
   /* ARMED: a bright band rolling down the screen. */
   .frame[data-base='crt'] [data-part='button.armed'] {
     background: linear-gradient(
@@ -172,9 +177,6 @@
     box-shadow:
       inset 0 0 8px rgb(0 0 0 / 0.5),
       inset 0 0 0 1px var(--crt-bleed-act);
-  }
-  .frame[data-base='crt'] [data-part='switch.tag'] {
-    background: none;
   }
   .frame[data-base='crt'] [data-part='switch.legend'] {
     transition: opacity 200ms ease;
@@ -312,12 +314,6 @@
       0 0 10px var(--crt-bleed-act),
       inset 0 0 8px rgb(0 0 0 / 0.45);
   }
-  .frame[data-base='crt'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
-    background: var(--crt-scan), var(--act);
-  }
-  .frame[data-base='crt'] [data-part='pads.fill'][data-flash] {
-    animation: crt-decay 650ms ease-out forwards;
-  }
   .frame[data-base='crt'] [data-part='pads.num'] {
     color: var(--c-ink);
   }
@@ -343,12 +339,6 @@
   }
   .frame[data-base='crt'] [data-part='list.option'][data-held] {
     color: var(--act-ink);
-  }
-  .frame[data-base='crt'] [data-part='list.option'][data-held] [data-part='list.fill'] {
-    background: var(--crt-scan), var(--act);
-  }
-  .frame[data-base='crt'] [data-part='list.fill'][data-flash] {
-    animation: crt-decay 650ms ease-out forwards;
   }
   .frame[data-base='crt'] [data-part='list.text'] {
     text-shadow: 0 0 5px color-mix(in srgb, currentColor 45%, transparent);

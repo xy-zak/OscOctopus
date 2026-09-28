@@ -76,6 +76,17 @@
       background: transparent;
     }
   }
+  /* Pressed buttons, held or latched pads and held list options fill ACTIVE green. */
+  .frame[data-base='wobbly'] [data-part='button.fill'][data-on],
+  .frame[data-base='wobbly'] [data-part='pads.pad'][data-on] [data-part='pads.fill'],
+  .frame[data-base='wobbly'] [data-part='list.option'][data-held] [data-part='list.fill'] {
+    background: var(--act);
+  }
+  .frame[data-base='wobbly'] [data-part='button.fill'][data-flash],
+  .frame[data-base='wobbly'] [data-part='pads.fill'][data-flash],
+  .frame[data-base='wobbly'] [data-part='list.fill'][data-flash] {
+    animation: wobbly-fade 320ms ease-out forwards;
+  }
 
   /* ---- keys (buttons, pads): flat tiles in a wavy outline ---- */
   .frame[data-base='wobbly'] [data-part='keycap.face'] {
@@ -83,7 +94,11 @@
     background: var(--wb-solid);
     transition: scale 180ms var(--wb-ease);
   }
-  .frame[data-base='wobbly'] [data-part='keycap.face']::after {
+  /* The wavy outline of keys, the switch's box and tile, and the graph's box. */
+  .frame[data-base='wobbly'] [data-part='keycap.face']::after,
+  .frame[data-base='wobbly'] [data-part='switch.track']::before,
+  .frame[data-base='wobbly'] [data-part='switch.thumb']::before,
+  .frame[data-base='wobbly'] [data-part='graph.plot']::after {
     content: '';
     position: absolute;
     inset: 0;
@@ -96,12 +111,6 @@
   }
 
   /* ---- button ---- */
-  .frame[data-base='wobbly'] [data-part='button.fill'][data-on] {
-    background: var(--act);
-  }
-  .frame[data-base='wobbly'] [data-part='button.fill'][data-flash] {
-    animation: wobbly-fade 320ms ease-out forwards;
-  }
   .frame[data-base='wobbly'] [data-part='button.armed'] {
     background: color-mix(in srgb, var(--act) 35%, transparent);
     animation: wobbly-pulse 1s ease-in-out infinite;
@@ -135,15 +144,6 @@
   .frame[data-base='wobbly'][data-on] [data-part='switch.track'] {
     background: color-mix(in srgb, var(--act) 30%, transparent);
   }
-  .frame[data-base='wobbly'] [data-part='switch.track']::before,
-  .frame[data-base='wobbly'] [data-part='switch.thumb']::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--wb-line);
-    -webkit-mask-box-image: url('../../assets/skins/wobbly/box.svg') 12 / 10px round;
-    pointer-events: none;
-  }
   .frame[data-base='wobbly'] [data-part='switch.legend'] {
     transition: opacity 200ms ease;
   }
@@ -176,14 +176,16 @@
     position: absolute;
     inset: 0;
     background: color-mix(in srgb, var(--c) 70%, transparent);
-    -webkit-mask: url('../../assets/skins/wobbly/wave-h.svg') 0 50% / 24px 12px repeat-x;
-    mask: url('../../assets/skins/wobbly/wave-h.svg') 0 50% / 24px 12px repeat-x;
   }
   .frame[data-base='wobbly'] [data-part='slider.fill'] {
     background: var(--act);
+    transition: clip-path 220ms ease;
+  }
+  /* Groove and fill are the same wave. */
+  .frame[data-base='wobbly'] [data-part='slider.track']::before,
+  .frame[data-base='wobbly'] [data-part='slider.fill'] {
     -webkit-mask: url('../../assets/skins/wobbly/wave-h.svg') 0 50% / 24px 12px repeat-x;
     mask: url('../../assets/skins/wobbly/wave-h.svg') 0 50% / 24px 12px repeat-x;
-    transition: clip-path 220ms ease;
   }
   .frame[data-base='wobbly'][data-vertical] [data-part='slider.track']::before,
   .frame[data-base='wobbly'][data-vertical] [data-part='slider.fill'] {
@@ -225,14 +227,6 @@
     --paper: var(--bg);
     border-radius: 8px;
     background: var(--paper);
-  }
-  .frame[data-base='wobbly'] [data-part='graph.plot']::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--wb-line);
-    -webkit-mask-box-image: url('../../assets/skins/wobbly/box.svg') 12 / 10px round;
-    pointer-events: none;
   }
   /* Quarter lines at 25/50/75%, as waves. */
   .frame[data-base='wobbly'] [data-part='graph.grid'] {
@@ -323,12 +317,6 @@
   .frame[data-base='wobbly'] [data-part='pads.pad'][data-on] {
     --wb-line: var(--act);
   }
-  .frame[data-base='wobbly'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
-    background: var(--act);
-  }
-  .frame[data-base='wobbly'] [data-part='pads.fill'][data-flash] {
-    animation: wobbly-fade 320ms ease-out forwards;
-  }
   .frame[data-base='wobbly'] [data-part='pads.num'] {
     color: var(--fg);
   }
@@ -362,12 +350,6 @@
   }
   .frame[data-base='wobbly'] [data-part='list.option'][data-held] {
     color: var(--act-ink);
-  }
-  .frame[data-base='wobbly'] [data-part='list.option'][data-held] [data-part='list.fill'] {
-    background: var(--act);
-  }
-  .frame[data-base='wobbly'] [data-part='list.fill'][data-flash] {
-    animation: wobbly-fade 320ms ease-out forwards;
   }
   .frame[data-base='wobbly'] [data-part='list.mark'] {
     color: var(--wb-line);

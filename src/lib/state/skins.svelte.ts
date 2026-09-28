@@ -12,8 +12,7 @@ import { skins as skinsIpc } from '../ipc/commands';
 import { uid } from '../model/parts';
 import { getSetting } from '../platform/settings';
 import {
-  BUILTIN_SKIN_IDS,
-  BUILTIN_SKINS,
+  BUILTIN_SKIN_LIST,
   DEFAULT_SKIN,
   resolveSkin,
   userSkinInfo,
@@ -40,6 +39,8 @@ export interface SkinProblem {
   error: string;
 }
 
+const byName = (a: Skin, b: Skin) => a.name.localeCompare(b.name);
+
 /** The first few problems a failed parse found, as one line. */
 function issues(error: z.ZodError): string {
   return error.issues
@@ -56,7 +57,7 @@ class SkinStore {
 
   /** Every skin that can be picked, built-in first. */
   get available(): SkinInfo[] {
-    return [...BUILTIN_SKIN_IDS.map((id) => BUILTIN_SKINS[id]), ...this.user.map(userSkinInfo)];
+    return [...BUILTIN_SKIN_LIST, ...this.user.map(userSkinInfo)];
   }
 
   /** The skin for every desk without its own. */
@@ -79,6 +80,11 @@ class SkinStore {
     return this.user.find((s) => s.id === id);
   }
 
+  /** Whether any desk wears this skin, as the global one or its own. */
+  isWorn(id: string): boolean {
+    return this.selection.global === id || Object.values(this.selection.desks).includes(id);
+  }
+
   async load() {
     const saved = SkinSelectionSchema.safeParse((await getSetting('skins')) ?? {});
     if (saved.success) this.selection = saved.data;
@@ -98,7 +104,7 @@ class SkinStore {
       if (parsed?.success) user.push(parsed.data);
       else problems.push({ id: f.id, error: f.error ?? (parsed ? issues(parsed.error) : '?') });
     }
-    this.user = user.sort((a, b) => a.name.localeCompare(b.name));
+    this.user = user.sort(byName);
     this.problems = problems;
   }
 
@@ -125,9 +131,7 @@ class SkinStore {
   async saveUser(skin: Skin) {
     const valid = SkinSchema.parse(skin);
     await skinsIpc.save(valid);
-    this.user = [...this.user.filter((s) => s.id !== valid.id), valid].sort((a, b) =>
-      a.name.localeCompare(b.name),
-    );
+    this.user = [...this.user.filter((s) => s.id !== valid.id), valid].sort(byName);
   }
 
   /** Deletes a user skin; desks that wore it go back to TERMINAL (or the global skin). */
@@ -135,18 +139,12 @@ class SkinStore {
     await skinsIpc.remove(id);
     this.user = this.user.filter((s) => s.id !== id);
     this.problems = this.problems.filter((p) => p.id !== id);
-    let changed = false;
-    if (this.selection.global === id) {
-      this.selection.global = DEFAULT_SKIN;
-      changed = true;
-    }
+    if (!this.isWorn(id)) return;
+    if (this.selection.global === id) this.selection.global = DEFAULT_SKIN;
     for (const [desk, skin] of Object.entries(this.selection.desks)) {
-      if (skin === id) {
-        delete this.selection.desks[desk];
-        changed = true;
-      }
+      if (skin === id) delete this.selection.desks[desk];
     }
-    if (changed) await this.save();
+    await this.save();
   }
 
   /**

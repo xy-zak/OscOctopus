@@ -102,6 +102,11 @@
       background: transparent;
     }
   }
+  .frame[data-base='pixelated'] [data-part='button.fill'][data-flash],
+  .frame[data-base='pixelated'] [data-part='pads.fill'][data-flash],
+  .frame[data-base='pixelated'] [data-part='list.fill'][data-flash] {
+    animation: pixelated-dissolve 240ms steps(1, end) forwards;
+  }
 
   /* ---- keys (buttons, pads): bevelled blocks that sink when pressed ---- */
   .frame[data-base='pixelated'] [data-part='keycap.face'] {
@@ -113,15 +118,14 @@
     translate: 0 var(--px);
     box-shadow: var(--pp-sunk);
   }
-
-  /* ---- button ---- */
-  .frame[data-base='pixelated'] [data-part='button.fill'][data-on] {
+  /* A pressed button or a held or latched pad lights ACTIVE green, sunk. */
+  .frame[data-base='pixelated'] [data-part='button.fill'][data-on],
+  .frame[data-base='pixelated'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
     background: var(--act);
     box-shadow: var(--pp-sunk);
   }
-  .frame[data-base='pixelated'] [data-part='button.fill'][data-flash] {
-    animation: pixelated-dissolve 240ms steps(1, end) forwards;
-  }
+
+  /* ---- button ---- */
   .frame[data-base='pixelated'] [data-part='button.armed'] {
     background: var(--pp-d50-act);
     animation: pixelated-blink 0.5s steps(1) infinite;
@@ -313,13 +317,6 @@
   .frame[data-base='pixelated'] [data-part='pads.pad'][data-on] [data-part='keycap.face'] {
     border-color: color-mix(in srgb, var(--act) 60%, #000);
   }
-  .frame[data-base='pixelated'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
-    background: var(--act);
-    box-shadow: var(--pp-sunk);
-  }
-  .frame[data-base='pixelated'] [data-part='pads.fill'][data-flash] {
-    animation: pixelated-dissolve 240ms steps(1, end) forwards;
-  }
   .frame[data-base='pixelated'] [data-part='pads.num'] {
     color: var(--c-ink);
   }
@@ -347,8 +344,5 @@
   }
   .frame[data-base='pixelated'] [data-part='list.option'][data-held] [data-part='list.fill'] {
     background: var(--act);
-  }
-  .frame[data-base='pixelated'] [data-part='list.fill'][data-flash] {
-    animation: pixelated-dissolve 240ms steps(1, end) forwards;
   }
 }

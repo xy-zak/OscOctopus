@@ -6,8 +6,8 @@
 // `show(id)` to render one, and `freeze(ms)` to hold every animation at a fixed moment.
 import { mount, unmount } from 'svelte';
 import '../../app.css';
-import { BUILTIN_SKIN_IDS, BUILTIN_SKINS, type BuiltinSkinId } from '../../lib/skins/builtin';
-import { PALETTES, paletteVars } from '../../lib/theme/palettes';
+import { BUILTIN_SKIN_IDS, BUILTIN_SKIN_LIST, resolveSkin } from '../../lib/skins/builtin';
+import { DEFAULT_ACCENT, DEFAULT_PALETTE, PALETTES, paletteVars } from '../../lib/theme/palettes';
 import { measureCharWidth } from '../../lib/ui/textfit';
 import Gallery from './Gallery.svelte';
 import { SCENARIOS } from './scenarios';
@@ -26,17 +26,10 @@ declare global {
 const q = new URLSearchParams(location.search);
 const root = document.documentElement;
 root.dataset.mode = q.get('mode') === 'light' ? 'light' : 'dark';
-for (const [k, v] of Object.entries(paletteVars(PALETTES.rainbow.colors, 5))) {
-  root.style.setProperty(k, v);
-}
+const vars = paletteVars(PALETTES[DEFAULT_PALETTE].colors, DEFAULT_ACCENT);
+for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
 
-const skinId = q.get('skin') ?? 'terminal';
-const skin =
-  BUILTIN_SKINS[
-    (BUILTIN_SKIN_IDS as readonly string[]).includes(skinId)
-      ? (skinId as BuiltinSkinId)
-      : 'terminal'
-  ];
+const skin = resolveSkin(q.get('skin'), BUILTIN_SKIN_LIST);
 
 const target = document.getElementById('gallery')!;
 let app: ReturnType<typeof mount> | null = null;

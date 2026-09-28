@@ -47,92 +47,78 @@ export interface SkinInfo {
 
 export const DEFAULT_SKIN: BuiltinSkinId = 'terminal';
 
-export const BUILTIN_SKINS: Record<BuiltinSkinId, SkinInfo> = {
+/** Each built-in skin's name, note and params; its id is also its `base`. */
+const LOOKS: Record<BuiltinSkinId, Omit<SkinInfo, 'id' | 'base'>> = {
   terminal: {
-    id: 'terminal',
     name: 'TERMINAL',
-    base: 'terminal',
     note: 'Pixel lines in the widget colour, hard shadows, dither fills and stepped motion',
     params: { keycap: 'bevel' },
   },
   glass: {
-    id: 'glass',
     name: 'GLASS',
-    base: 'glass',
-    note: 'Frosted, rounded panes over a soft backdrop in the palette’s colours, with smooth motion',
+    note: 'Clear, rounded panes tinted with the widget colour, lit along the top edge',
     params: { keycap: 'flat' },
   },
   sketch: {
-    id: 'sketch',
     name: 'SKETCH',
-    base: 'sketch',
     note: 'Coloured pencil on paper: hand-drawn outlines and hatching',
     params: { keycap: 'flat' },
   },
   wobbly: {
-    id: 'wobbly',
     name: 'WOBBLY',
-    base: 'wobbly',
     note: 'Clean and flat, every line an even wave',
     params: { keycap: 'flat' },
   },
   pixelated: {
-    id: 'pixelated',
     name: 'PIXELATED',
-    base: 'pixelated',
     note: 'An 8-bit game screen: chunky pixels, notched borders, bevelled blocks',
     params: { keycap: 'flat' },
   },
   hardware: {
-    id: 'hardware',
     name: 'HARDWARE',
-    base: 'hardware',
     note: 'A mixing desk: metal panels, rubber keys, ridged fader caps, LEDs',
     params: { keycap: 'flat' },
   },
   neon: {
-    id: 'neon',
     name: 'NEON',
-    base: 'neon',
     note: 'Glowing tubes on a dark wall: every line lit, fills hollow',
     params: { keycap: 'flat' },
   },
   blueprint: {
-    id: 'blueprint',
     name: 'BLUEPRINT',
-    base: 'blueprint',
     note: 'A technical drawing: hairlines, section hatching, centre lines',
     params: { keycap: 'flat' },
   },
   brutalist: {
-    id: 'brutalist',
     name: 'BRUTALIST',
-    base: 'brutalist',
     note: 'Thick borders, hard offset shadows, flat blocks of colour',
     params: { keycap: 'flat' },
   },
   led: {
-    id: 'led',
     name: 'LED MATRIX',
-    base: 'led',
     note: 'A grid of round LEDs: dotted borders, parts lit dot by dot',
     params: { keycap: 'flat' },
   },
   crt: {
-    id: 'crt',
     name: 'CRT',
-    base: 'crt',
     note: 'An old monitor: scanlines, a vignette, glow and phosphor trails',
     params: { keycap: 'flat' },
   },
   arcade: {
-    id: 'arcade',
     name: 'ARCADE',
-    base: 'arcade',
     note: 'A cabinet panel: domed buttons in chrome rings, ball-top levers',
     params: { keycap: 'flat' },
   },
 };
+
+export const BUILTIN_SKINS = Object.fromEntries(
+  BUILTIN_SKIN_IDS.map((id) => [id, { id, base: id, ...LOOKS[id] }]),
+) as Record<BuiltinSkinId, SkinInfo>;
+
+/** The built-in skins in picker order. */
+export const BUILTIN_SKIN_LIST: readonly SkinInfo[] = BUILTIN_SKIN_IDS.map(
+  (id) => BUILTIN_SKINS[id],
+);
 
 /** A user skin as the picker and the widgets see it: its base skin, with its own changes. */
 export function userSkinInfo(skin: Skin): SkinInfo {

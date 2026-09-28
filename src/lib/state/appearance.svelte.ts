@@ -1,10 +1,11 @@
 // The global look: one palette and accent shared by every desk (a device setting, not part of
 // any preset), plus the custom palettes made on this device. Widgets store palette *indices*,
 // so switching palette recolours all desks.
-import { ThemeSchema, type CustomPalette, type Theme } from '../model/preset';
+import { LIMITS, ThemeSchema, type CustomPalette, type Theme } from '../model/preset';
 import { getSetting } from '../platform/settings';
 import {
   DEFAULT_ACCENT,
+  DEFAULT_PALETTE,
   resolvePalette,
   withCustomPalette,
   withoutCustomPalette,
@@ -13,7 +14,7 @@ import {
 import { persistSetting } from './persist';
 
 export const DEFAULT_THEME: Theme = {
-  palette: 'rainbow',
+  palette: DEFAULT_PALETTE,
   accent: DEFAULT_ACCENT,
   mode: 'dark',
   custom: [],
@@ -26,6 +27,11 @@ class AppearanceStore {
   /** The palette in use, built-in or custom. */
   get palette(): Palette {
     return resolvePalette(this.theme.palette, this.theme.custom);
+  }
+
+  /** No room for another custom palette (a saved theme over the cap would not load). */
+  get customFull(): boolean {
+    return this.theme.custom.length >= LIMITS.customPalettes.max;
   }
 
   /**
@@ -46,10 +52,16 @@ class AppearanceStore {
     await this.save();
   }
 
-  /** Adds or updates a custom palette and switches every desk to it. */
-  async saveCustom(palette: CustomPalette) {
+  /**
+   * Adds or updates a custom palette and switches every desk to it. Resolves false, changing
+   * nothing, for a new palette while `customFull`.
+   */
+  async saveCustom(palette: CustomPalette): Promise<boolean> {
+    const isNew = !this.theme.custom.some((p) => p.id === palette.id);
+    if (isNew && this.customFull) return false;
     this.theme = { ...withCustomPalette(this.theme, palette), palette: palette.id };
     await this.save();
+    return true;
   }
 
   async deleteCustom(id: string) {

@@ -15,7 +15,7 @@ use serde_json::Value;
 use ts_rs::TS;
 
 use crate::error::{AppError, AppResult};
-use crate::files::{read_json, require_json, write_atomic};
+use crate::files::{json_files, read_json, require_json, write_atomic};
 use crate::presets::check_id;
 
 /// A skin with its images must stay under this (the frontend caps images well below it).
@@ -39,18 +39,13 @@ pub struct SkinFile {
     pub error: Option<String>,
 }
 
-fn skin_error(msg: impl Into<String>) -> AppError {
-    AppError::Preset(msg.into())
-}
-
-/// A skin id: `skin-` and then what a preset id may be (so no path can be smuggled in).
+/// A skin id: `skin-` and then what a preset id may be, so no path can be smuggled in.
 fn check_skin_id(id: &str) -> AppResult<()> {
-    check_id(id).map_err(|_| skin_error(format!("invalid skin id '{id}'")))?;
-    if id.starts_with("skin-") {
+    if id.starts_with("skin-") && check_id(id).is_ok() {
         Ok(())
     } else {
-        Err(skin_error(format!(
-            "invalid skin id '{id}' (must start with skin-)"
+        Err(AppError::Skin(format!(
+            "invalid skin id '{id}' (use skin- and then A-Z a-z 0-9 - _)"
         )))
     }
 }
@@ -64,50 +59,46 @@ fn path_for(dir: &Path, id: &str) -> AppResult<PathBuf> {
 fn id_of(skin: &Value) -> AppResult<&str> {
     let obj = skin
         .as_object()
-        .ok_or_else(|| skin_error("skin must be a JSON object"))?;
+        .ok_or_else(|| AppError::Skin("skin must be a JSON object".into()))?;
     if obj.get("format").and_then(Value::as_str) != Some(FORMAT) {
-        return Err(skin_error("not an OscOctopus skin (format)"));
+        return Err(AppError::Skin("not an OscOctopus skin (format)".into()));
     }
     let id = obj
         .get("id")
         .and_then(Value::as_str)
-        .ok_or_else(|| skin_error("skin has no string 'id'"))?;
+        .ok_or_else(|| AppError::Skin("skin has no string 'id'".into()))?;
     check_skin_id(id)?;
     Ok(id)
 }
 
+/// Reads one skin file, which must hold the skin its name says.
+fn read(stem: &str, path: &Path) -> AppResult<Value> {
+    let skin = read_json(path, MAX_SKIN_BYTES)?;
+    let id = id_of(&skin)?;
+    if id != stem {
+        return Err(AppError::Skin(format!(
+            "file {stem}.json holds skin '{id}'"
+        )));
+    }
+    Ok(skin)
+}
+
 pub fn list(dir: &Path) -> AppResult<Vec<SkinFile>> {
-    fs::create_dir_all(dir)?;
-    let mut out = Vec::new();
-    for entry in fs::read_dir(dir)? {
-        let path = entry?.path();
-        if path.extension().and_then(|e| e.to_str()) != Some("json") {
-            continue;
-        }
-        let stem = path
-            .file_stem()
-            .map(|s| s.to_string_lossy().into_owned())
-            .unwrap_or_default();
-        let read = read_json(&path, MAX_SKIN_BYTES).and_then(|v| {
-            let id = id_of(&v)?.to_string();
-            if id != stem {
-                return Err(skin_error(format!("file {stem}.json holds skin '{id}'")));
-            }
-            Ok(v)
-        });
-        out.push(match read {
+    let mut out: Vec<SkinFile> = json_files(dir)?
+        .into_iter()
+        .map(|(id, path)| match read(&id, &path) {
             Ok(skin) => SkinFile {
-                id: stem,
+                id,
                 skin: Some(skin),
                 error: None,
             },
             Err(e) => SkinFile {
-                id: stem,
+                id,
                 skin: None,
                 error: Some(e.to_string()),
             },
-        });
-    }
+        })
+        .collect();
     out.sort_by(|a, b| a.id.cmp(&b.id));
     Ok(out)
 }
@@ -117,7 +108,7 @@ pub fn save(dir: &Path, skin: &Value) -> AppResult<()> {
     let id = id_of(skin)?;
     let bytes = serde_json::to_vec(skin)?;
     if bytes.len() as u64 > MAX_SKIN_BYTES {
-        return Err(skin_error(format!(
+        return Err(AppError::Skin(format!(
             "skin is {} MiB, over the {} MiB limit",
             bytes.len() / (1024 * 1024),
             MAX_SKIN_BYTES / (1024 * 1024)

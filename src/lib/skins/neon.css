@@ -47,7 +47,7 @@
   .frame[data-base='neon'][data-active] {
     --n-tube: var(--act);
   }
-  /* Pressed: the tube flares. */
+  /* Pressed (a switch while held): the tube flares. */
   .frame[data-base='neon'][data-pressed] {
     box-shadow:
       0 0 calc(2 * var(--n-bloom)) var(--n-glow),
@@ -79,7 +79,7 @@
     color: var(--fg);
   }
 
-  /* Release: the green burns down. */
+  /* Release, for buttons, pads and list options: the green burns down. */
   @keyframes neon-fade {
     from {
       background: var(--n-glow-act);
@@ -87,6 +87,11 @@
     to {
       background: transparent;
     }
+  }
+  .frame[data-base='neon'] [data-part='button.fill'][data-flash],
+  .frame[data-base='neon'] [data-part='pads.fill'][data-flash],
+  .frame[data-base='neon'] [data-part='list.fill'][data-flash] {
+    animation: neon-fade 320ms ease-out forwards;
   }
 
   /* ---- keys (buttons, pads): a tube outline around a hollow face ---- */
@@ -117,9 +122,6 @@
   /* ---- button: the face fills with a green glow while on ---- */
   .frame[data-base='neon'] [data-part='button.fill'][data-on] {
     background: radial-gradient(ellipse at center, var(--n-glow-act), transparent 80%);
-  }
-  .frame[data-base='neon'] [data-part='button.fill'][data-flash] {
-    animation: neon-fade 320ms ease-out forwards;
   }
   .frame[data-base='neon'] [data-part='button.armed'] {
     background: radial-gradient(ellipse at center, var(--n-glow-act), transparent 70%);
@@ -157,7 +159,9 @@
       clip-path: inset(0 0 0 0);
     }
   }
-  .frame[data-base='neon'] [data-part='button.hint'] {
+  /* Glowing green text: the armed hint, and the switch's ON. */
+  .frame[data-base='neon'] [data-part='button.hint'],
+  .frame[data-base='neon'] [data-part='switch.legend'][data-side='on'] {
     color: var(--act);
     text-shadow: 0 0 6px var(--n-glow-act);
   }
@@ -178,18 +182,11 @@
   .frame[data-base='neon'][data-on] [data-part='switch.track'] {
     --n-sw: var(--act);
   }
-  .frame[data-base='neon'] [data-part='switch.tag'] {
-    background: none;
-  }
   .frame[data-base='neon'] [data-part='switch.legend'] {
     transition: opacity 160ms ease;
   }
   .frame[data-base='neon'] [data-part='switch.legend'][data-side='off'] {
     color: var(--c-text);
-  }
-  .frame[data-base='neon'] [data-part='switch.legend'][data-side='on'] {
-    color: var(--act);
-    text-shadow: 0 0 6px var(--n-glow-act);
   }
   .frame[data-base='neon'] [data-part='switch.grip'] {
     visibility: hidden;
@@ -205,7 +202,9 @@
       background 160ms ease,
       box-shadow 160ms ease;
   }
-  .frame[data-base='neon'][data-on] [data-part='switch.thumb'] {
+  /* A lit bead burns green: the switch's while on, the fader's grip while dragged. */
+  .frame[data-base='neon'][data-on] [data-part='switch.thumb'],
+  .frame[data-base='neon'][data-dragging] [data-part='slider.grip'] {
     background: var(--n-bead-act);
     box-shadow:
       0 0 calc(1.4 * var(--n-bloom)) var(--n-glow-act),
@@ -253,12 +252,6 @@
   .frame[data-base='neon'][data-vertical] [data-part='slider.grip'] {
     width: 80%;
     height: 4px;
-  }
-  .frame[data-base='neon'][data-dragging] [data-part='slider.grip'] {
-    background: var(--n-bead-act);
-    box-shadow:
-      0 0 calc(1.4 * var(--n-bloom)) var(--n-glow-act),
-      0 0 3px var(--act);
   }
 
   /* ---- graph: a dark tube-edged screen with a faint grid and a glowing ring cursor ---- */
@@ -329,9 +322,6 @@
   .frame[data-base='neon'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
     background: radial-gradient(ellipse at center, var(--n-glow-act), transparent 85%);
   }
-  .frame[data-base='neon'] [data-part='pads.fill'][data-flash] {
-    animation: neon-fade 320ms ease-out forwards;
-  }
   .frame[data-base='neon'] [data-part='pads.num'] {
     color: var(--c-text);
   }
@@ -371,9 +361,6 @@
   }
   .frame[data-base='neon'] [data-part='list.option'][data-held] [data-part='list.fill'] {
     background: var(--n-glow-act);
-  }
-  .frame[data-base='neon'] [data-part='list.fill'][data-flash] {
-    animation: neon-fade 320ms ease-out forwards;
   }
   .frame[data-base='neon'] [data-part='list.mark'] {
     color: var(--c);

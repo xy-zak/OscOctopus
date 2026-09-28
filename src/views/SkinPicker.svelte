@@ -7,10 +7,11 @@
   import type { SkinInfo } from '../lib/skins/builtin';
   import { PREVIEW_WIDGETS } from '../lib/skins/preview';
   import { skinStore } from '../lib/state/skins.svelte';
+  import Choice from '../lib/ui/Choice.svelte';
   import { viewsOf } from '../lib/widgets/registry';
 
   interface Props {
-    /** Buttons for a user skin's row (edit, export, delete). */
+    /** Buttons for a user skin's row (export, delete). */
     actions?: Snippet<[SkinInfo]>;
   }
   let { actions }: Props = $props();
@@ -23,17 +24,14 @@
   {#each rows as skin, n (skin.id)}
     {#if skin.user && !rows[n - 1]?.user}<div class="group faint">YOURS</div>{/if}
     <div class="row">
-      <button
-        type="button"
-        role="radio"
-        aria-checked={current === skin.id}
-        class="skin"
-        class:on={current === skin.id}
+      <Choice
+        on={current === skin.id}
+        name={skin.name}
         title={skin.note}
-        onclick={() => current !== skin.id && skinStore.setGlobal(skin.id)}
+        nameWidth="17ch"
+        padY="6px"
+        onpick={() => skinStore.setGlobal(skin.id)}
       >
-        <span class="radio">{current === skin.id ? '(•)' : '( )'}</span>
-        <span class="name">{skin.name}</span>
         <!-- A picture of the skin, not controls: out of the tab order and the a11y tree. -->
         <span class="preview" aria-hidden="true" inert>
           <SkinScope {skin}>
@@ -45,7 +43,7 @@
             {/each}
           </SkinScope>
         </span>
-      </button>
+      </Choice>
       {#if skin.user && actions}<span class="actions">{@render actions(skin)}</span>{/if}
     </div>
   {/each}
@@ -65,39 +63,6 @@
     display: flex;
     align-items: center;
     gap: 1ch;
-  }
-  .skin {
-    flex: 1;
-    min-width: 0;
-    display: grid;
-    grid-template-columns: 3ch 17ch 1fr;
-    gap: 1ch;
-    align-items: center;
-    padding: 6px 0.5ch;
-    border: 1px solid transparent;
-    background: none;
-    color: var(--fg-dim);
-    text-align: left;
-    transition:
-      border-color var(--t-ui) steps(2),
-      color var(--t-ui) steps(2);
-  }
-  .skin:hover {
-    color: var(--fg);
-    border-color: var(--line);
-  }
-  .skin.on {
-    color: var(--fg);
-    border-color: var(--accent);
-    font-weight: 700;
-  }
-  .radio {
-    color: var(--accent-text);
-  }
-  .name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
   .preview {
     display: flex;

@@ -105,7 +105,8 @@
     }
   }
 
-  /* ---- keys (buttons, pads): a dotted outline around unlit LEDs ---- */
+  /* ---- keys (buttons, pads): a dotted outline around unlit LEDs; pressed buttons and held
+     or latched pads light all their LEDs green ---- */
   .frame[data-base='led'] [data-part='keycap.face'] {
     --led-key: color-mix(in srgb, var(--led-ink) 70%, transparent);
     border: 2px dotted var(--led-key);
@@ -116,14 +117,16 @@
   .frame[data-base='led'][data-lit] [data-part='keycap.face'] {
     --led-key: var(--act);
   }
-
-  /* ---- button: every LED lights green while on ---- */
-  .frame[data-base='led'] [data-part='button.fill'][data-on] {
+  .frame[data-base='led'] [data-part='button.fill'][data-on],
+  .frame[data-base='led'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
     background: var(--led-act), var(--led-halo-act);
   }
-  .frame[data-base='led'] [data-part='button.fill'][data-flash] {
+  .frame[data-base='led'] [data-part='button.fill'][data-flash],
+  .frame[data-base='led'] [data-part='pads.fill'][data-flash] {
     animation: led-out 240ms steps(1, end) forwards;
   }
+
+  /* ---- button: every LED lights green while on ---- */
   .frame[data-base='led'] [data-part='button.armed'] {
     background: var(--led-act-half);
     animation: led-blink 0.6s steps(1) infinite;
@@ -145,8 +148,9 @@
       clip-path: inset(0 0 0 0);
     }
   }
-  /* A dark halo, so the word reads over lit LEDs. */
-  .frame[data-base='led'] [data-part='button.hint'] {
+  /* A dark halo, so the words read over lit LEDs: the armed hint, and pad numbers. */
+  .frame[data-base='led'] [data-part='button.hint'],
+  .frame[data-base='led'] [data-part='pads.num'] {
     color: var(--fg);
     text-shadow:
       0 0 2px var(--led-panel),
@@ -189,8 +193,8 @@
     transition: none;
   }
 
-  /* ---- fader: a strip of unlit LEDs lit green up to the value, and a bar of white LEDs for
-     the cap ---- */
+  /* ---- fader: a strip of unlit LEDs lit green up to the value, and a bar of LEDs in the text
+     colour for the cap ---- */
   .frame[data-base='led'] [data-part='slider.track'] {
     background: var(--led-off);
   }
@@ -273,24 +277,6 @@
   .frame[data-base='led'] [data-part='graph.tick'] {
     color: var(--c-text);
     background: var(--paper);
-  }
-
-  /* ---- pads: dotted squares; held or latched, all their LEDs light green ---- */
-  .frame[data-base='led'] [data-part='pads.pad'][data-on] [data-part='keycap.face'] {
-    --led-key: var(--act);
-  }
-  .frame[data-base='led'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
-    background: var(--led-act), var(--led-halo-act);
-  }
-  .frame[data-base='led'] [data-part='pads.fill'][data-flash] {
-    animation: led-out 240ms steps(1, end) forwards;
-  }
-  .frame[data-base='led'] [data-part='pads.num'] {
-    color: var(--fg);
-    text-shadow:
-      0 0 2px var(--led-panel),
-      0 0 3px var(--led-panel),
-      0 0 5px var(--led-panel);
   }
 
   /* ---- list: rows on the dark panel, underlined in dots; the current one's dots lit ---- */

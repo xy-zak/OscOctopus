@@ -9,6 +9,7 @@
   // release after HOLD_MS changes it even if the timer was delayed. Keyboard: focus it and hold
   // Space/Enter, or hold its Alt shortcut (App.svelte calls press, release and cancel).
   import { tapHaptic } from '../platform/haptics';
+  import { switchBox } from './ToggleSwitch.svelte';
 
   /** Fills from app.css: `accent` (on), `warn` (LOCK's safety state), `alarm` (red outline). */
   type Tone = 'accent' | 'warn' | 'alarm' | '';
@@ -109,8 +110,15 @@
     holding = false;
   }
 
-  // Same anatomy as the other master switches: [■] when on.
-  const box = $derived(hint && !holding ? '' : `[${on ? '■' : ' '}]`);
+  // A switch that goes away must not change anything later.
+  $effect(() => () => {
+    clearTimeout(timer);
+    clearTimeout(hintTimer);
+    clearTimeout(landTimer);
+  });
+
+  // Same anatomy as the other switches (ToggleSwitch): [■] when on.
+  const box = $derived(hint && !holding ? '' : switchBox(on));
   // The label stays put while holding, so the next state's wipes over it in line.
   const text = $derived(hint ? 'HOLD 1 SEC' : on ? onLabel : label);
 </script>
@@ -150,7 +158,7 @@
   >
   <!-- The next state, wiped in over the button while holding. -->
   <span class="next mbtn {on ? offTone : onTone}" aria-hidden="true"
-    ><span class="box">[{on ? ' ' : '■'}]</span>{on ? label : onLabel}</span
+    ><span class="box">{switchBox(!on)}</span>{on ? label : onLabel}</span
   >
 </button>
 

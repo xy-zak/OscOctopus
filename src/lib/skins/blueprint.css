@@ -12,6 +12,8 @@
     --bp-faint: color-mix(in srgb, var(--bp-ink) 10%, transparent);
     --bp-paper: color-mix(in srgb, var(--bp-ink) 5%, var(--w-bg));
     --bp-mark: var(--bp-ink);
+    /* A halo of paper, so words read over the hatching. */
+    --bp-halo: 0 0 2px var(--bp-paper), 0 0 2px var(--bp-paper), 0 0 4px var(--bp-paper);
     /* Section hatching: sparse for a part at rest, dense when it is lit. */
     --bp-hatch: repeating-linear-gradient(
       45deg,
@@ -103,7 +105,7 @@
     color: var(--fg);
   }
 
-  /* Release: the hatching thins out and is rubbed away. */
+  /* Release, for buttons, pads and list options: the hatching thins out and is rubbed away. */
   @keyframes blueprint-erase {
     0% {
       background: var(--bp-cross-act);
@@ -117,6 +119,16 @@
     100% {
       background: transparent;
     }
+  }
+  .frame[data-base='blueprint'] [data-part='button.fill'][data-flash],
+  .frame[data-base='blueprint'] [data-part='pads.fill'][data-flash],
+  .frame[data-base='blueprint'] [data-part='list.fill'][data-flash] {
+    animation: blueprint-erase 300ms steps(1, end) forwards;
+  }
+  /* Held or latched pads and held list options: hatched green. */
+  .frame[data-base='blueprint'] [data-part='pads.pad'][data-on] [data-part='pads.fill'],
+  .frame[data-base='blueprint'] [data-part='list.option'][data-held] [data-part='list.fill'] {
+    background: var(--bp-hatch-act);
   }
 
   /* ---- keys (buttons, pads): a hairline box with section hatching ---- */
@@ -136,9 +148,6 @@
   /* ---- button ---- */
   .frame[data-base='blueprint'] [data-part='button.fill'][data-on] {
     background: var(--bp-cross-act);
-  }
-  .frame[data-base='blueprint'] [data-part='button.fill'][data-flash] {
-    animation: blueprint-erase 300ms steps(1, end) forwards;
   }
   .frame[data-base='blueprint'] [data-part='button.armed'] {
     background: var(--bp-hatch-act);
@@ -162,13 +171,9 @@
       clip-path: inset(0 0 0 0);
     }
   }
-  /* A halo of paper, so the word reads over the hatching. */
   .frame[data-base='blueprint'] [data-part='button.hint'] {
     color: var(--fg);
-    text-shadow:
-      0 0 2px var(--bp-paper),
-      0 0 2px var(--bp-paper),
-      0 0 4px var(--bp-paper);
+    text-shadow: var(--bp-halo);
   }
 
   /* ---- switch: a slot with its centre line drawn in, and a hatched block ---- */
@@ -177,7 +182,9 @@
     background: var(--bp-dashdot-x) 0 50% / 100% 1px no-repeat;
     transition: border-color 120ms ease;
   }
-  .frame[data-base='blueprint'][data-vertical] [data-part='switch.track'] {
+  /* The fader's track is the same slot. */
+  .frame[data-base='blueprint'][data-vertical] [data-part='switch.track'],
+  .frame[data-base='blueprint'][data-vertical] [data-part='slider.track'] {
     background: var(--bp-dashdot-y) 50% 0 / 1px 100% no-repeat;
   }
   .frame[data-base='blueprint'][data-on] [data-part='switch.track'] {
@@ -216,9 +223,6 @@
   .frame[data-base='blueprint'] [data-part='slider.track'] {
     border: 1px solid var(--bp-line);
     background: var(--bp-dashdot-x) 0 50% / 100% 1px no-repeat;
-  }
-  .frame[data-base='blueprint'][data-vertical] [data-part='slider.track'] {
-    background: var(--bp-dashdot-y) 50% 0 / 1px 100% no-repeat;
   }
   .frame[data-base='blueprint'][data-dragging] [data-part='slider.track'] {
     border-color: var(--act);
@@ -330,22 +334,10 @@
     background: var(--paper);
   }
 
-  /* ---- pads: hatched boxes; held or latched, cross-hatched green ---- */
-  .frame[data-base='blueprint'] [data-part='pads.pad'][data-on] [data-part='keycap.face'] {
-    border-color: var(--act);
-  }
-  .frame[data-base='blueprint'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
-    background: var(--bp-hatch-act);
-  }
-  .frame[data-base='blueprint'] [data-part='pads.fill'][data-flash] {
-    animation: blueprint-erase 300ms steps(1, end) forwards;
-  }
+  /* ---- pads: hatched boxes; held or latched, densely hatched green ---- */
   .frame[data-base='blueprint'] [data-part='pads.num'] {
     color: var(--fg);
-    text-shadow:
-      0 0 2px var(--bp-paper),
-      0 0 2px var(--bp-paper),
-      0 0 4px var(--bp-paper);
+    text-shadow: var(--bp-halo);
   }
 
   /* ---- list: rows ruled in hairline; the current one boxed and hatched ---- */
@@ -369,21 +361,12 @@
     border-color: var(--act);
     color: var(--fg);
   }
-  .frame[data-base='blueprint'] [data-part='list.option'][data-held] [data-part='list.fill'] {
-    background: var(--bp-hatch-act);
-  }
-  .frame[data-base='blueprint'] [data-part='list.fill'][data-flash] {
-    animation: blueprint-erase 300ms steps(1, end) forwards;
-  }
   .frame[data-base='blueprint'] [data-part='list.mark'] {
     color: var(--act);
   }
   /* On a hatched row, a halo of paper behind the words. */
   .frame[data-base='blueprint'] [data-part='list.text'][data-current],
   .frame[data-base='blueprint'] [data-part='list.text'][data-held] {
-    text-shadow:
-      0 0 2px var(--bp-paper),
-      0 0 2px var(--bp-paper),
-      0 0 4px var(--bp-paper);
+    text-shadow: var(--bp-halo);
   }
 }

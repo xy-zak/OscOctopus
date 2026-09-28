@@ -1,42 +1,23 @@
 // Workspace actions shared by the tab bar, a desk's PRESET section and GLOBAL SETTINGS ›
 // LIBRARY. Each asks first (the confirmation texts live here, once), runs, and reports a
-// failure as an error toast. They resolve true when the action went through.
-import { open, save } from '@tauri-apps/plugin-dialog';
+// failure as an error toast (actions.ts). They resolve true when the action went through.
+import { open } from '@tauri-apps/plugin-dialog';
 import type { Preset } from '../lib/model/preset';
 import { presetStore } from '../lib/state/preset.svelte';
 import { confirmAction, toast } from '../lib/state/ui.svelte';
 import { sharedDesks } from '../lib/sync/app.svelte';
-import { errorText } from '../lib/util';
+import { exportJson, ifConfirmed, jsonFiles, runAction } from './actions';
 
-const PRESET_FILES = [{ name: 'OscOctopus preset', extensions: ['json'] }];
+const PRESET_FILES = jsonFiles('preset');
 const STARTS_NOW = 'Its outputs and inputs start immediately, alongside the open desks.';
 const PORT_CLASH =
   'Inputs on the same ports as the original will fail to bind; its NETWORK section will say so.';
 const REOPEN = 'The preset stays saved: reopen it from + or GLOBAL SETTINGS › LIBRARY.';
 
-/** Runs `fn`, turning a failure into an error toast. Resolves whether it succeeded. */
-export async function runAction(what: string, fn: () => Promise<unknown>): Promise<boolean> {
-  try {
-    await fn();
-    return true;
-  } catch (e) {
-    toast(`${what} failed: ${errorText(e)}`, 'error');
-    return false;
-  }
-}
-
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const endpointsOf = (d: Preset) =>
   `${plural(d.network.outputs.length, 'output')} and ${plural(d.network.inputs.length, 'input')}`;
 const fileName = (path: string) => path.split(/[\\/]/).pop() ?? path;
-
-async function ifConfirmed(
-  what: string,
-  ask: Parameters<typeof confirmAction>[0],
-  fn: () => Promise<unknown>,
-): Promise<boolean> {
-  return (await confirmAction(ask)) && runAction(what, fn);
-}
 
 export const addDesk = (name: string) =>
   ifConfirmed(
@@ -120,13 +101,7 @@ export const saveDesk = () => runAction('Save', () => presetStore.save());
 
 /** Asks where, then writes the active desk's preset file there. */
 export const exportDesk = () =>
-  runAction('Export', async () => {
-    const safe = presetStore.current.name.replace(/[^\w\- ]+/g, '').trim() || 'preset';
-    const path = await save({ defaultPath: `${safe}.json`, filters: PRESET_FILES });
-    if (!path) return;
-    await presetStore.exportTo(path);
-    toast(`Exported to ${path}`);
-  });
+  exportJson('preset', presetStore.current.name, (path) => presetStore.exportTo(path));
 
 /** Picks a preset file and opens it as a new desk. */
 export const importAsDesk = () =>

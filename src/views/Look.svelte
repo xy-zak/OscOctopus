@@ -3,7 +3,6 @@
   // colours are palette indices, so changing the palette recolours everything (it crossfades).
   // Custom palettes are made here too, from one source colour (PaletteEditor), and the widget
   // skin is picked here, with the skins made on this device (import, export, delete).
-  import { LIMITS } from '../lib/model/preset';
   import { appearance } from '../lib/state/appearance.svelte';
   import { skinStore } from '../lib/state/skins.svelte';
   import Field from '../lib/ui/Field.svelte';
@@ -15,7 +14,7 @@
   import PaletteEditor from './PaletteEditor.svelte';
   import PalettePicker from './PalettePicker.svelte';
   import SkinPicker from './SkinPicker.svelte';
-  import { deleteSkin, exportSkin, importSkinFile } from './skinActions';
+  import { deleteSkin, exportSkin, importSkinFile, PALETTES_FULL } from './lookActions';
 
   /** What the editor has open: a custom palette's id, a new one, or nothing. */
   let editing = $state<string | 'new' | null>(null);
@@ -24,7 +23,6 @@
       ? (appearance.theme.custom.find((p) => p.id === editing) ?? null)
       : null,
   );
-  const full = $derived(appearance.theme.custom.length >= LIMITS.customPalettes.max);
 </script>
 
 <div class="look scroll">
@@ -48,12 +46,14 @@
       <PalettePicker {editing} onedit={(id) => (editing = id)} />
       <!-- Right under the list, where the new palette will appear. -->
       <div class="new">
-        <button class="btn" disabled={editing !== null || full} onclick={() => (editing = 'new')}
-          ><Icon name="plus" /> New palette</button
+        <button
+          class="btn"
+          disabled={editing !== null || appearance.customFull}
+          onclick={() => (editing = 'new')}><Icon name="plus" /> New palette</button
         >
         <span class="faint">
-          {full
-            ? `${LIMITS.customPalettes.max} custom palettes is the most: delete one to make another.`
+          {appearance.customFull
+            ? PALETTES_FULL
             : 'Make your own: pick one colour and ten are made from it.'}
         </span>
       </div>

@@ -7,12 +7,12 @@
   import { LIMITS, type CustomPalette } from '../lib/model/preset';
   import { uid } from '../lib/model/parts';
   import { appearance } from '../lib/state/appearance.svelte';
-  import { confirmAction } from '../lib/state/ui.svelte';
   import { generatePalette, normalizeHex, regenerate } from '../lib/theme/generate';
   import { DEFAULT_ACCENT, inkFor, PALETTE_SIZE } from '../lib/theme/palettes';
   import Field from '../lib/ui/Field.svelte';
   import Icon from '../lib/ui/Icon.svelte';
   import Panel from '../lib/ui/Panel.svelte';
+  import { deletePalette, PALETTES_FULL, savePalette } from './lookActions';
 
   interface Props {
     /** The palette to edit, or null for a new one. */
@@ -54,7 +54,7 @@
   const manual = $derived(overridden.filter(Boolean).length);
   // Where the generator put the source (colour 5 unless it is nearly white or black).
   const sourceAt = $derived(generatePalette(source).indexOf(source));
-  const full = $derived(isNew && appearance.theme.custom.length >= LIMITS.customPalettes.max);
+  const full = $derived(isNew && appearance.customFull);
 
   function setSource(hex: string) {
     source = hex;
@@ -84,29 +84,19 @@
   }
 
   async function save() {
-    if (!nameOk || full) return;
-    await appearance.saveCustom({
+    if (!nameOk) return;
+    const palette = {
       id: start.id,
       name: trimmed,
       source,
       colors: [...colors],
       overridden: [...overridden],
-    });
-    onclose();
+    };
+    if (await savePalette(palette)) onclose();
   }
 
   async function remove() {
-    const inUse = appearance.theme.palette === start.id;
-    const ok = await confirmAction({
-      title: 'Delete palette',
-      message: `Delete the palette “${start.name}”? This can’t be undone.`,
-      details: inUse ? ['Every desk uses it now: they switch to RAINBOW.'] : undefined,
-      confirmLabel: 'Delete',
-      danger: true,
-    });
-    if (!ok) return;
-    await appearance.deleteCustom(start.id);
-    onclose();
+    if (await deletePalette(start.id, start.name)) onclose();
   }
 
   let root = $state<HTMLElement>();
@@ -198,9 +188,7 @@
       {/if}
     </div>
     {#if full}
-      <p class="warn">
-        {LIMITS.customPalettes.max} custom palettes is the most: delete one to make another.
-      </p>
+      <p class="warn">{PALETTES_FULL}</p>
     {/if}
   </Panel>
 </div>

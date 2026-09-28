@@ -1,7 +1,7 @@
 /* HARDWARE: a physical mixing desk. Anodised panels with a channel-colour strip along the top,
-   rubber keys and pads in the widget colour that glow from behind when lit, a metal slider in
-   a sunk slot, ridged metal fader caps with the channel colour on their line, an LED strip for
-   the value, and a black XY screen with a glowing LED. Every rule is keyed on
+   rubber keys and pads in the widget colour that glow from behind when lit, a switch with a
+   metal block in a sunk slot, ridged metal fader caps with the channel colour on their line,
+   an LED strip for the value, and a black XY screen with a glowing LED. Every rule is keyed on
    .frame[data-base='hardware']. Parts and states: skins/anatomy.ts; what every skin keeps the
    same (font, label placement, markers, the desk background): skins/base.css, docs/SKINS.md. */
 @layer skin.builtin {
@@ -68,6 +68,7 @@
     color: var(--fg);
   }
 
+  /* Release, for buttons, pads and list options: the ACTIVE light fades out. */
   @keyframes hardware-fade {
     from {
       background: var(--act);
@@ -75,6 +76,11 @@
     to {
       background: transparent;
     }
+  }
+  .frame[data-base='hardware'] [data-part='button.fill'][data-flash],
+  .frame[data-base='hardware'] [data-part='pads.fill'][data-flash],
+  .frame[data-base='hardware'] [data-part='list.fill'][data-flash] {
+    animation: hardware-fade 300ms ease-out forwards;
   }
 
   /* ---- keys (buttons, pads): rubber, shaded top to bottom, pressed into the panel ---- */
@@ -116,9 +122,6 @@
       color-mix(in srgb, var(--act) 75%, #000)
     );
   }
-  .frame[data-base='hardware'] [data-part='button.fill'][data-flash] {
-    animation: hardware-fade 300ms ease-out forwards;
-  }
   .frame[data-base='hardware'] [data-part='button.armed'] {
     background: radial-gradient(circle, var(--hw-glow), transparent 75%);
     animation: hardware-pulse 0.8s ease-in-out infinite;
@@ -144,7 +147,7 @@
     color: var(--fg);
   }
 
-  /* ---- switch: a metal slider block in a sunk slot; the slot lights green when on ---- */
+  /* ---- switch: a metal block in a sunk slot; the slot lights green when on ---- */
   .frame[data-base='hardware'] [data-part='switch.track'] {
     border-radius: 4px;
     background: var(--hw-slot);
@@ -158,9 +161,6 @@
       inset 0 2px 4px rgb(0 0 0 / 0.6),
       inset 0 0 0 1px var(--act),
       0 0 10px var(--hw-glow);
-  }
-  .frame[data-base='hardware'] [data-part='switch.tag'] {
-    background: none;
   }
   .frame[data-base='hardware'] [data-part='switch.legend'] {
     transition: opacity 120ms ease;
@@ -306,9 +306,6 @@
       var(--act) 70%
     );
   }
-  .frame[data-base='hardware'] [data-part='pads.fill'][data-flash] {
-    animation: hardware-fade 300ms ease-out forwards;
-  }
   .frame[data-base='hardware'] [data-part='pads.num'] {
     color: color-mix(in srgb, var(--fg) 85%, transparent);
   }
@@ -342,9 +339,6 @@
   }
   .frame[data-base='hardware'] [data-part='list.option'][data-held] [data-part='list.fill'] {
     background: var(--act);
-  }
-  .frame[data-base='hardware'] [data-part='list.fill'][data-flash] {
-    animation: hardware-fade 300ms ease-out forwards;
   }
   .frame[data-base='hardware'] [data-part='list.mark'] {
     color: var(--act);

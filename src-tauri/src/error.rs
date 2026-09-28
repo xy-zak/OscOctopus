@@ -22,6 +22,9 @@ pub enum AppError {
     #[error("preset error: {0}")]
     Preset(String),
 
+    #[error("skin error: {0}")]
+    Skin(String),
+
     #[error("{0}")]
     InvalidPath(String),
 

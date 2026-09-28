@@ -1,7 +1,7 @@
-/* TERMINAL: the built-in pixel look. 1px lines in the widget colour, hard offset shadows that
-   widgets sink into when pressed, dither fills, and `steps()` motion. Every rule is keyed on
-   .frame[data-base='terminal'], so other skins can sit beside it on the same desk. Parts and
-   states: skins/anatomy.ts. */
+/* TERMINAL: the built-in pixel look. 1px lines in the widget colour, hard offset shadows (a
+   held switch sinks into its own, keys sink into the panel), dither fills, and `steps()`
+   motion. Every rule is keyed on .frame[data-base='terminal'], so other skins can sit beside it
+   on the same desk. Parts and states: skins/anatomy.ts. */
 @layer skin.builtin {
   /* ---- frame: the title and value are set into the border on a patch of page colour ---- */
   .frame[data-base='terminal'] {
@@ -71,9 +71,33 @@
   .frame[data-base='terminal'] [data-part='keycap'][data-down] [data-part='keycap.face'] {
     box-shadow: inset 1px 1px 0 0 var(--shadow-px);
   }
+  /* Button and pad keys are the widget colour; lit (a fired, armed or holding button, a held
+     or latched pad), their lines and shading turn ACTIVE green. */
+  .frame[data-base='terminal'] [data-part='button.key'],
+  .frame[data-base='terminal'] [data-part='pads.pad'] {
+    --key-edge: var(--c);
+    --key-dots: color-mix(in srgb, var(--c) 55%, transparent);
+    --key-face: var(--c-solid);
+  }
+  .frame[data-base='terminal'][data-lit] [data-part='button.key'],
+  .frame[data-base='terminal'] [data-part='pads.pad'][data-on] {
+    --key-edge: var(--act);
+    --key-dots: color-mix(in srgb, var(--act) 55%, transparent);
+  }
 
-  /* Release, for buttons, pads and list options: a pixel dissolve from ACTIVE green back to
-     the widget colour, solid → 50% dither → 25% dither → gone. */
+  /* Pressed buttons, held or latched pads and held list options fill ACTIVE green. Release: a
+     pixel dissolve from ACTIVE green back to the widget colour, solid → 50% dither → 25%
+     dither → gone. */
+  .frame[data-base='terminal'] [data-part='button.fill'][data-on],
+  .frame[data-base='terminal'] [data-part='pads.pad'][data-on] [data-part='pads.fill'],
+  .frame[data-base='terminal'] [data-part='list.option'][data-held] [data-part='list.fill'] {
+    background: var(--act);
+  }
+  .frame[data-base='terminal'] [data-part='button.fill'][data-flash],
+  .frame[data-base='terminal'] [data-part='pads.fill'][data-flash],
+  .frame[data-base='terminal'] [data-part='list.fill'][data-flash] {
+    animation: terminal-dissolve 210ms steps(1, end) forwards;
+  }
   @keyframes terminal-dissolve {
     0% {
       background: var(--act);
@@ -90,22 +114,7 @@
   }
 
   /* ---- button: at rest the key is the widget colour; lit (fired, armed, holding), its lines
-     and shading turn the ACTIVE green and the face fills green while pressed. ---- */
-  .frame[data-base='terminal'] [data-part='button.key'] {
-    --key-edge: var(--c);
-    --key-dots: color-mix(in srgb, var(--c) 55%, transparent);
-    --key-face: var(--c-solid);
-  }
-  .frame[data-base='terminal'][data-lit] [data-part='button.key'] {
-    --key-edge: var(--act);
-    --key-dots: color-mix(in srgb, var(--act) 55%, transparent);
-  }
-  .frame[data-base='terminal'] [data-part='button.fill'][data-on] {
-    background: var(--act);
-  }
-  .frame[data-base='terminal'] [data-part='button.fill'][data-flash] {
-    animation: terminal-dissolve 210ms steps(1, end) forwards;
-  }
+     and shading turn the ACTIVE green and the face fills green while pressed (keys above). ---- */
   /* ARMED: a blinking dithered wash; the next press fires. */
   .frame[data-base='terminal'] [data-part='button.armed'] {
     background: var(--dither-50-act);
@@ -134,7 +143,9 @@
   }
 
   /* ---- switch: a solid block on a dithered groove; everything turns ACTIVE green when on ---- */
-  .frame[data-base='terminal'] [data-part='switch.track'] {
+  /* The fader's track is the same groove. */
+  .frame[data-base='terminal'] [data-part='switch.track'],
+  .frame[data-base='terminal'] [data-part='slider.track'] {
     border: 1px solid var(--c);
     background: var(--dither-25-c);
     transition: border-color var(--t-ui) steps(2);
@@ -175,11 +186,6 @@
 
   /* ---- fader: the Switch's groove as a narrow track filling with denser ACTIVE green dots,
      a solid cap wider than the track with a grip line, and a printed scale either side ---- */
-  .frame[data-base='terminal'] [data-part='slider.track'] {
-    border: 1px solid var(--c);
-    background: var(--dither-25-c);
-    transition: border-color var(--t-ui) steps(2);
-  }
   .frame[data-base='terminal'][data-dragging] [data-part='slider.track'] {
     border-color: var(--act);
   }
@@ -286,21 +292,6 @@
   }
 
   /* ---- pads: small key caps in the widget colour; held or latched, ACTIVE green ---- */
-  .frame[data-base='terminal'] [data-part='pads.pad'] {
-    --key-edge: var(--c);
-    --key-dots: color-mix(in srgb, var(--c) 55%, transparent);
-    --key-face: var(--c-solid);
-  }
-  .frame[data-base='terminal'] [data-part='pads.pad'][data-on] {
-    --key-edge: var(--act);
-    --key-dots: color-mix(in srgb, var(--act) 55%, transparent);
-  }
-  .frame[data-base='terminal'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
-    background: var(--act);
-  }
-  .frame[data-base='terminal'] [data-part='pads.fill'][data-flash] {
-    animation: terminal-dissolve 210ms steps(1, end) forwards;
-  }
   .frame[data-base='terminal'] [data-part='pads.num'] {
     color: var(--c-ink);
   }
@@ -324,11 +315,5 @@
   }
   .frame[data-base='terminal'] [data-part='list.option'][data-held] {
     color: var(--act-ink);
-  }
-  .frame[data-base='terminal'] [data-part='list.option'][data-held] [data-part='list.fill'] {
-    background: var(--act);
-  }
-  .frame[data-base='terminal'] [data-part='list.fill'][data-flash] {
-    animation: terminal-dissolve 210ms steps(1, end) forwards;
   }
 }

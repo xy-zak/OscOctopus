@@ -33,6 +33,7 @@
 │ osc/codec     rosc-based encode/decode, address validation                                  │
 │ debug.rs      DebugHub: seq-numbered ring buffer, batched flush, explicit drop counting     │
 │ presets.rs    one JSON file per preset, id sanitisation (files.rs: atomic fsynced writes)   │
+│ skins.rs      one JSON file per user skin: format marker, `skin-` ids, size cap             │
 └─────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -281,13 +282,19 @@ transport that never reads app payloads (Rust) with desk semantics owned by the 
   switches from least to most restrictive (OSC-IN, OSC-OUT, LOCK), then PRESENT. A switch shows
   `[■]` and fills with the accent while on, and has a fixed width; LOCK fills amber, and
   OSC-OUT off (PAUSE) is an unfilled red alarm. All six share one shape, `.mbtn` in `app.css`,
-  which the desk's INFO and EDIT switches use too. OSC-IN, OSC-OUT and LOCK are `HoldSwitch`es:
-  they change only after a 1 s hold, on and off alike (pointer, Space/Enter, or their Alt
-  shortcut, which App holds through the component's `press`/`release`/`cancel`).
+  which the desk's INFO and EDIT switches use too. PRESENT, INFO and EDIT are `ToggleSwitch`es
+  (one click). OSC-IN, OSC-OUT and LOCK are `HoldSwitch`es: they change only after a 1 s hold,
+  on and off alike (pointer, Space/Enter, or their Alt shortcut, which App holds through the
+  component's `press`/`release`/`cancel`).
+- **PRESENTING** (`setPresenting` in `state/ui.svelte.ts`) shows the active desk's widgets,
+  live, and refuses every other way to navigate until it ends. On desktop the window follows it
+  into fullscreen and back (`lib/platform/fullscreen.ts`).
 - `Traffic.svelte` is one component: `scope = deskId` for a desk's TRAFFIC, unscoped for
   GLOBAL SETTINGS › TRAFFIC.
 - Desk actions with a confirmation (add, duplicate, open, remove, import, export, delete) live
-  once in `views/deskActions.ts`, shared by the tab bar, PRESET and LIBRARY.
+  once in `views/deskActions.ts`, shared by the tab bar, PRESET and LIBRARY. LOOK's (save and
+  delete a palette; import, export and delete a skin) are in `views/lookActions.ts`. Both
+  build on `views/actions.ts`: run with an error toast, ask first, export a JSON file.
 
 ## Desks (multiple presets at once)
 
@@ -316,8 +323,9 @@ The open desks and the active one are stored per device (`openDesks`, `activeDes
   entirely, and a capture-phase press on the desk bumps `ui.lockNudge` so the LOCK button hints.
   - `Lockable.svelte` wraps editable views in a disabled `<fieldset>`, which natively disables
     every control inside.
-  - Locking also leaves edit mode and cancels any open confirmation. Locking and unlocking
-    both need the 1 s hold on LOCK (`HoldSwitch`), never a single keystroke.
+  - Locking also leaves edit mode and cancels any open confirmation (`setLocked` in
+    `state/ui.svelte.ts`). Locking and unlocking both need the 1 s hold on LOCK
+    (`HoldSwitch`), never a single keystroke.
 
 ## Reconciliation
 
@@ -350,9 +358,10 @@ write-locked while sockets are bound, never during a DNS lookup (see *Safety gua
   `--p0…--p9`, their reverse-video inks `--pN-ink`, and `--accent` to `:root`. They are
   registered with `@property`, so a palette change crossfades. A widget's colour is a palette
   index; `null` (AUTO) takes its desk's colour (`--auto-c`, set by `GridCanvas`).
-- **Custom palettes.** Saved in the device's theme (`Theme.custom`, at most 32), each with its
-  ten `colors`, its `source` and which colours were `overridden` by hand. `colors` is the truth,
-  so a saved palette never changes if the generator does. `resolvePalette` finds a built-in or
+- **Custom palettes.** Saved in the device's theme (`Theme.custom`), each with its ten
+  `colors`, its `source` and which colours were `overridden` by hand. At most 32: the store
+  refuses another, since a saved theme over the cap would not load. `colors` is the truth, so a
+  saved palette never changes if the generator does. `resolvePalette` finds a built-in or
   custom one; a theme pointing at a deleted palette shows RAINBOW. `lib/theme/generate.ts` makes
   the ten colours in OKLCH: a light-to-dark ramp with the source kept exactly as colour 5 (the
   default accent; nearer 0 or 9 for a near-white or near-black source), lights drifting towards
@@ -383,7 +392,8 @@ write-locked while sockets are bound, never during a DNS lookup (see *Safety gua
     it): the typography (the app's one font and size; the weights and case of titles, values,
     legends, pad numbers and options), where titles and values go (`WidgetFrame`, set into the
     border by `lib/widgets/labels.ts`), the markers (the fader's scale, drawn by base.css and only
-    coloured by a skin, `--slider-tick-c`; the switch's ON/OFF; pad numbers; the list's `▸`),
+    coloured by a skin, `--slider-tick-c`; the switch's ON/OFF; pad numbers; the list's `▸`;
+    the graph's axis labels),
     and the desk's plain background (`--bg`: no skin rule reaches outside its own frames).
     How to write a skin: [SKINS.md](SKINS.md).
   - **Which skin.** `lib/skins/builtin.ts` lists the skins; `state/skins.svelte.ts` holds the
@@ -396,7 +406,7 @@ write-locked while sockets are bound, never during a DNS lookup (see *Safety gua
   - **What CSS can't do**, a skin says in `params`: whether keys stand out (`bevel`) or are
     `flat` (just the face: no walls, edge lines or measuring).
   - **TERMINAL** (`lib/skins/terminal.css`), the built-in look: 1px lines in the widget colour,
-    hard offset shadows the frame sinks into when pressed, and `steps()` motion.
+    hard offset shadows that keys and switches sink into when pressed, and `steps()` motion.
     - Button: a key cap with dotted walls, whose face fills ACTIVE green while pressed and
       dissolves through two dither steps on release. Armed: a blinking dither wash.
       Hold-to-fire: a fill that steps up the key.

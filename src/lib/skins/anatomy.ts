@@ -34,7 +34,7 @@ export type State = (typeof STATES)[number];
 export type StateScope = 'frame' | 'self' | 'key';
 
 /**
- * What an image can do on a part (used by user skins, P8):
+ * What an image can do on a part (user skins, schema.ts):
  *   region  a surface that stretches: nine-slice, stretch, cover, contain or tile
  *   glyph   a small mark kept in proportion: contain
  *   line    a stroke along one axis: tile or stretch
@@ -61,7 +61,11 @@ export const PARTS = {
   'keycap.edges': { label: 'Key edges', states: { down: 'key' }, image: 'none' },
   'keycap.face': { label: 'Key face', states: { down: 'key' }, image: 'region' },
 
-  'button.key': { label: 'Button key', states: { lit: 'frame' }, image: 'none' },
+  'button.key': {
+    label: 'Button key',
+    states: { lit: 'frame', armed: 'frame', holding: 'frame' },
+    image: 'none',
+  },
   'button.fill': { label: 'Button light', states: { on: 'self', flash: 'self' }, image: 'region' },
   'button.armed': { label: 'Armed wash', states: {}, image: 'region' },
   'button.hold': { label: 'Hold fill', states: {}, image: 'region' },

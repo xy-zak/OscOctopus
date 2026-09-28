@@ -10,7 +10,8 @@
   /* ---- frame: a panel of the cabinet, lit from above, with a moulded edge ---- */
   .frame[data-base='arcade'] {
     --ar-bezel: #111113;
-    --ar-chrome: linear-gradient(to bottom, #f2f2f2, #9c9ca2 50%, #d9d9dc);
+    /* The chrome ring around keys and the switch's slot. */
+    --ar-chrome: #a8a8ae;
     --ar-ball: radial-gradient(circle at 35% 30%, #fff 0 8%, #d4d4d8 25%, #7a7a80 70%, #3a3a3f);
     --ar-slot: #0a0a0b;
     /* Domes, in the widget colour and ACTIVE green: a highlight up and to the left, darker
@@ -29,7 +30,7 @@
     );
     --ar-edge: color-mix(in srgb, var(--c) 55%, #000);
     --switch-inset: 3px;
-    --switch-thumb-len: calc(100cqh - 6px);
+    --switch-thumb-len: calc(100cqh - 2 * var(--switch-inset));
     --slider-cap-len: 24px;
     --slider-track-w: 8px;
     --slider-tick-c: color-mix(in srgb, var(--fg) 45%, transparent);
@@ -57,7 +58,7 @@
     --ar-slot: #2a2a2e;
   }
   .frame[data-base='arcade'][data-vertical] {
-    --switch-thumb-len: calc(100cqw - 6px);
+    --switch-thumb-len: calc(100cqw - 2 * var(--switch-inset));
   }
   .frame[data-base='arcade'][data-active] {
     --ar-edge: var(--act);
@@ -89,7 +90,12 @@
     color: var(--fg);
   }
 
-  /* Release: the lamp under the dome dims. */
+  /* A pressed button or a held or latched pad: the dome lights up green. Release: the lamp
+     under the dome dims. */
+  .frame[data-base='arcade'] [data-part='button.fill'][data-on],
+  .frame[data-base='arcade'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
+    background: var(--ar-dome-act);
+  }
   @keyframes arcade-dim {
     from {
       background: var(--ar-dome-act);
@@ -99,6 +105,10 @@
       background: var(--ar-dome-act);
       opacity: 0;
     }
+  }
+  .frame[data-base='arcade'] [data-part='button.fill'][data-flash],
+  .frame[data-base='arcade'] [data-part='pads.fill'][data-flash] {
+    animation: arcade-dim 280ms ease-out forwards;
   }
 
   /* ---- keys (buttons, pads): a dome in a black bezel with a chrome ring; pressed, it sinks
@@ -115,7 +125,7 @@
     background: var(--ar-dome);
     box-shadow:
       0 0 0 calc(var(--ar-ring, 4px) * 0.6) var(--ar-bezel),
-      0 0 0 var(--ar-ring, 4px) #a8a8ae,
+      0 0 0 var(--ar-ring, 4px) var(--ar-chrome),
       inset 0 -3px 4px rgb(0 0 0 / 0.35),
       inset 0 2px 2px rgb(255 255 255 / 0.25);
     transition:
@@ -128,24 +138,18 @@
     filter: brightness(0.88);
     box-shadow:
       0 0 0 calc(var(--ar-ring, 4px) * 0.6 / 0.94) var(--ar-bezel),
-      0 0 0 calc(var(--ar-ring, 4px) / 0.94) #a8a8ae,
+      0 0 0 calc(var(--ar-ring, 4px) / 0.94) var(--ar-chrome),
       inset 0 3px 5px rgb(0 0 0 / 0.4);
   }
   .frame[data-base='arcade'][data-lit] [data-part='keycap.face'] {
     box-shadow:
       0 0 0 calc(var(--ar-ring, 4px) * 0.6) var(--ar-bezel),
-      0 0 0 var(--ar-ring, 4px) #a8a8ae,
+      0 0 0 var(--ar-ring, 4px) var(--ar-chrome),
       0 0 14px var(--ar-ring, 4px) color-mix(in srgb, var(--act) 45%, transparent),
       inset 0 -3px 4px rgb(0 0 0 / 0.35);
   }
 
-  /* ---- button: the dome lights up green while on ---- */
-  .frame[data-base='arcade'] [data-part='button.fill'][data-on] {
-    background: var(--ar-dome-act);
-  }
-  .frame[data-base='arcade'] [data-part='button.fill'][data-flash] {
-    animation: arcade-dim 280ms ease-out forwards;
-  }
+  /* ---- button: the dome lights up green while on (keys above) ---- */
   .frame[data-base='arcade'] [data-part='button.armed'] {
     background: radial-gradient(
       circle,
@@ -182,7 +186,7 @@
     background: var(--ar-slot);
     box-shadow:
       inset 0 2px 4px rgb(0 0 0 / 0.8),
-      0 0 0 2px #a8a8ae;
+      0 0 0 2px var(--ar-chrome);
     transition: box-shadow 160ms ease;
   }
   .frame[data-base='arcade'][data-on] [data-part='switch.track'] {
@@ -190,9 +194,6 @@
       inset 0 2px 4px rgb(0 0 0 / 0.8),
       inset 0 0 10px color-mix(in srgb, var(--act) 60%, transparent),
       0 0 0 2px var(--act);
-  }
-  .frame[data-base='arcade'] [data-part='switch.tag'] {
-    background: none;
   }
   .frame[data-base='arcade'] [data-part='switch.legend'] {
     transition: opacity 160ms ease;
@@ -322,12 +323,6 @@
   }
 
   /* ---- pads: a grid of small domes; held or latched, lit green ---- */
-  .frame[data-base='arcade'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
-    background: var(--ar-dome-act);
-  }
-  .frame[data-base='arcade'] [data-part='pads.fill'][data-flash] {
-    animation: arcade-dim 280ms ease-out forwards;
-  }
   .frame[data-base='arcade'] [data-part='pads.num'] {
     color: #fff;
     text-shadow: 0 1px 2px rgb(0 0 0 / 0.7);

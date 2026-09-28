@@ -18,7 +18,8 @@
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { onMount } from 'svelte';
   import { isTauri } from './lib/ipc/commands';
-  import { getSetting } from './lib/platform/settings';
+  import { followPresenting } from './lib/platform/fullscreen';
+  import { getSetting, type Settings } from './lib/platform/settings';
   import { appearance } from './lib/state/appearance.svelte';
   import { debugStore } from './lib/state/debug.svelte';
   import { networkStore } from './lib/state/network.svelte';
@@ -32,6 +33,7 @@
   import {
     currentSection,
     currentSections,
+    setLocked,
     setPresenting,
     showGlobal,
     showSectionAt,
@@ -44,6 +46,7 @@
   import HoldSwitch from './lib/ui/HoldSwitch.svelte';
   import PixelLogo from './lib/ui/PixelLogo.svelte';
   import { measureCharWidth } from './lib/ui/textfit';
+  import ToggleSwitch from './lib/ui/ToggleSwitch.svelte';
   import { errorText } from './lib/util';
   import ContainerTabs from './views/ContainerTabs.svelte';
   import Desk from './views/Desk.svelte';
@@ -111,37 +114,19 @@
     };
   });
 
-  // Remember per-device state: info panel, LOCK, PAUSE and PRESENTING survive restarts.
-  $effect(() => {
-    const open = ui.infoOpen;
-    if (ready) void persistSetting('infoOpen', open);
-  });
-  $effect(() => {
-    const locked = ui.locked;
-    if (ready) void persistSetting('locked', locked);
-  });
-  $effect(() => {
-    const presenting = ui.presenting;
-    if (ready) void persistSetting('presenting', presenting);
-  });
-  $effect(() => {
-    const paused = networkStore.paused;
-    if (ready) void persistSetting('paused', paused);
-  });
-  $effect(() => {
-    const enabled = inputStore.enabled;
-    if (ready) void persistSetting('inputEnabled', enabled);
-  });
-
-  function setLocked(locked: boolean) {
-    ui.locked = locked;
-    if (locked) {
-      // Locking ends any edit in progress.
-      ui.mode = 'live';
-      ui.selectedId = null;
-      ui.confirm?.resolve(false);
-    }
+  // Per-device state that survives restarts: the info panel, OSC-IN, OSC-OUT, LOCK and
+  // PRESENTING. Saved on every change once startup has restored it, never before.
+  function remember<K extends keyof Settings>(key: K, read: () => Settings[K]) {
+    $effect(() => {
+      const value = read();
+      if (ready) void persistSetting(key, value);
+    });
   }
+  remember('infoOpen', () => ui.infoOpen);
+  remember('inputEnabled', () => inputStore.enabled);
+  remember('paused', () => networkStore.paused);
+  remember('locked', () => ui.locked);
+  remember('presenting', () => ui.presenting);
 
   // Global palette → CSS variables (registered with @property, so changes crossfade).
   $effect(() => {
@@ -155,29 +140,13 @@
   // User skins' stylesheets (built-in skins are in app.css).
   $effect(() => applySkinSheets(skinStore.user));
 
-  // PRESENTING fills the screen: on desktop the window goes fullscreen with it, and back on
-  // EXIT unless it was fullscreen already (phones are full screen anyway). One call at a time,
-  // so a quick on-off-on still ends in the right state.
-  let madeFullscreen = false;
-  let fullscreenQueue = Promise.resolve();
-  async function followPresenting(on: boolean) {
-    const win = getCurrentWindow();
-    if (on && !(await win.isFullscreen())) {
-      await win.setFullscreen(true);
-      madeFullscreen = true;
-    } else if (!on && madeFullscreen) {
-      madeFullscreen = false;
-      await win.setFullscreen(false);
-    }
-  }
+  // On desktop the window follows PRESENTING into fullscreen and back (platform/fullscreen.ts).
   $effect(() => {
     const on = ui.presenting;
     if (!ready) return;
-    fullscreenQueue = fullscreenQueue
-      .then(() => followPresenting(on))
-      .catch((e: unknown) =>
-        debugStore.local(`could not ${on ? 'enter' : 'leave'} fullscreen: ${errorText(e)}`),
-      );
+    followPresenting(on).catch((e: unknown) =>
+      debugStore.local(`could not ${on ? 'enter' : 'leave'} fullscreen: ${errorText(e)}`),
+    );
   });
 
   const desk = $derived(presetStore.current);
@@ -203,6 +172,12 @@
   let lockSwitch: ReturnType<typeof HoldSwitch> | undefined = $state();
   /** The switch an Alt shortcut is holding, and that key's code. */
   let held: { sw: ReturnType<typeof HoldSwitch>; code: string } | null = null;
+  /** Alt+<key> holds these. */
+  const holdKeys = $derived<Record<string, ReturnType<typeof HoldSwitch> | undefined>>({
+    i: inSwitch,
+    p: outSwitch,
+    l: lockSwitch,
+  });
 
   // F1…F5: sections of whatever container you're in. F11 presents and back; Esc also stops
   // presenting. Alt+E edit. Alt+I OSC-IN, Alt+P OSC-OUT and Alt+L LOCK are held like their
@@ -224,7 +199,7 @@
     }
     if (!e.altKey || e.ctrlKey || e.metaKey) return;
     const k = e.key.toLowerCase();
-    const sw = k === 'i' ? inSwitch : k === 'p' ? outSwitch : k === 'l' ? lockSwitch : undefined;
+    const sw = holdKeys[k];
     if (sw) {
       if (!e.repeat && !held) {
         held = { sw, code: e.code };
@@ -294,12 +269,12 @@
   <header class="top">
     {#if !ui.presenting}<span class="brand" title="OscOctopus"><PixelLogo /></span>{/if}
     {#if ready}<ContainerTabs />{:else}<span class="tabs-placeholder"></span>{/if}
-    <!-- Master section: affects ALL desks, so it sits outside every tab and frame. -->
-    <!-- The master bar affects every desk. Status first (click to open it), then the switches,
-         from least to most restrictive: OSC-IN lets incoming OSC in, OSC-OUT outgoing, LOCK
-         freezes everything. PRESENT is last: it changes the view, not what the app does. All six
-         share one shape (.mbtn, app.css); a switch fills with the accent while on. Presenting
-         hides only the status, so the switches never move. -->
+    <!-- The master bar affects every desk, so it sits outside every tab and frame. Status first
+         (click to open it), then the switches, from least to most restrictive: OSC-IN lets
+         incoming OSC in, OSC-OUT outgoing, LOCK freezes everything. PRESENT is last: it changes
+         the view, not what the app does. All six share one shape (.mbtn, app.css); a switch
+         fills with the accent while on. Presenting hides only the status, so the switches never
+         move. -->
     <div class="master" aria-label="All desks">
       {#if !ui.presenting}
         <button
@@ -359,17 +334,15 @@
           ? 'Locked: hold for 1 second to unlock (Alt+L)'
           : 'Hold for 1 second to lock widgets and settings for a show (Alt+L)'}
       />
-      <button
-        class="mbtn switch wide"
-        class:accent={ui.presenting}
-        role="switch"
-        aria-checked={ui.presenting}
+      <ToggleSwitch
+        label="PRESENT"
+        wide
+        on={ui.presenting}
+        onclick={() => setPresenting(!ui.presenting)}
         title={ui.presenting
           ? 'Presenting: only this desk’s widgets, full screen. Click to stop (Esc or F11)'
           : 'PRESENT: only this desk’s widgets, full screen. Desk tabs and these switches stay (F11)'}
-        onclick={() => setPresenting(!ui.presenting)}
-        ><span class="box">[{ui.presenting ? '■' : '\u00a0'}]</span>PRESENT</button
-      >
+      />
     </div>
   </header>
 

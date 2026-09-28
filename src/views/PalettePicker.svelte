@@ -4,6 +4,7 @@
   // built-in ones, each with an EDIT button.
   import { appearance } from '../lib/state/appearance.svelte';
   import { PALETTE_IDS, PALETTES, type Palette } from '../lib/theme/palettes';
+  import Choice from '../lib/ui/Choice.svelte';
   import Icon from '../lib/ui/Icon.svelte';
 
   interface Props {
@@ -21,30 +22,23 @@
   ]);
   const anyCustom = $derived(theme.custom.length > 0);
 
-  function pick(id: string) {
-    if (theme.palette !== id) void appearance.set({ palette: id as typeof theme.palette });
-  }
+  const pick = (id: string) => void appearance.set({ palette: id as typeof theme.palette });
 </script>
 
 <div class="palettes" role="radiogroup" aria-label="Palette">
   {#each rows as { id, palette, custom }, n (id)}
     {#if custom && !rows[n - 1]?.custom}<div class="group faint">CUSTOM</div>{/if}
     <div class="row">
-      <button
-        type="button"
-        role="radio"
-        aria-checked={theme.palette === id}
-        class="pal"
-        class:on={theme.palette === id}
+      <Choice
+        on={theme.palette === id}
+        name={palette.name}
         title={palette.note}
-        onclick={() => pick(id)}
+        onpick={() => pick(id)}
       >
-        <span class="radio">{theme.palette === id ? '(•)' : '( )'}</span>
-        <span class="name">{palette.name}</span>
-        <span class="strip">
+        <span class="strip" class:dim={theme.palette !== id}>
           {#each palette.colors as c, i (i)}<span style:background={c}></span>{/each}
         </span>
-      </button>
+      </Choice>
       {#if custom}
         <button
           type="button"
@@ -76,45 +70,12 @@
     margin: 8px 0 2px;
     padding-left: 0.5ch;
   }
-  .pal {
-    flex: 1;
-    min-width: 0;
-    display: grid;
-    grid-template-columns: 3ch 12ch 1fr;
-    gap: 1ch;
-    align-items: center;
-    padding: 3px 0.5ch;
-    border: 1px solid transparent;
-    background: none;
-    color: var(--fg-dim);
-    text-align: left;
-    transition:
-      border-color var(--t-ui) steps(2),
-      color var(--t-ui) steps(2);
-  }
-  .pal:hover {
-    color: var(--fg);
-    border-color: var(--line);
-  }
-  .pal.on {
-    color: var(--fg);
-    border-color: var(--accent);
-    font-weight: 700;
-  }
-  .radio {
-    color: var(--accent-text);
-  }
-  .name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
   .strip {
     display: grid;
     grid-template-columns: repeat(10, 1fr);
     height: 12px;
   }
-  .pal:not(.on) .strip {
+  .strip.dim {
     /* Unselected palettes read as dimmer, dithered previews. */
     mask: repeating-conic-gradient(#000 0 25%, #0008 0 50%) 0 0 / 2px 2px;
   }

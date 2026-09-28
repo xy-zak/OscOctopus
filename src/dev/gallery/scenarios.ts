@@ -7,7 +7,7 @@
 // gestures show their pressed/dragging look without changing the value.
 import type { Widget, WidgetType } from '../../lib/model/preset';
 import type { WidgetValue } from '../../lib/osc/value';
-import { newWidget } from '../../lib/widgets/defs';
+import { previewWidget } from '../../lib/skins/preview';
 import type { WidgetOf } from '../../lib/widgets/types';
 
 /** A point inside the widget, as fractions of its box (0,0 top-left … 1,1 bottom-right). */
@@ -41,8 +41,7 @@ function make<T extends WidgetType>(
   tweak: (w: WidgetOf<T>) => void = () => {},
   rest: Omit<Scenario, 'id' | 'widget' | 'size'> = {},
 ): Scenario {
-  const w = newWidget(type, { x: 0, y: 0, w: 1, h: 1 }, []);
-  w.id = `preview-${id}`;
+  const w = previewWidget(type, id);
   tweak(w);
   return { id, widget: w, size, ...rest };
 }

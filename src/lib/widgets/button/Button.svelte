@@ -111,12 +111,14 @@
     clearTimeout(holdTimer);
   });
 
+  /** The readout's prefix for each way of firing. */
+  const ARM_TAG = { none: '', double: '2× ', hold: 'HOLD ' } as const;
   const status = $derived(
     armed
       ? 'ARMED'
       : holding
         ? 'HOLD…'
-        : `${p.arm === 'double' ? '2× ' : p.arm === 'hold' ? 'HOLD ' : ''}${p.mode === 'trigger' ? 'TRIG ' : ''}${shown}`,
+        : `${ARM_TAG[p.arm]}${p.mode === 'trigger' ? 'TRIG ' : ''}${shown}`,
   );
 
   function onpointerdown(e: PointerEvent) {

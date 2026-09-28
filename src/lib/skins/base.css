@@ -21,7 +21,8 @@
    The same in every skin, so a desk reads the same whatever it wears (anatomy.test.ts holds
    the skins to it): the typography (one font, one size; weights and case below), where titles
    and values go (WidgetFrame), the markers (the fader's scale, the switch's ON/OFF, pad
-   numbers, the list's ▸), and the desk's plain background (no skin styles the desk). */
+   numbers, the list's ▸, the graph's axis labels), and the desk's plain background (no skin
+   styles the desk). */
 @layer skin.base {
   /* [data-part='frame'], not .frame: the app shell has a .frame of its own (App.svelte). */
   [data-part='frame'] {

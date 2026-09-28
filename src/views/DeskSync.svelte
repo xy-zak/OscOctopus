@@ -15,7 +15,8 @@
   import Panel from '../lib/ui/Panel.svelte';
   import Toggle from '../lib/ui/Toggle.svelte';
   import { errorText } from '../lib/util';
-  import { duplicateDesk, runAction } from './deskActions';
+  import { runAction } from './actions';
+  import { duplicateDesk } from './deskActions';
 
   const desk = $derived(presetStore.current);
   const view = $derived(sharedDesks.view[desk.id]);

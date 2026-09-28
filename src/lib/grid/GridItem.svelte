@@ -4,6 +4,7 @@
   // Invalid drops spring back.
   import type { Snippet } from 'svelte';
   import { tapHaptic, tickHaptic } from '../platform/haptics';
+  import { flag } from '../skins/anatomy';
   import * as touch from '../state/touch';
   import {
     isFree,
@@ -137,7 +138,7 @@
   class:selected
   class:focused={focused && !editing}
   class:lifted={gesture?.moved}
-  data-lifted={gesture?.moved ? '' : undefined}
+  data-lifted={flag(gesture?.moved)}
   class:held={editing && !!holder}
   style:--holder={holder?.color}
   class:invalid={gesture?.moved && !valid}

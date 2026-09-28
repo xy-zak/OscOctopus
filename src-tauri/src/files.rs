@@ -1,8 +1,8 @@
-//! File helpers shared by preset storage and exports.
+//! File helpers shared by preset and skin storage, imports and exports.
 
 use std::fs;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde_json::Value;
@@ -19,6 +19,24 @@ pub fn require_json(path: &Path) -> AppResult<()> {
             path.display()
         ))),
     }
+}
+
+/// The `.json` files directly in `dir` (created first if missing), each with its file stem.
+pub fn json_files(dir: &Path) -> AppResult<Vec<(String, PathBuf)>> {
+    fs::create_dir_all(dir)?;
+    let mut out = Vec::new();
+    for entry in fs::read_dir(dir)? {
+        let path = entry?.path();
+        if path.extension().and_then(|e| e.to_str()) != Some("json") {
+            continue;
+        }
+        let stem = path
+            .file_stem()
+            .map(|s| s.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        out.push((stem, path));
+    }
+    Ok(out)
 }
 
 /// Reads a JSON file, refusing files larger than `max_bytes`.

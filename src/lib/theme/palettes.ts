@@ -31,6 +31,9 @@ export type PaletteId = (typeof PALETTE_IDS)[number];
 
 export const PALETTE_SIZE = 10;
 
+/** The palette of a fresh install, and the one shown in place of a deleted custom palette. */
+export const DEFAULT_PALETTE: PaletteId = 'rainbow';
+
 /** Palette index of the default accent, also the first desk's identity colour. */
 export const DEFAULT_ACCENT = 5;
 
@@ -311,7 +314,7 @@ export const isBuiltIn = (id: string): id is PaletteId =>
 /** A theme's palette: built-in, or one of its custom ones. One that was deleted is RAINBOW. */
 export function resolvePalette(id: string, custom: readonly CustomPalette[]): Palette {
   if (isBuiltIn(id)) return PALETTES[id];
-  return custom.find((p) => p.id === id) ?? PALETTES.rainbow;
+  return custom.find((p) => p.id === id) ?? PALETTES[DEFAULT_PALETTE];
 }
 
 /** The theme with `palette` added, or replacing the custom palette with the same id. */
@@ -327,7 +330,7 @@ export function withCustomPalette(theme: Theme, palette: CustomPalette): Theme {
 export function withoutCustomPalette(theme: Theme, id: string): Theme {
   return {
     ...theme,
-    palette: theme.palette === id ? 'rainbow' : theme.palette,
+    palette: theme.palette === id ? DEFAULT_PALETTE : theme.palette,
     custom: theme.custom.filter((p) => p.id !== id),
   };
 }

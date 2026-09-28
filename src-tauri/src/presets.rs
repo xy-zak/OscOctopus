@@ -13,7 +13,7 @@ use serde_json::Value;
 use ts_rs::TS;
 
 use crate::error::{AppError, AppResult};
-use crate::files::{read_json, require_json, write_atomic};
+use crate::files::{json_files, read_json, require_json, write_atomic};
 use crate::net::NetworkConfig;
 
 /// Refuse to read files larger than this; presets are small.
@@ -86,21 +86,9 @@ fn summary(preset: &Value) -> AppResult<PresetSummary> {
 }
 
 pub fn list(dir: &Path) -> AppResult<Vec<PresetSummary>> {
-    fs::create_dir_all(dir)?;
     let mut out = Vec::new();
-    for entry in fs::read_dir(dir)? {
-        let path = entry?.path();
-        if path.extension().and_then(|e| e.to_str()) != Some("json") {
-            continue;
-        }
-        let file_name = path
-            .file_name()
-            .map(|n| n.to_string_lossy().into_owned())
-            .unwrap_or_default();
-        let stem = path
-            .file_stem()
-            .map(|s| s.to_string_lossy().into_owned())
-            .unwrap_or_default();
+    for (stem, path) in json_files(dir)? {
+        let file_name = format!("{stem}.json");
         out.push(
             read_json(&path, MAX_PRESET_BYTES)
                 .and_then(|v| summary(&v))

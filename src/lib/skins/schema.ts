@@ -4,6 +4,7 @@
 // Never the typography, where titles, values and markers go, or the desk (docs/SKINS.md): the
 // schema can't express them, and compile.ts turns it into CSS from enums and numbers only.
 import { z } from 'zod';
+import { HexColor } from '../model/preset';
 import { MARKER_PARTS, PARTS, STATES, TOKENS, type PartName } from './anatomy';
 import { BUILTIN_SKIN_IDS } from './builtin';
 
@@ -21,7 +22,6 @@ export const SKIN_LIMITS = {
 
 export const SkinId = z.string().regex(/^skin-[a-z0-9]{1,32}$/);
 export const ImageRef = z.string().regex(/^img-[a-z0-9]{1,16}$/);
-const HexColor = z.string().regex(/^#[0-9a-f]{6}$/);
 
 /** Colour roles a skin paints with (skins/base.css); they follow the palette and light mode. */
 export const ROLES = [
@@ -73,6 +73,9 @@ export const Shadow = z
   })
   .strict();
 
+/** A nine-slice inset, in image px. */
+const Slice = z.number().int().min(0).max(512);
+
 /**
  * An image on a part: nine-slice (corners kept, edges and middle stretched), stretched,
  * cover/contain, or tiled. `tint` draws it in a colour role instead (the image is a mask: line
@@ -82,14 +85,11 @@ export const ImageUse = z
   .object({
     ref: ImageRef,
     mode: z.enum(['nine', 'stretch', 'cover', 'contain', 'tile']),
-    slice: z.tuple([Slice(), Slice(), Slice(), Slice()]).default([0, 0, 0, 0]),
+    slice: z.tuple([Slice, Slice, Slice, Slice]).default([0, 0, 0, 0]),
     tint: Role.nullable().default(null),
     layer: z.enum(['under', 'over']).default('under'),
   })
   .strict();
-function Slice() {
-  return z.number().int().min(0).max(512);
-}
 export type ImageUse = z.infer<typeof ImageUse>;
 
 /** What a skin changes on a part in one state. Anything left out stays the base skin's. */
@@ -183,8 +183,7 @@ export const SkinSchema = z
         }
       }
     }
-    const images = Object.values(skin.images);
-    if (images.length > SKIN_LIMITS.images) issue(['images'], 'too many images');
+    if (Object.keys(skin.images).length > SKIN_LIMITS.images) issue(['images'], 'too many images');
     let total = 0;
     for (const [ref, img] of Object.entries(skin.images)) {
       const bytes = decodedBytes(img.data);

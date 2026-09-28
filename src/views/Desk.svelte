@@ -7,6 +7,7 @@
   import { syncSession } from '../lib/sync/session.svelte';
   import { colorVars } from '../lib/theme/palettes';
   import Icon from '../lib/ui/Icon.svelte';
+  import ToggleSwitch from '../lib/ui/ToggleSwitch.svelte';
   import { DEFS, WIDGET_TYPES } from '../lib/widgets/defs';
   import DeskPanel from './DeskPanel.svelte';
   import Inspector from './Inspector.svelte';
@@ -94,35 +95,32 @@
             >drag: move · handles: resize · arrows: nudge · del: remove · esc: deselect</span
           >
         {:else}
-          <!-- A switch like the master bar's (.mbtn), for the side panel. -->
-          <button
-            class="mbtn switch info"
-            class:accent={ui.infoOpen}
-            role="switch"
-            aria-checked={ui.infoOpen}
-            title={ui.infoOpen
-              ? 'Hide the widget info panel'
-              : 'Show the widget info panel (value, messages, activity)'}
-            onclick={() => (ui.infoOpen = !ui.infoOpen)}
-            ><span class="box">[{ui.infoOpen ? '■' : '\u00a0'}]</span>INFO</button
-          >
+          <!-- A switch like the master bar's, for the side panel. -->
+          <span class="info">
+            <ToggleSwitch
+              label="INFO"
+              on={ui.infoOpen}
+              onclick={() => (ui.infoOpen = !ui.infoOpen)}
+              title={ui.infoOpen
+                ? 'Hide the widget info panel'
+                : 'Show the widget info panel (value, messages, activity)'}
+            />
+          </span>
         {/if}
       </div>
       <!-- Live ⇄ edit, the same kind of switch. Outside the scrolling tools and last in the row,
          so it stays in one place in both modes and never scrolls out of reach. -->
-      <button
-        class="mbtn switch"
-        class:accent={editing}
-        role="switch"
-        aria-checked={editing}
+      <ToggleSwitch
+        label="EDIT"
+        on={editing}
         disabled={ui.locked}
+        onclick={toggleEditMode}
         title={ui.locked
           ? 'Locked'
           : editing
             ? 'Back to LIVE: play the widgets (Alt+E)'
             : 'Switch to EDIT: move and change widgets (Alt+E)'}
-        onclick={toggleEditMode}><span class="box">[{editing ? '■' : '\u00a0'}]</span>EDIT</button
-      >
+      />
     </div>
   {/if}
   {#if conflicts.length || (editing && invalid.length)}
@@ -204,12 +202,11 @@
   .info {
     margin-left: auto;
   }
-  .toolbar > .mbtn {
-    flex: none;
+  .info {
+    display: flex;
   }
-  .toolbar > .mbtn:disabled {
-    opacity: 0.4;
-    cursor: default;
+  .toolbar > :global(.mbtn) {
+    flex: none;
   }
   /* Concurrent edits that clash (shared desks): shown, never fixed automatically. */
   .conflicts {

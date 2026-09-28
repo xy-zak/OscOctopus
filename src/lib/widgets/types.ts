@@ -23,7 +23,6 @@ export interface ChannelInfo {
  * - queue: discrete events (presses, hits, selections). Every value is sent, in order.
  * - throttle: continuous values. At most `maxHz` per second; the newest value wins and the
  *   resting value always goes out.
- * - merge: like throttle, but held-back values are merged (an encoder's +1 +1 +1 → +3).
  */
 export type Gate = { kind: 'queue' } | { kind: 'throttle'; maxHz: number };
 

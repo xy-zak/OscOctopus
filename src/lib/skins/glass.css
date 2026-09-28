@@ -13,9 +13,8 @@
     --g-shadow: rgb(0 0 0 / 0.45);
     --g-well: rgb(0 0 0 / 0.25);
     --g-knob: #fff;
-    --g-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
     --switch-inset: 3px;
-    --switch-thumb-len: calc(100cqh - 6px);
+    --switch-thumb-len: calc(100cqh - 2 * var(--switch-inset));
     --slider-cap-len: 24px;
     --slider-track-w: 6px;
     --slider-tick-c: color-mix(in srgb, var(--fg) 30%, transparent);
@@ -31,7 +30,7 @@
       0 10px 30px -8px var(--g-shadow),
       inset 0 1px 0 var(--g-hi);
     transition:
-      scale 220ms var(--g-ease),
+      scale 220ms var(--ease-out),
       box-shadow 220ms ease,
       border-color 220ms ease;
   }
@@ -44,7 +43,7 @@
     --g-well: rgb(0 0 0 / 0.08);
   }
   .frame[data-base='glass'][data-vertical] {
-    --switch-thumb-len: calc(100cqw - 6px);
+    --switch-thumb-len: calc(100cqw - 2 * var(--switch-inset));
   }
   .frame[data-base='glass'][data-active] {
     border-color: color-mix(in srgb, var(--act) 60%, transparent);
@@ -90,6 +89,16 @@
       background: transparent;
     }
   }
+  .frame[data-base='glass'] [data-part='button.fill'][data-flash],
+  .frame[data-base='glass'] [data-part='pads.fill'][data-flash],
+  .frame[data-base='glass'] [data-part='list.fill'][data-flash] {
+    animation: glass-fade 360ms ease-out forwards;
+  }
+  /* Held or latched pads and held list options fill ACTIVE green. */
+  .frame[data-base='glass'] [data-part='pads.pad'][data-on] [data-part='pads.fill'],
+  .frame[data-base='glass'] [data-part='list.option'][data-held] [data-part='list.fill'] {
+    background: var(--act);
+  }
 
   /* ---- keys (buttons, pads): flat rounded tiles in the widget colour ---- */
   .frame[data-base='glass'] [data-part='keycap.face'] {
@@ -99,7 +108,7 @@
       inset 0 1px 0 var(--g-hi),
       0 1px 2px rgb(0 0 0 / 0.25);
     transition:
-      scale 160ms var(--g-ease),
+      scale 160ms var(--ease-out),
       box-shadow 200ms ease;
   }
   .frame[data-base='glass'] [data-part='keycap'][data-down] [data-part='keycap.face'] {
@@ -115,9 +124,6 @@
   /* ---- button ---- */
   .frame[data-base='glass'] [data-part='button.fill'][data-on] {
     background: color-mix(in srgb, var(--act) 85%, transparent);
-  }
-  .frame[data-base='glass'] [data-part='button.fill'][data-flash] {
-    animation: glass-fade 360ms ease-out forwards;
   }
   .frame[data-base='glass'] [data-part='button.armed'] {
     background: color-mix(in srgb, var(--act) 35%, transparent);
@@ -190,13 +196,13 @@
   .frame[data-base='glass'] [data-part='slider.fill'] {
     border-radius: 999px;
     background: var(--act);
-    transition: clip-path 220ms var(--g-ease);
+    transition: clip-path 220ms var(--ease-out);
   }
   .frame[data-base='glass'][data-dragging] [data-part='slider.fill'] {
     transition: none;
   }
   .frame[data-base='glass'] [data-part='slider.cap'] {
-    transition: transform 220ms var(--g-ease);
+    transition: transform 220ms var(--ease-out);
   }
   .frame[data-base='glass'][data-dragging] [data-part='slider.cap'] {
     transition: none;
@@ -214,7 +220,7 @@
     border-radius: 50%;
     background: var(--g-knob);
     box-shadow: 0 2px 8px rgb(0 0 0 / 0.35);
-    transition: scale 160ms var(--g-ease);
+    transition: scale 160ms var(--ease-out);
   }
   .frame[data-base='glass'][data-dragging] [data-part='slider.cap']::before {
     scale: 1.12;
@@ -222,7 +228,6 @@
 
   /* ---- graph: a darker well with faint quarter lines and a glowing round cursor ---- */
   .frame[data-base='glass'] [data-part='graph.plot'] {
-    --paper: transparent;
     --g-grid: rgb(255 255 255 / 0.1);
     border-radius: 10px;
     background: var(--g-well);
@@ -237,7 +242,7 @@
   }
   .frame[data-base='glass'] [data-part='graph.cross'] {
     background: color-mix(in srgb, var(--act) 50%, transparent);
-    transition: transform 220ms var(--g-ease);
+    transition: transform 220ms var(--ease-out);
   }
   .frame[data-base='glass'] [data-part='graph.cursor'] {
     border-radius: 50%;
@@ -245,7 +250,7 @@
     box-shadow:
       0 0 0 2px var(--g-knob),
       0 0 16px var(--act);
-    transition: transform 220ms var(--g-ease);
+    transition: transform 220ms var(--ease-out);
   }
   .frame[data-base='glass'][data-dragging] [data-part='graph.cross'],
   .frame[data-base='glass'][data-dragging] [data-part='graph.cursor'] {
@@ -256,7 +261,7 @@
     border-radius: 50%;
     opacity: 0;
     transition:
-      inset 200ms var(--g-ease),
+      inset 200ms var(--ease-out),
       opacity 160ms ease;
   }
   .frame[data-base='glass'][data-dragging] {
@@ -288,12 +293,6 @@
       0 0 14px -2px color-mix(in srgb, var(--act) 70%, transparent),
       inset 0 1px 0 var(--g-hi);
   }
-  .frame[data-base='glass'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
-    background: var(--act);
-  }
-  .frame[data-base='glass'] [data-part='pads.fill'][data-flash] {
-    animation: glass-fade 360ms ease-out forwards;
-  }
   .frame[data-base='glass'] [data-part='pads.num'] {
     color: color-mix(in srgb, var(--fg) 85%, transparent);
   }
@@ -321,12 +320,6 @@
   }
   .frame[data-base='glass'] [data-part='list.option'][data-held] {
     color: var(--act-ink);
-  }
-  .frame[data-base='glass'] [data-part='list.option'][data-held] [data-part='list.fill'] {
-    background: var(--act);
-  }
-  .frame[data-base='glass'] [data-part='list.fill'][data-flash] {
-    animation: glass-fade 360ms ease-out forwards;
   }
   .frame[data-base='glass'] [data-part='list.mark'] {
     color: var(--act);
