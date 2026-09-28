@@ -6,7 +6,7 @@
 // base64 checked by the schema), so nothing a skin file says can escape into the CSS.
 //
 // A part's `rest` style applies while it shows no other look: a fader cap styled at rest still
-// turns the base skin's ACTIVE green while dragged, unless the skin styles `dragging` too.
+// turns the base skin's ACTIVE colour while dragged, unless the skin styles `dragging` too.
 import { PARTS, type PartName, type State, type StateScope } from './anatomy';
 import type { ImageUse, Paint, PartStyles, Role, Skin, StateKey, Style } from './schema';
 

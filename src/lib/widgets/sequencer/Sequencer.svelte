@@ -98,10 +98,8 @@
 </script>
 
 <WidgetFrame
-  type="sequencer"
+  {widget}
   {live}
-  title={widget.label}
-  color={widget.color}
   {status}
   active={!!run}
   data-running={flag(running)}

@@ -24,6 +24,7 @@ export function newStep(address: string, n: number, delayMs: number): SeqStep {
 
 export const sequencerDef: WidgetDef<SequencerWidget> = {
   label: 'Sequencer',
+  readout: 'Step and pass',
   defaultSize: { w: 3, h: 2 },
   create: (base, n, outputIds) => ({
     ...base,

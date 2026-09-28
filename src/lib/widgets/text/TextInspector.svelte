@@ -1,12 +1,14 @@
 <script lang="ts">
   // INTERACTION for a text widget: what it shows (its mode and source text, in markup.ts's
-  // marks), how big and where, and for a monitor, which widget of this desk it follows.
+  // marks), how big at most (fit.ts) and where, and for a monitor, which widget of this desk it
+  // follows.
   import { LIMITS, type TextWidget } from '../../model/preset';
   import { presetStore } from '../../state/preset.svelte';
   import Field from '../../ui/Field.svelte';
   import NumberInput from '../../ui/NumberInput.svelte';
   import Segmented from '../../ui/Segmented.svelte';
   import { channelsFor, DEFS } from '../defs';
+  import { MIN_TEXT_PX, TEXT_PX } from './fit';
   import { parseMarkup, placeholdersOf } from './markup';
 
   let { widget = $bindable(), onchange }: { widget: TextWidget; onchange: () => void } = $props();
@@ -94,13 +96,19 @@
   {/if}
 
   <div class="grid2">
-    <Field label="Size">
+    <Field
+      label="Size"
+      hint="The largest it gets: it shrinks to fit, down to {MIN_TEXT_PX} px, then ends in …"
+      wide
+    >
       <Segmented
         options={[
-          { value: 's', label: 'S' },
-          { value: 'm', label: 'M' },
-          { value: 'l', label: 'L' },
-          { value: 'xl', label: 'XL' },
+          { value: 'fit', label: 'Fit', title: 'As large as the box allows' },
+          ...(['s', 'm', 'l', 'xl'] as const).map((value) => ({
+            value,
+            label: value.toUpperCase(),
+            title: `At most ${TEXT_PX[value]} px`,
+          })),
         ]}
         bind:value={widget.props.size}
         {onchange}

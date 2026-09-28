@@ -7,6 +7,7 @@ import type { WidgetDef } from '../types';
 
 export const padsDef: WidgetDef<PadsWidget> = {
   label: 'Pads',
+  readout: 'Rows × columns',
   defaultSize: { w: 4, h: 4 },
   // One message per hit: which pad, and whether it went on or off.
   create: (base, n, outputIds) => ({

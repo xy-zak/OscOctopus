@@ -8,6 +8,7 @@ const IDLE = 0;
 
 export const logDef: WidgetDef<LogWidget> = {
   label: 'Log',
+  readout: 'Rows shown / kept',
   defaultSize: { w: 6, h: 3 },
   create: (base, n) => ({
     ...base,

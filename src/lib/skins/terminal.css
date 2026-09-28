@@ -75,7 +75,7 @@
   }
   /* Button, pad and sequencer keys are the widget colour; lit (a fired, armed or holding
      button, a held or latched pad, a sequencer key while its run is going), their lines and
-     shading turn ACTIVE green. */
+     shading turn ACTIVE. */
   .frame[data-base='terminal'] [data-part='button.key'],
   .frame[data-base='terminal'] [data-part='pads.pad'],
   .frame[data-base='terminal'] [data-part='sequencer.key'] {
@@ -91,8 +91,8 @@
     --key-dots: color-mix(in srgb, var(--act) 55%, transparent);
   }
 
-  /* Pressed buttons and sequencer keys, held or latched pads and held list options fill ACTIVE
-     green. Release: a pixel dissolve from ACTIVE green back to the widget colour, solid → 50%
+  /* Pressed buttons and sequencer keys, held or latched pads and held list options fill
+     ACTIVE. Release: a pixel dissolve from ACTIVE back to the widget colour, solid → 50%
      dither → 25% dither → gone. */
   .frame[data-base='terminal'] [data-part='button.fill'][data-on],
   .frame[data-base='terminal'] [data-part='sequencer.fill'][data-on],
@@ -122,7 +122,7 @@
   }
 
   /* ---- button: at rest the key is the widget colour; lit (fired, armed, holding), its lines
-     and shading turn the ACTIVE green and the face fills green while pressed (keys above). ---- */
+     and shading turn ACTIVE and the face fills ACTIVE while pressed (keys above). ---- */
   /* ARMED: a blinking dithered wash; the next press fires. */
   .frame[data-base='terminal'] [data-part='button.armed'] {
     background: var(--dither-50-act);
@@ -150,7 +150,7 @@
     color: var(--c-ink);
   }
 
-  /* ---- switch: a solid block on a dithered groove; everything turns ACTIVE green when on ---- */
+  /* ---- switch: a solid block on a dithered groove; everything turns ACTIVE when on ---- */
   /* The fader's track is the same groove. */
   .frame[data-base='terminal'] [data-part='switch.track'],
   .frame[data-base='terminal'] [data-part='slider.track'],
@@ -193,7 +193,7 @@
     transition: background var(--t-ui) steps(2);
   }
 
-  /* ---- fader: the Switch's groove as a narrow track filling with denser ACTIVE green dots,
+  /* ---- fader: the Switch's groove as a narrow track filling with denser ACTIVE dots,
      a solid cap wider than the track with a grip line, and a printed scale either side ---- */
   .frame[data-base='terminal'][data-dragging] [data-part='slider.track'] {
     border-color: var(--act);
@@ -232,7 +232,7 @@
   }
 
   /* ---- graph: neutral paper with a dot grid printed in the widget colour; the cursor, its
-     dashed crosshairs and trail are ACTIVE green, and brackets lock on while held ---- */
+     dashed crosshairs and trail are ACTIVE, and brackets lock on while held ---- */
   .frame[data-base='terminal'] [data-part='graph.plot'] {
     --grid-line: color-mix(in srgb, var(--c) 45%, transparent);
     --paper: var(--bg-2);
@@ -301,7 +301,7 @@
     background: var(--paper);
   }
 
-  /* ---- pads: small key caps in the widget colour; held or latched, ACTIVE green ---- */
+  /* ---- pads: small key caps in the widget colour; held or latched, ACTIVE ---- */
   .frame[data-base='terminal'] [data-part='pads.num'] {
     color: var(--c-ink);
   }
@@ -310,7 +310,7 @@
   }
 
   /* ---- list: blocks in the widget colour, the current one marked (bold, ▸), not lit; an
-     option lights ACTIVE green only while pressed, then dissolves like the pads ---- */
+     option lights ACTIVE only while pressed, then dissolves like the pads ---- */
   .frame[data-base='terminal'] [data-part='list.option'] {
     background: var(--c-solid);
     color: color-mix(in srgb, var(--c-ink) 65%, var(--c-solid));
@@ -328,7 +328,7 @@
   }
 
   /* ---- sequencer: two keys in the widget colour (keys above) over a strip of pixel marks,
-     one per step: dithered, the step sent last solid ACTIVE green (dithered green while
+     one per step: dithered, the step sent last solid ACTIVE (dithered ACTIVE while
      paused). PAUSE is dim while there is no run to pause. ---- */
   .frame[data-base='terminal'] [data-part='sequencer.legend'] {
     color: var(--c-ink);

@@ -25,6 +25,7 @@
   import { networkStore } from './lib/state/network.svelte';
   import { startReceiver } from './lib/osc/receiver.svelte';
   import { inputStore } from './lib/state/input.svelte';
+  import { lookStore } from './lib/state/look.svelte';
   import { persistSetting } from './lib/state/persist';
   import { presetStore } from './lib/state/preset.svelte';
   import { sequencerStore } from './lib/state/sequencer.svelte';
@@ -42,7 +43,8 @@
     ui,
   } from './lib/state/ui.svelte';
   import { applySkinSheets } from './lib/skins/sheets';
-  import { colorVars, paletteVars } from './lib/theme/palettes';
+  import { cssText, lookVars } from './lib/theme/look';
+  import { swatchOf } from './lib/theme/palettes';
   import ConfirmDialog from './lib/ui/ConfirmDialog.svelte';
   import HoldSwitch from './lib/ui/HoldSwitch.svelte';
   import PixelLogo from './lib/ui/PixelLogo.svelte';
@@ -131,12 +133,15 @@
   remember('locked', () => ui.locked);
   remember('presenting', () => ui.presenting);
 
-  // Global palette → CSS variables (registered with @property, so changes crossfade).
+  // The look of every desk → CSS variables on :root (registered with @property, so changes
+  // crossfade): what everything outside a desk is coloured by. The desk shown has its own look
+  // around its contents (`deskLook`, on <main>).
   $effect(() => {
     const root = document.documentElement.style;
     const { accent, mode } = appearance.theme;
-    const vars = paletteVars(appearance.palette.colors, accent);
-    for (const [k, v] of Object.entries(vars)) root.setProperty(k, v);
+    for (const [k, v] of Object.entries(lookVars(lookStore.global, accent))) {
+      root.setProperty(k, v);
+    }
     // Light/dark background: tokens.css switches the base colours on data-mode.
     document.documentElement.dataset.mode = mode;
   });
@@ -163,10 +168,16 @@
   const failing = (id: string) =>
     id !== 'network' ? 0 : ui.view === 'desk' ? deskFailing : allFailing;
 
-  // The frame takes the active container's colour: the desk's identity colour, or neutral
-  // white for GLOBAL SETTINGS.
+  // What the frame holds is drawn in the look of its container: the desk's own, or every desk's
+  // for GLOBAL SETTINGS.
+  const frameLook = $derived(ui.view === 'desk' ? lookStore.forDesk(desk.id) : lookStore.global);
+  const frameVars = $derived(cssText(lookVars(frameLook, appearance.theme.accent)));
+  // The frame takes the active container's colour: the desk's identity colour (in its own
+  // palette), or neutral white for GLOBAL SETTINGS.
   const scope = $derived(
-    ui.view === 'desk' ? colorVars(desk.color) : { c: 'var(--fg)', ink: 'var(--bg)' },
+    ui.view === 'desk'
+      ? swatchOf(frameLook.palette, desk.color)
+      : { c: 'var(--fg)', ink: 'var(--bg)' },
   );
 
   // The hold-to-change switches, so their Alt shortcuts can hold them too.
@@ -369,7 +380,7 @@
       </div>
     {/if}
 
-    <main class:locked={ui.locked}>
+    <main class:locked={ui.locked} data-look style={frameVars}>
       {#if fatal}
         <div class="fatal">
           <h2>Cannot start</h2>

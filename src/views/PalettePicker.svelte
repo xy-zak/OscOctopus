@@ -1,45 +1,63 @@
 <script lang="ts">
-  // One row per palette: ( ) NAME ██████████. The palette is global: picking one recolours
-  // every desk (the CSS variables are registered, so it crossfades). Custom palettes follow the
-  // built-in ones, each with an EDIT button.
+  // One row per palette: ( ) NAME ██████████. The palette of every desk (`desk` null, LOOK) or
+  // of one desk (DESK › PRESET), whose list starts with ALL DESKS: it takes every desk's.
+  // Picking one recolours what wears it (the CSS variables are registered, so it crossfades).
+  // Custom palettes follow the built-in ones; in LOOK each has an EDIT button (`onedit`).
   import { appearance } from '../lib/state/appearance.svelte';
+  import { lookStore } from '../lib/state/look.svelte';
+  import type { Look } from '../lib/theme/look';
   import { PALETTE_IDS, PALETTES, type Palette } from '../lib/theme/palettes';
   import Choice from '../lib/ui/Choice.svelte';
   import Icon from '../lib/ui/Icon.svelte';
 
   interface Props {
+    /** A desk's id, or null for every desk. */
+    desk: string | null;
     /** EDIT on a custom palette. */
-    onedit: (id: string) => void;
+    onedit?: (id: string) => void;
     /** The custom palette open in the editor, if any. */
     editing?: string | null;
   }
-  let { onedit, editing = null }: Props = $props();
+  let { desk, onedit, editing = null }: Props = $props();
 
-  const theme = $derived(appearance.theme);
+  const chosen = $derived(lookStore.chosen(desk, 'palette'));
+  const all = $derived(lookStore.global.palette);
   const rows = $derived([
     ...PALETTE_IDS.map((id) => ({ id, palette: PALETTES[id] as Palette, custom: false })),
-    ...theme.custom.map((p) => ({ id: p.id, palette: p as Palette, custom: true })),
+    ...appearance.theme.custom.map((p) => ({ id: p.id, palette: p as Palette, custom: true })),
   ]);
-  const anyCustom = $derived(theme.custom.length > 0);
+  /** EDIT buttons, so every row keeps room for one. */
+  const editable = $derived(onedit !== undefined && appearance.theme.custom.length > 0);
 
-  const pick = (id: string) => void appearance.set({ palette: id as typeof theme.palette });
+  const pick = (id: string | null) => void lookStore.choose(desk, 'palette', id as Look['palette']);
 </script>
 
+{#snippet strip(palette: Palette, on: boolean)}
+  <span class="strip" class:dim={!on}>
+    {#each palette.colors as c, i (i)}<span style:background={c}></span>{/each}
+  </span>
+{/snippet}
+
 <div class="palettes" role="radiogroup" aria-label="Palette">
+  {#if desk !== null}
+    <div class="row">
+      <Choice
+        on={chosen === null}
+        name="ALL DESKS"
+        title="The palette of every desk (GLOBAL SETTINGS › LOOK): {all.name}"
+        onpick={() => pick(null)}
+      >
+        {@render strip(all, chosen === null)}
+      </Choice>
+    </div>
+  {/if}
   {#each rows as { id, palette, custom }, n (id)}
     {#if custom && !rows[n - 1]?.custom}<div class="group faint">CUSTOM</div>{/if}
     <div class="row">
-      <Choice
-        on={theme.palette === id}
-        name={palette.name}
-        title={palette.note}
-        onpick={() => pick(id)}
-      >
-        <span class="strip" class:dim={theme.palette !== id}>
-          {#each palette.colors as c, i (i)}<span style:background={c}></span>{/each}
-        </span>
+      <Choice on={chosen === id} name={palette.name} title={palette.note} onpick={() => pick(id)}>
+        {@render strip(palette, chosen === id)}
       </Choice>
-      {#if custom}
+      {#if custom && onedit}
         <button
           type="button"
           class="btn ghost edit"
@@ -48,7 +66,7 @@
           title="Edit {palette.name}"
           onclick={() => onedit(id)}><Icon name="pencil" /> Edit</button
         >
-      {:else if anyCustom}
+      {:else if editable}
         <!-- Keeps every strip the same length as the custom rows'. -->
         <span class="edit" aria-hidden="true"></span>
       {/if}

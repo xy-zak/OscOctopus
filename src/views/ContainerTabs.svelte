@@ -7,13 +7,14 @@
   // Adding or removing a desk always asks first (see deskActions.ts). When LOCKED, tabs can
   // still be switched (that's performing) but not added or removed. PRESENTING shows the desk
   // tabs only: switching desks is all it is for.
+  import { lookStore } from '../lib/state/look.svelte';
   import { networkStore } from '../lib/state/network.svelte';
   import { presetStore } from '../lib/state/preset.svelte';
   import { showDesk, showGlobal, ui } from '../lib/state/ui.svelte';
   import { sharedDesks } from '../lib/sync/app.svelte';
   import { viewersOf } from '../lib/sync/locks';
   import { syncSession } from '../lib/sync/session.svelte';
-  import { colorVars } from '../lib/theme/palettes';
+  import { colorVars, swatchOf } from '../lib/theme/palettes';
   import Icon from '../lib/ui/Icon.svelte';
   import { addDesk, duplicateDesk, openDesk, removeDesk } from './deskActions';
 
@@ -68,9 +69,10 @@
 <svelte:window {onkeydown} />
 
 <div class="tabs" role="tablist" aria-label="Desks and global settings">
+  <!-- The tabs are outside every desk's look: each shows its colour in its own palette. -->
   {#each presetStore.desks as d, i (d.id)}
     {@const h = health(d.id)}
-    {@const c = colorVars(d.color)}
+    {@const c = swatchOf(lookStore.forDesk(d.id).palette, d.color)}
     {@const on = ui.view === 'desk' && d.id === presetStore.activeId}
     <div class="tab desk" class:on role="presentation" style:--tc={c.c} style:--tc-ink={c.ink}>
       <button

@@ -4,9 +4,9 @@
 import { z } from 'zod';
 import { SEQUENCER_LIMITS } from '../ipc/defaults';
 import type { InputConfig, NetworkConfig, OutputConfig } from '../ipc/types';
-import { PALETTE_IDS, PALETTE_SIZE } from '../theme/palettes';
+import { PALETTE_SIZE } from '../theme/palettes';
 
-export const CURRENT_SCHEMA_VERSION = 10;
+export const CURRENT_SCHEMA_VERSION = 11;
 
 /**
  * Every numeric range the schema enforces. The zod schemas below and the editor fields
@@ -163,6 +163,10 @@ export const ColorIndex = z
   .min(0)
   .max(PALETTE_SIZE - 1);
 
+/** What a widget shows in its frame's border: its title (label) and its value readout. */
+export const WidgetShowSchema = z.object({ title: z.boolean(), value: z.boolean() });
+export type WidgetShow = z.infer<typeof WidgetShowSchema>;
+
 const WidgetBase = z.object({
   id: IdSchema,
   x: z.number().int().min(0),
@@ -170,8 +174,9 @@ const WidgetBase = z.object({
   w: z.number().int().min(1),
   h: z.number().int().min(1),
   label: z.string(),
-  /** Index into the global palette (0–9); null (AUTO) uses the desk's colour. */
+  /** Index into its desk's palette (0–9); null (AUTO) uses the desk's colour. */
   color: ColorIndex.nullable(),
+  show: WidgetShowSchema,
   bindings: z.array(BindingSchema),
 });
 
@@ -284,8 +289,12 @@ export type SequencerProps = z.infer<typeof SequencerPropsSchema>;
 export const TextPropsSchema = z.object({
   mode: z.enum(['text', 'osc', 'monitor']),
   source: z.string().max(LIMITS.textChars.max),
-  /** The one exception to the app's one text size (docs/ARCHITECTURE.md › Visual system). */
-  size: z.enum(['s', 'm', 'l', 'xl']),
+  /**
+   * The largest the text is drawn (fit: as large as the box allows). It shrinks to fit the
+   * box, and is cut with an ellipsis when even the smallest size doesn't (widgets/text/fit.ts).
+   * The one exception to the app's one text size (docs/ARCHITECTURE.md › Visual system).
+   */
+  size: z.enum(['fit', 's', 'm', 'l', 'xl']),
   align: z.enum(['left', 'center', 'right']),
   valign: z.enum(['top', 'middle', 'bottom']),
   target: IdSchema.nullable(),
@@ -407,11 +416,13 @@ export const CustomPaletteSchema = z.object({
 });
 export type CustomPalette = z.infer<typeof CustomPaletteSchema>;
 
-/** The app-wide look (a global setting since v4, no longer part of a preset). */
+/**
+ * The device's colours beyond the look (theme/look.ts, which picks the palette): the accent,
+ * dark or light, and the custom palettes. A global setting since v4, no longer part of a preset.
+ * Saved themes from before looks also name a palette; `look` is made from it once.
+ */
 export const ThemeSchema = z.object({
-  /** A built-in palette, or one of `custom` (a missing one shows as RAINBOW). */
-  palette: z.union([z.enum(PALETTE_IDS), CustomPaletteId]),
-  /** Palette index used for the UI accent and for widgets without their own colour. */
+  /** Palette index used for the UI accent, in whichever palette is around it. */
   accent: ColorIndex,
   /** Background: dark (default) or light. Older saved themes without it are dark. */
   mode: z.enum(['dark', 'light']).default('dark'),
@@ -424,8 +435,8 @@ export const PresetSchema = z.object({
   schemaVersion: z.literal(CURRENT_SCHEMA_VERSION),
   id: IdSchema,
   name: z.string().min(1),
-  /** The desk's identity colour (palette index): its tab and frame, so you always know
-   *  which desk you are in. */
+  /** The desk's identity colour (an index into its palette): its tab and frame, so you always
+   *  know which desk you are in. */
   color: ColorIndex,
   createdAt: z.string(),
   updatedAt: z.string(),

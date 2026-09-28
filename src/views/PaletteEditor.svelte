@@ -1,12 +1,13 @@
 <script lang="ts">
   // GLOBAL SETTINGS › LOOK: make or edit a custom palette. Pick a source colour and ten colours
   // are generated from it (theme/generate.ts); any of them can then be picked by hand, and
-  // stays that way when the source changes, until reset. Nothing changes until SAVE, which
-  // also switches every desk to the palette.
+  // stays that way when the source changes, until reset. Nothing changes until SAVE; a new
+  // palette then becomes every desk's (lookActions.savePalette).
   import { untrack } from 'svelte';
   import { LIMITS, type CustomPalette } from '../lib/model/preset';
   import { uid } from '../lib/model/parts';
   import { appearance } from '../lib/state/appearance.svelte';
+  import { lookStore } from '../lib/state/look.svelte';
   import { generatePalette, normalizeHex, regenerate } from '../lib/theme/generate';
   import { DEFAULT_ACCENT, inkFor, PALETTE_SIZE } from '../lib/theme/palettes';
   import Field from '../lib/ui/Field.svelte';
@@ -21,13 +22,13 @@
   }
   let { palette, onclose }: Props = $props();
 
-  /** A new palette starts from the colour the accent has now. */
+  /** A new palette starts from the colour the accent has now, in every desk's palette. */
   function fresh(): CustomPalette {
     const taken = new Set(appearance.theme.custom.map((p) => p.name));
     let n = 1;
     while (taken.has(`CUSTOM ${n}`)) n++;
     const source =
-      normalizeHex(appearance.palette.colors[appearance.theme.accent] ?? '') ?? '#3cb4ff';
+      normalizeHex(lookStore.global.palette.colors[appearance.theme.accent] ?? '') ?? '#3cb4ff';
     return {
       id: uid('custom'),
       name: `CUSTOM ${n}`,
@@ -175,7 +176,7 @@
 
     <div class="actions">
       <button class="btn primary" disabled={!nameOk || full} onclick={save}
-        ><Icon name="save" /> Save &amp; use</button
+        ><Icon name="save" /> {isNew ? 'Save & use' : 'Save'}</button
       >
       <button class="btn" onclick={onclose}>Cancel</button>
       {#if manual > 0}

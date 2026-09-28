@@ -244,6 +244,18 @@ export const SCENARIOS: Scenario[] = [
     { value: 1 },
   ),
   make('fader-empty', 'slider', [64, 200], (w) => (w.color = 0), { value: 0 }),
+  // A widget that hides its title and value: the frame's border is unbroken.
+  make(
+    'fader-bare',
+    'slider',
+    [150, 60],
+    (w) => {
+      w.color = 6;
+      w.props.orientation = 'horizontal';
+      w.show = { title: false, value: false };
+    },
+    { value: 0.6 },
+  ),
   make('fader-small', 'slider', [40, 120], (w) => (w.color = 0), { value: 0.5 }),
 
   // Graph: rest, dragged with a trail, small, wide.
@@ -369,6 +381,26 @@ export const SCENARIOS: Scenario[] = [
     w.props.size = 's';
     w.props.source =
       '# Heading line\n- a list item\n- **bold**, ==reverse==, {3:colour} and =={6:both}==\n\nafter a gap';
+  }),
+  // Fitting: FIT fills the box, a size too big for it shrinks, and text that can't fit even
+  // at the smallest size ends in an ellipsis.
+  make('text-fit', 'text', [360, 160], (w) => {
+    w.color = 3;
+    w.props.size = 'fit';
+    w.props.align = 'center';
+    w.props.valign = 'middle';
+    w.props.source = '# Act 2';
+  }),
+  make('text-shrunk', 'text', [240, 120], (w) => {
+    w.color = 3;
+    w.props.size = 'xl';
+    w.props.source = 'An XL line that is too long for its box';
+  }),
+  make('text-cut', 'text', [200, 72], (w) => {
+    w.color = 3;
+    w.props.size = 'm';
+    w.props.source =
+      'Far more text than this small box can hold, even at the smallest size: it wraps, then the last line that fits ends in an ellipsis.';
   }),
   make('text-centred', 'text', [300, 160], (w) => {
     w.color = 0;

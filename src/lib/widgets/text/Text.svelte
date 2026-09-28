@@ -2,7 +2,8 @@
   // A block of text (markup.ts), laid out by the widget's alignment. Its `{placeholders}` show
   // the value this widget received (`osc`), another widget's live value (`monitor`), or stay
   // as written (`text`). Runs are rendered as text, never as HTML, and filled after parsing, so
-  // no received or synced text can add marks. Size, weight and reverse video come from
+  // no received or synced text can add marks. It wraps, and is sized to fit its box (fit.ts)
+  // whenever the box, the text or its size changes. Weight and reverse video come from
   // skins/base.css: the same in every skin.
   import type { TextWidget } from '../../model/preset';
   import { displayValue } from '../../osc/format';
@@ -10,9 +11,11 @@
   import { flag } from '../../skins/anatomy';
   import { presetStore } from '../../state/preset.svelte';
   import { values } from '../../state/values.svelte';
+  import { trackFonts } from '../../ui/textfit';
   import { initialValue } from '../defs';
   import WidgetFrame from '../WidgetFrame.svelte';
   import { placeholderValue } from './def';
+  import { fitText, TEXT_PX } from './fit';
   import { fill, parseMarkup } from './markup';
 
   let { widget, live }: { widget: TextWidget; live: boolean } = $props();
@@ -37,38 +40,49 @@
           return v === undefined ? undefined : displayValue(v, p.decimals);
         }),
   );
+
+  let box = $state<HTMLElement>();
+  let flow = $state<HTMLElement>();
+  let boxW = $state(0);
+  let boxH = $state(0);
+  /** The size it was last fitted at. Not state: fitting must not render it again. */
+  let fitted: number | undefined;
+  // Runs after the DOM shows the change, so it measures the text as it is now; and again once a
+  // font it may use (bold) has loaded.
+  $effect(() => {
+    void [boxW, boxH, shown];
+    trackFonts();
+    if (box && flow) fitted = fitText(box, flow, TEXT_PX[p.size], fitted);
+  });
 </script>
 
-<WidgetFrame
-  type="text"
-  {live}
-  title={widget.label}
-  color={widget.color}
-  role="region"
-  aria-label={widget.label || 'Text'}
->
+<WidgetFrame {widget} {live} role="region" aria-label={widget.label || 'Text'}>
   {#snippet children()}
     <div
+      bind:this={box}
+      bind:clientWidth={boxW}
+      bind:clientHeight={boxH}
       class="body"
       data-part="text.body"
-      data-size={p.size}
       data-align={p.align}
       data-valign={p.valign}
     >
-      {#each shown as b, i (i)}
-        <div class="block" data-part="text.block" data-kind={b.kind}>
-          {#if b.kind === 'item'}<span class="bullet">•</span>{/if}{#each b.runs as r, j (j)}<span
-              class="run"
-              data-part="text.run"
-              data-strong={flag(r.strong)}
-              data-reverse={flag(r.reverse)}
-              data-tinted={flag(r.tone !== null)}
-              style:--tone={r.tone === null ? undefined : `var(--p${r.tone})`}
-              style:--tone-ink={r.tone === null ? undefined : `var(--p${r.tone}-ink)`}
-              >{r.text}</span
-            >{/each}
-        </div>
-      {/each}
+      <div bind:this={flow} class="flow">
+        {#each shown as b, i (i)}
+          <div class="block" data-part="text.block" data-kind={b.kind}>
+            {#if b.kind === 'item'}<span class="bullet">•</span>{/if}{#each b.runs as r, j (j)}<span
+                class="run"
+                data-part="text.run"
+                data-strong={flag(r.strong)}
+                data-reverse={flag(r.reverse)}
+                data-tinted={flag(r.tone !== null)}
+                style:--tone={r.tone === null ? undefined : `var(--p${r.tone})`}
+                style:--tone-ink={r.tone === null ? undefined : `var(--p${r.tone}-ink)`}
+                >{r.text}</span
+              >{/each}
+          </div>
+        {/each}
+      </div>
     </div>
   {/snippet}
 </WidgetFrame>
@@ -94,6 +108,17 @@
   }
   .body[data-align='right'] {
     text-align: right;
+  }
+  /* Never squeezed by the body: fitText compares its height with the body's. */
+  .flow {
+    flex: none;
+  }
+  /* Cut after the lines that fit, with an ellipsis (fitText sets the attribute and the line
+     count, so the compiler never sees it: global). */
+  .flow:global([data-clamped]) {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   /* A gap line keeps its height. */
   .block {

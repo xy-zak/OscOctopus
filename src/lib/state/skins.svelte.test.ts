@@ -1,13 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let saved: Record<string, unknown> = {};
-vi.mock('../platform/settings', () => ({
-  getSetting: async (key: string) => saved[key],
-  setSetting: async (key: string, value: unknown) => {
-    saved[key] = value;
-  },
-}));
-
 /** The skins directory, in memory: file name (without .json) → contents. */
 let files: Record<string, unknown> = {};
 vi.mock('../ipc/commands', () => ({
@@ -26,7 +18,7 @@ vi.mock('../ipc/commands', () => ({
   },
 }));
 
-const { SkinSelectionSchema, skinStore } = await import('./skins.svelte');
+const { skinStore } = await import('./skins.svelte');
 
 const mine = (id = 'skin-mine', name = 'Mine') => ({
   format: 'oscoctopus-skin',
@@ -38,60 +30,9 @@ const mine = (id = 'skin-mine', name = 'Mine') => ({
 });
 
 beforeEach(() => {
-  saved = {};
   files = {};
-  skinStore.selection = { global: 'terminal', desks: {} };
   skinStore.user = [];
   skinStore.problems = [];
-});
-
-describe('skin selection', () => {
-  it('starts as TERMINAL everywhere', async () => {
-    await skinStore.load();
-    expect(skinStore.global.id).toBe('terminal');
-    expect(skinStore.forDesk('p-1').id).toBe('terminal');
-    expect(skinStore.overrideOf('p-1')).toBeNull();
-  });
-
-  it('shows TERMINAL for a skin that no longer exists', async () => {
-    saved.skins = { global: 'skin-gone', desks: { 'p-1': 'skin-gone-too' } };
-    await skinStore.load();
-    expect(skinStore.global.id).toBe('terminal');
-    expect(skinStore.forDesk('p-1').id).toBe('terminal');
-    // The choice itself is kept: the skin may come back (e.g. re-imported).
-    expect(skinStore.overrideOf('p-1')).toBe('skin-gone-too');
-  });
-
-  it('gives a desk its own skin, saved, and follows the global one again on null', async () => {
-    await skinStore.setDesk('p-1', 'glass');
-    expect(saved.skins).toEqual({ global: 'terminal', desks: { 'p-1': 'glass' } });
-    expect(skinStore.forDesk('p-1').id).toBe('glass');
-    await skinStore.setDesk('p-1', null);
-    expect(skinStore.overrideOf('p-1')).toBeNull();
-    expect(saved.skins).toEqual({ global: 'terminal', desks: {} });
-  });
-
-  it('forgets a deleted desk’s choice, and only writes when there was one', async () => {
-    await skinStore.setDesk('p-1', 'glass');
-    await skinStore.setDesk('p-2', 'sketch');
-    await skinStore.forgetDesk('p-1');
-    expect(saved.skins).toEqual({ global: 'terminal', desks: { 'p-2': 'sketch' } });
-    saved = {};
-    await skinStore.forgetDesk('p-9');
-    expect(saved.skins).toBeUndefined();
-  });
-
-  it('keeps what is valid when part of the saved setting is not', () => {
-    expect(SkinSelectionSchema.parse({ global: 42, desks: { a: 'terminal' } })).toEqual({
-      global: 'terminal',
-      desks: { a: 'terminal' },
-    });
-    expect(SkinSelectionSchema.parse({ global: 'terminal', desks: 'nope' })).toEqual({
-      global: 'terminal',
-      desks: {},
-    });
-    expect(SkinSelectionSchema.parse({})).toEqual({ global: 'terminal', desks: {} });
-  });
 });
 
 describe('user skins', () => {
@@ -110,16 +51,12 @@ describe('user skins', () => {
     expect(info.params.keycap).toBe('flat');
   });
 
-  it('can be picked, and a desk wearing a deleted one goes back to the global skin', async () => {
+  it('are deleted with their file', async () => {
     files = { 'skin-mine': mine() };
     await skinStore.load();
-    await skinStore.setGlobal('skin-mine');
-    await skinStore.setDesk('p-1', 'skin-mine');
-    expect(skinStore.forDesk('p-1').id).toBe('skin-mine');
     await skinStore.deleteUser('skin-mine');
     expect(files).toEqual({});
-    expect(skinStore.selection).toEqual({ global: 'terminal', desks: {} });
-    expect(saved.skins).toEqual({ global: 'terminal', desks: {} });
+    expect(skinStore.user).toEqual([]);
   });
 
   it('imports a skin file, as a copy with a new id if the id is taken', async () => {

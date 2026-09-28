@@ -10,7 +10,7 @@ import type { Scalar, ValueList, WidgetValue } from '../osc/value';
 export type WidgetOf<T extends WidgetType> = Extract<Widget, { type: T }>;
 
 /** The fields every widget shares, as handed to `WidgetDef.create`. */
-export type WidgetBase = Pick<Widget, 'id' | 'x' | 'y' | 'w' | 'h' | 'color'>;
+export type WidgetBase = Pick<Widget, 'id' | 'x' | 'y' | 'w' | 'h' | 'color' | 'show'>;
 
 /** A named part of a widget's value that message arguments and `{placeholders}` can pick. */
 export interface ChannelInfo {
@@ -52,6 +52,11 @@ export interface FeedbackApi {
 export interface WidgetDef<W extends Widget> {
   /** Shown in the toolbar and the Inspector. */
   label: string;
+  /**
+   * What the readout set into its frame's border shows (the "value" a widget can hide, EDIT ›
+   * VISUAL), e.g. "the value"; left out when it has none.
+   */
+  readout?: string;
   /** Size of a newly added widget, in grid cells. */
   defaultSize: { w: number; h: number };
   /** A new widget with default props and messages; `n` numbers it among its type. */

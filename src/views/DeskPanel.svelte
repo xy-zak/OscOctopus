@@ -2,7 +2,7 @@
   // Edit-mode panel when no widget is selected: desk-wide settings and a widget list.
   import { presetStore } from '../lib/state/preset.svelte';
   import { LIMITS } from '../lib/model/preset';
-  import { showGlobal, ui } from '../lib/state/ui.svelte';
+  import { showDesk, showGlobal, ui } from '../lib/state/ui.svelte';
   import { colorVars } from '../lib/theme/palettes';
   import Field from '../lib/ui/Field.svelte';
   import NumberInput from '../lib/ui/NumberInput.svelte';
@@ -48,8 +48,12 @@
   </div>
 
   <p class="faint">
-    Palette and accent are shared by every desk:
-    <button class="link" onclick={() => showGlobal('look')}>GLOBAL SETTINGS › LOOK</button>
+    Palette, active colour and skin: this desk's own (<button
+      class="link"
+      onclick={() => showDesk('preset')}>DESK › PRESET</button
+    >) or all desks' (<button class="link" onclick={() => showGlobal('look')}
+      >GLOBAL SETTINGS › LOOK</button
+    >).
   </p>
 
   <h2>Widgets</h2>
@@ -87,13 +91,6 @@
   }
   p {
     margin: 0;
-  }
-  .link {
-    padding: 0;
-    border: 0;
-    background: none;
-    color: var(--accent-text);
-    text-decoration: underline;
   }
   .grid3 {
     display: grid;

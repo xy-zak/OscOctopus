@@ -97,7 +97,7 @@
   .frame[data-base='glass'] [data-part='list.fill'][data-flash] {
     animation: glass-fade 360ms ease-out forwards;
   }
-  /* Held or latched pads and held list options fill ACTIVE green. */
+  /* Held or latched pads and held list options fill ACTIVE. */
   .frame[data-base='glass'] [data-part='pads.pad'][data-on] [data-part='pads.fill'],
   .frame[data-base='glass'] [data-part='list.option'][data-held] [data-part='list.fill'] {
     background: var(--act);
@@ -154,7 +154,7 @@
     color: var(--fg);
   }
 
-  /* ---- switch: a pill with a white knob; the pill fills ACTIVE green when on ---- */
+  /* ---- switch: a pill with a white knob; the pill fills ACTIVE when on ---- */
   .frame[data-base='glass'] [data-part='switch.track'] {
     border-radius: 999px;
     background: var(--g-well);
@@ -188,7 +188,7 @@
     transition: none;
   }
 
-  /* ---- fader: a thin rounded groove filling ACTIVE green, and a round white knob ---- */
+  /* ---- fader: a thin rounded groove filling ACTIVE, and a round white knob ---- */
   .frame[data-base='glass'] [data-part='slider.grip'] {
     visibility: hidden;
   }
@@ -290,7 +290,7 @@
     color: var(--fg-dim);
   }
 
-  /* ---- pads: rounded tiles; held or latched, ACTIVE green with a glow ---- */
+  /* ---- pads: rounded tiles; held or latched, ACTIVE with a glow ---- */
   .frame[data-base='glass'] [data-part='pads.pad'] [data-part='keycap.face'] {
     border-radius: 8px;
   }
@@ -332,8 +332,8 @@
   }
 
   /* ---- sequencer: two rounded keys (keys above) over a row of tinted pills, one per step.
-     The key whose run is going is ringed and glows ACTIVE green; the step sent last glows
-     green (a green ring while paused). PAUSE is dim while there is no run to pause. ---- */
+     The key whose run is going is ringed and glows ACTIVE; the step sent last glows
+     ACTIVE (an ACTIVE ring while paused). PAUSE is dim while there is no run to pause. ---- */
   .frame[data-base='glass'][data-running]
     [data-part='sequencer.key'][data-role='play']
     [data-part='keycap.face'],

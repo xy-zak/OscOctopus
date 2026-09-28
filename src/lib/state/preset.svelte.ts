@@ -22,12 +22,12 @@ import { PALETTE_SIZE } from '../theme/palettes';
 import { errorText } from '../util';
 import { DEFS, dropOutputFrom, initialValue, newWidget, outputRefsOf } from '../widgets/defs';
 import { appearance } from './appearance.svelte';
-import { skinStore } from './skins.svelte';
 import { Autosave } from './autosave.svelte';
 import { deskChanges, syncKey, syncRecords } from './changes';
 import { debugStore } from './debug.svelte';
 import { forgetFeedback } from './feedback.svelte';
 import { inputStore } from './input.svelte';
+import { lookStore } from './look.svelte';
 import { networkStore } from './network.svelte';
 import { persistSetting } from './persist';
 import { toast, ui } from './ui.svelte';
@@ -107,6 +107,8 @@ class PresetStore {
       await this.writePreset(p);
       this.register(p);
     }
+    // The look first: it carries over the palette the theme used to hold.
+    await lookStore.load(this.legacyTheme);
     await appearance.load(this.legacyTheme);
     const active = await getSetting('activeDesk');
     this.activeId = active && this.isOpen(active) ? active : this.desks[0]!.id;
@@ -192,6 +194,7 @@ class PresetStore {
     copy.color = this.nextDeskColor();
     copy.createdAt = copy.updatedAt = new Date().toISOString();
     await this.writePreset(copy);
+    await lookStore.copyDesk(sourceId, copy.id);
     this.register(copy);
     await networkStore.apply(copy.id, this.snapshot(copy.id).network);
     this.activate(copy.id);
@@ -330,7 +333,7 @@ class PresetStore {
       await this.closeDesk(id);
     }
     await presetIpc.remove(id);
-    await skinStore.forgetDesk(id);
+    await lookStore.forgetDesk(id);
     await this.refreshList();
   }
 

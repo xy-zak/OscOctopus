@@ -303,3 +303,15 @@ describe('v9 → v10', () => {
     expect(migratePreset(old)).toEqual(cur);
   });
 });
+
+describe('v10 → v11: widgets can hide their title and value', () => {
+  it('shows both on every widget, as before', () => {
+    const cur = newPreset();
+    const old = JSON.parse(JSON.stringify(cur)) as { schemaVersion: number; widgets: object[] };
+    old.schemaVersion = 10;
+    for (const w of old.widgets) delete (w as { show?: unknown }).show;
+    const migrated = migratePreset(old);
+    expect(migrated).toEqual(cur);
+    expect(migrated.widgets.every((w) => w.show.title && w.show.value)).toBe(true);
+  });
+});

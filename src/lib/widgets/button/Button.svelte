@@ -1,7 +1,7 @@
 <script lang="ts">
   // A raised key (see Keycap) with a face in the widget colour: press sinks the cap back into
-  // the panel and turns the face ACTIVE green; release pops it back out and dissolves the green
-  // through two dither steps.
+  // the panel and turns the face ACTIVE; release pops it back out and dissolves the ACTIVE
+  // colour through two dither steps.
   //
   // Arm-then-fire (props.arm), for cues where a stray tap is costly:
   //   double: the first press only ARMS (dithered, blinking, "ARMED" in the border) for
@@ -146,10 +146,8 @@
 </script>
 
 <WidgetFrame
-  type="button"
+  {widget}
   {live}
-  title={widget.label}
-  color={widget.color}
   {status}
   active={lit}
   data-lit={flag(lit)}

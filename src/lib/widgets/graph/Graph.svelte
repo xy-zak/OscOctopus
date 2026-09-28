@@ -122,12 +122,10 @@
 </script>
 
 <WidgetFrame
-  type="graph"
+  {widget}
   {live}
   data-dragging={flag(drag !== null)}
-  title={widget.label}
   status="{p.x.label}:{fmt(value.x)} {p.y.label}:{fmt(value.y)}"
-  color={widget.color}
   active={drag !== null}
   role="slider"
   aria-label="{widget.label}: {p.x.label} and {p.y.label}"

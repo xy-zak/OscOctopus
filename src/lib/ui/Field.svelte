@@ -1,19 +1,31 @@
 <script lang="ts">
+  // A labelled control. `group` is for a set of buttons (swatches, a list of choices): a
+  // <label> would pass a click on its text to the first of them.
   import type { Snippet } from 'svelte';
   interface Props {
     label: string;
     hint?: string;
     wide?: boolean;
+    group?: boolean;
     children: Snippet;
   }
-  let { label, hint, wide = false, children }: Props = $props();
+  let { label, hint, wide = false, group = false, children }: Props = $props();
+  const id = $props.id();
 </script>
 
-<label class="field" class:wide>
-  <span class="label">{label}</span>
-  {@render children()}
-  {#if hint}<span class="hint">{hint}</span>{/if}
-</label>
+{#if group}
+  <div class="field" class:wide role="group" aria-labelledby={id}>
+    <span class="label" {id}>{label}</span>
+    {@render children()}
+    {#if hint}<span class="hint">{hint}</span>{/if}
+  </div>
+{:else}
+  <label class="field" class:wide>
+    <span class="label">{label}</span>
+    {@render children()}
+    {#if hint}<span class="hint">{hint}</span>{/if}
+  </label>
+{/if}
 
 <style>
   .field {

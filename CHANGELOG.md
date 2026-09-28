@@ -16,11 +16,22 @@ Scripts.
     than 10 ms), so it keeps playing on another tab or in the background. Edits reach a
     running sequence at its next step. It plays only on the device that started it.
   - **Text**: static text in a small markup, the value of a received OSC message, or another
-    widget's live value, at one of four sizes. Received text can't add formatting.
+    widget's live value. Received text can't add formatting. The text wraps and fits its box:
+    FIT (the default) makes it as large as the box allows, S/M/L/XL are the largest it gets;
+    it shrinks to 10 px, then ends in … where it no longer fits.
   - **Log**: a widget version of ACTIVITY for several widgets at once, with sent and received
     messages, a history of up to 200 rows and a choice of columns.
-- **Preset schema v10** (for the new widgets; old desks are unchanged). Devices on v9 can't
-  join a v10 sync session.
+- **Looks: one way to colour and skin every desk.** A look is three choices: the palette, the
+  **ACTIVE colour** (what is pressed, on, filled or held, until now always green) and the widget
+  skin. GLOBAL SETTINGS › LOOK sets them for every desk, and adds or deletes palettes and skins;
+  DESK › PRESET can give a desk its own palette, active colour or skin (each starts at
+  _ALL DESKS_), with the same pickers. A widget's colour (EDIT › VISUAL) is one of its desk's
+  palette colours. GREEN stays the default active colour; any palette colour can take its place.
+  Per device, like the rest of LOOK: a shared desk shows in each person's own look.
+- **Hide a widget's title or value** (EDIT › VISUAL › _Show_): the title and the value readout
+  set into its frame can each be switched off.
+- **Preset schema v11** (for the new widgets and the title/value switches; old desks are
+  unchanged). Devices on v10 or older can't join a v11 sync session.
 - **Presenting** (`[ ] PRESENT` at the right end of the master bar, or F11): the desk's
   widgets fill the screen, and on desktop the window goes fullscreen. Only the desk tabs,
   OSC-IN, OSC-OUT, LOCK and `[■] PRESENT` (click it, or Esc / F11, to stop) stay; the sections, the
@@ -48,7 +59,8 @@ Scripts.
   accent). Lighter colours drift towards yellow and darker ones towards violet, like the built-in
   themed palettes, so neighbours stay distinct. Any colour can then be picked by hand, and it
   stays when the source changes, until reset. Saved palettes are listed with the built-in ones
-  (_Edit_ to change or delete one) and kept per device, like the rest of LOOK.
+  (_Edit_ to change or delete one) and kept per device, like the rest of LOOK. A new palette
+  becomes every desk's; saving changes to one recolours wherever it is used.
 - **OSC input drives widgets.** A widget's message can now also _receive_: from one of the
   desk's inputs, or from replies arriving on an output (X32-style devices). An external OSC
   sender or device can move faders, switches and graphs, light pads, pick list items,

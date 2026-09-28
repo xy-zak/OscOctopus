@@ -12,7 +12,7 @@ sent and received.
 from one of fourteen palettes: RAINBOW, NEON and PASTEL (every hue), themed ones inspired by one
 colour that travel across its neighbours, most with two contrasting accents (SUNSET, UNDERWATER,
 PHOSPHOR, AMBER, CRIMSON, SAKURA, VIOLET, COBALT, FROST, SAND), and GREYSCALE. Or make your own
-from one colour.
+from one colour. Every desk can have its own palette, active colour and widget skin.
 **Targets:** Windows, Linux, Android (next: macOS, iOS).
 
 ## Quick start
@@ -76,7 +76,7 @@ The screen always shows **where you are**, by containment:
 | **F1 CONTROLS** | The widgets. *Live* plays them (multi-touch; the side panel shows the exact messages of the last-touched widget). *EDIT* adds, moves, resizes and edits them. The `[■] EDIT` switch at the right end of the desk's tool row (or Alt+E) flips between the two; the grid shows only while editing. | **F1 NETWORK** | This device's interfaces and broadcast addresses, plus a read-only table of every desk's endpoints. Click one to edit it in that desk. |
 | **F2 NETWORK** | This desk's outputs and inputs (UDP unicast/broadcast/multicast, TCP SLIP or length-prefix), with live status and the OS's own errors. | **F2 TRAFFIC** | Every packet and lifecycle event of all desks, sequence-numbered, filterable. Hex/ASCII, decoded view, export. |
 | **F3 TRAFFIC** | The traffic of this desk only. | **F3 LIBRARY** | Every saved desk preset: open as desk, delete, new blank desk, import as new desk. |
-| **F4 PRESET** | This desk's name and colour, save, export, *import into this desk*, duplicate, remove. | **F4 LOOK** | Dark (default) or light background, plus the palette and accent. All are shared by every desk. *New palette* makes a custom one: pick a colour and ten are generated from it (light to dark), then pick any of them by hand. Custom palettes are listed with the others; *Edit* changes or deletes one. The **widget skin** says how widgets are drawn: TERMINAL (pixel lines), GLASS (tinted rounded panes), SKETCH (coloured pencil), WOBBLY (every line an even wave), PIXELATED (an 8-bit game screen), HARDWARE (a mixing desk), NEON (glowing tubes), BLUEPRINT (a technical drawing), BRUTALIST (thick borders, hard shadows), LED MATRIX (round LEDs), CRT (scanlines and glow) or ARCADE (domed buttons, ball-top levers). Text, markers and the background are the same in every skin. A desk can have its own (DESK › PRESET). |
+| **F4 PRESET** | This desk's name and colour, save, export, *import into this desk*, duplicate, remove. Its own **look**, on this device: palette, active colour and widget skin, each *ALL DESKS* or its own. | **F4 LOOK** | Dark (default) or light background and the accent, shared by every desk. The **look** of every desk: its palette, its **active colour** (what is pressed, on, filled or held: GREEN, or any palette colour) and its widget skin. *New palette* makes a custom one: pick a colour and ten are generated from it (light to dark), then pick any of them by hand. Custom palettes are listed with the others; *Edit* changes or deletes one. The widget skin says how widgets are drawn: TERMINAL (pixel lines), GLASS (tinted rounded panes), SKETCH (coloured pencil), WOBBLY (every line an even wave), PIXELATED (an 8-bit game screen), HARDWARE (a mixing desk), NEON (glowing tubes), BLUEPRINT (a technical drawing), BRUTALIST (thick borders, hard shadows), LED MATRIX (round LEDs), CRT (scanlines and glow) or ARCADE (domed buttons, ball-top levers). Text, markers and the background are the same in every skin. A desk can have its own palette, active colour or skin (DESK › PRESET). |
 | **F5 SYNC** | Share this desk with the sync session, see who else is on it, choose the device that forwards input, restore an earlier version. | **F5 SYNC** | This device's name, colour and fingerprint; join or leave a session; listen port, LAN discovery and devices by address; the desks shared in the session (*Open*); every device with its state, round trip and clock. |
 
 - **The master bar sits outside every tab and frame** (top right), because it affects all desks.
@@ -120,7 +120,8 @@ The screen always shows **where you are**, by containment:
   **▶ START / ■ STOP** and **❚❚ PAUSE / ▶ PLAY** keys, and a strip showing the step it is on. The timing runs in the app's core, so it keeps exact
   time on another tab, in the background or minimised. It plays on the device that started it.
 - **Text**: a block of text in a small markup (`# heading`, `- item`, `**bold**`,
-  `==reverse==`, `{3:colour}`) at S, M, L or XL, aligned as you like. It can show the value of
+  `==reverse==`, `{3:colour}`), aligned as you like. It wraps and fits its box (FIT, or at
+  most S, M, L or XL), ending in … when there's no room left. It can show the value of
   a received message (**OSC in**: `{value}`) or another widget's live value (**Monitor**:
   `{value}`, or a channel like `{x}`).
 - **Log**: what widgets sent (→) and received (←) on this device, newest first: every widget of

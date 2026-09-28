@@ -30,6 +30,7 @@ function byLabel(options: readonly ListOption[], label: string): number {
 
 export const listDef: WidgetDef<ListWidget> = {
   label: 'List',
+  readout: 'Which option, e.g. 2/5',
   defaultSize: { w: 2, h: 3 },
   create: (base, n, outputIds) => ({
     ...base,

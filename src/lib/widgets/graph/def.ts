@@ -15,6 +15,7 @@ const axis = (label: string): Axis => ({
 
 export const graphDef: WidgetDef<GraphWidget> = {
   label: 'Graph',
+  readout: 'x and y',
   defaultSize: { w: 4, h: 4 },
   create: (base, n, outputIds) => ({
     ...base,

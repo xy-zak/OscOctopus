@@ -89,7 +89,7 @@ truth. Components mark each part with `data-part="<name>"` and each state with a
 | Pads | `pads.grid`, `pads.pad` (on), `pads.fill` (on, flash), `pads.num` (on) |
 | List | `list.options`, `list.option` (current, held), `list.fill` (held, flash), `list.mark` (current), `list.text` (current, held). States on the frame: horizontal |
 | Sequencer | `sequencer.timer` (the wait bar), `sequencer.elapsed` (its fill: base.css times it, a skin paints it), `sequencer.keys`, `sequencer.key` (`data-role` play/pause; each holds a `keycap`), `sequencer.fill` (on, flash), `sequencer.legend`, `sequencer.steps`, `sequencer.step` (current). States on the frame: running, paused |
-| Text | `text.body` (`data-size` s/m/l/xl, `data-align`, `data-valign`), `text.block` (`data-kind` line/heading/item/gap), `text.run` (strong, reverse, tinted) |
+| Text | `text.body` (`data-align`, `data-valign`; its size is fitted to the box, not a skin's), `text.block` (`data-kind` line/heading/item/gap), `text.run` (strong, reverse, tinted) |
 | Log | `log.head`, `log.rows`, `log.row` (in, out, error, blocked), `log.cell` (`data-col` time, dir, widget, …), `log.empty` |
 
 † `lifted` is set on an ancestor while the widget is dragged in EDIT: style it as
@@ -114,7 +114,7 @@ colours, or the palette, the widget's own colour and light mode stop working.
 | `--c-ink` | text on `--c-solid` |
 | `--c-text` | `--c` as text (darkened in light mode) |
 | `--w-bg` | the widget's neutral background |
-| `--act`, `--act-ink` | the app-wide ACTIVE green (pressed, on, held) and text on it |
+| `--act`, `--act-ink` | the ACTIVE colour (pressed, on, held) and text on it: green, or the palette colour a desk's look picks, so never assume green |
 | `--dither-50-act`, `--dither-25-act`, `--dither-25-c` | ready-made dither fills |
 | `--bg`, `--bg-2`, `--fg`, `--fg-dim`, `--fg-faint`, `--line`, `--shadow-px` | the app's base colours (they flip with light/dark) |
 
@@ -317,7 +317,7 @@ Prettier will spread this over more lines; that's fine.
   transparent 1px 3px)` as the top background layer of each surface. It sits under the text, so
   labels stay sharp. Don't lay it over the whole widget.
 - **A dot matrix** (LED MATRIX): `radial-gradient(circle, <colour> 1.5px, transparent 2px) 0 0 /
-  5px 5px`, one variable per colour (unlit, widget colour, text colour, ACTIVE green).
+  5px 5px`, one variable per colour (unlit, widget colour, text colour, ACTIVE).
 - **Registration marks and centre lines** (BLUEPRINT): corner crosses are eight small
   `linear-gradient` bars on the frame's `::before` (`inset: -6px`); a dash-dot line is a
   `repeating-linear-gradient` of an 8px dash, a gap, a 1px dot and a gap.
@@ -363,7 +363,8 @@ Prettier will spread this over more lines; that's fine.
    lit, flashing, vertical and horizontal. Compare with `?skin=terminal`. In each shot, check:
    - the title and value are in the same place;
    - the fader scale, ON/OFF, pad numbers, `▸` and the graph's quarter lines are all there;
-   - ACTIVE is green.
+   - ACTIVE is the ACTIVE colour: green, and a palette colour with `&active=6` (a colour next
+     to a widget's own, to be sure the two still tell apart).
 2. `npm test`. `anatomy.test.ts` checks the contract and that you only used known part names.
 3. `npm run shots -- compare`. It shoots every skin and compares against `.shots/baseline`:
    - the other skins must show **no differences**;
@@ -419,7 +420,7 @@ parts take no image or fade, and nothing reaches the desk.
   - `opacity`: 0.1–1;
   - `image`: see below.
 - **`rest` means "showing no other look".** A thumb styled at rest still turns the base skin's
-  ACTIVE green when on, unless the skin styles `on` too.
+  ACTIVE when on, unless the skin styles `on` too.
 - **A paint** is `{ "role": "c" | "act" | "fg" | …, "alpha": 0–1 }`, which follows the palette
   and the mode, or `{ "hex": "#rrggbb" }`. `light` holds light-mode changes on top of `parts`.
 - **An image** is one of `images` (PNG, WebP, JPEG or SVG, base64, at most 1024px and 512 KiB

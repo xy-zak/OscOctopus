@@ -79,8 +79,8 @@
     color: var(--fg);
   }
 
-  /* Pressed buttons and sequencer keys, held or latched pads and held list options light ACTIVE
-     green, under the scanlines, so the lines show through. Release: the phosphor decays,
+  /* Pressed buttons and sequencer keys, held or latched pads and held list options light
+     ACTIVE, under the scanlines, so the lines show through. Release: the phosphor decays,
      slowly. */
   .frame[data-base='crt'] [data-part='button.fill'][data-on],
   .frame[data-base='crt'] [data-part='sequencer.fill'][data-on],
@@ -108,7 +108,7 @@
 
   /* ---- keys (buttons, pads, sequencer): small rounded screens of the widget colour; lit (a
      fired, armed or holding button, a sequencer key while its run is going), they glow
-     green ---- */
+     ACTIVE ---- */
   .frame[data-base='crt'] [data-part='keycap.face'] {
     border-radius: 6px;
     background:
@@ -217,7 +217,7 @@
     transition: box-shadow 200ms ease;
   }
 
-  /* ---- fader: a dark strip with a glowing green bar up to the value ---- */
+  /* ---- fader: a dark strip with a glowing ACTIVE bar up to the value ---- */
   .frame[data-base='crt'] [data-part='slider.track'],
   .frame[data-base='crt'] [data-part='sequencer.timer'] {
     border-radius: 4px;
@@ -321,7 +321,7 @@
     background: var(--paper);
   }
 
-  /* ---- pads: small screens; held or latched, lit green behind the scanlines ---- */
+  /* ---- pads: small screens; held or latched, lit ACTIVE behind the scanlines ---- */
   .frame[data-base='crt'] [data-part='pads.pad'][data-on] [data-part='keycap.face'] {
     box-shadow:
       0 0 10px var(--crt-bleed-act),
@@ -367,7 +367,7 @@
   }
 
   /* ---- sequencer: two small screens (keys above) over a row of phosphor bars, one per step:
-     dim in the widget colour, the step sent last glowing green (dim green while paused); a
+     dim in the widget colour, the step sent last glowing ACTIVE (dim ACTIVE while paused); a
      step the beam has left decays slowly. PAUSE is dim while there is no run to pause. ---- */
   .frame[data-base='crt'] [data-part='sequencer.legend'] {
     color: var(--c-ink);

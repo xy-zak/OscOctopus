@@ -5,7 +5,7 @@ import { LazyStore } from '@tauri-apps/plugin-store';
 import { app } from '../ipc/commands';
 import type { SyncConfig } from '../ipc/types';
 import type { Theme } from '../model/preset';
-import type { SkinSelection } from '../state/skins.svelte';
+import type { LookSetting } from '../theme/look';
 import type { InfoSection, InspectorSection } from '../state/ui.svelte';
 
 let storePromise: Promise<LazyStore> | null = null;
@@ -39,10 +39,12 @@ export interface Settings {
   paused: boolean;
   /** A restart mid-show comes back presenting. */
   presenting: boolean;
-  /** Global palette, accent and background (shared by every desk). */
+  /** Accent, background and the custom palettes (shared by every desk). */
   theme: Theme;
-  /** Widget skin for every desk, and any desk's own (see state/skins.svelte.ts). */
-  skins: SkinSelection;
+  /** Palette, ACTIVE colour and skin for every desk, and any desk's own (theme/look.ts). */
+  look: LookSetting;
+  /** Before `look`: the skin for every desk and each desk's. Used once to migrate to `look`. */
+  skins: unknown;
   /** How this device is named to sync peers (its colour is the theme's accent). */
   syncName: string;
   syncConfig: SyncConfig;

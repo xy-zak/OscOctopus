@@ -1,7 +1,8 @@
 /* Design tokens: a terminal. Near-black background, near-white text (or the inverse in light
    mode, `data-mode="light"` on <html>), one font at one size.
-   Colour comes only from the preset palette (--p0…--p9 and --accent, set by App.svelte) and
-   the fixed status colours below. */
+   Colour comes only from the look (theme/look.ts: --p0…--p9, --accent and --active, set by
+   App.svelte on :root for every desk and on a desk's contents for its own) and the fixed
+   status colours below. */
 
 @font-face {
   font-family: 'JetBrainsMono NFM';
@@ -138,12 +139,10 @@
   --danger: #ff5f5f;
   --info: #87afff;
   /* The one ACTIVE colour of every widget (pressed, switched on, filled, held). Widgets rest in
-     their own palette colour; whatever is active turns this green. */
+     their own palette colour; whatever is active turns this. The look chooses it: green (this
+     default) or one of the palette's colours. */
   --active: var(--ok);
   --active-ink: var(--bg);
-  /* Palette colours used as *text* (not fills). Same as the colour in dark mode; darkened in
-     light mode so bright palette hues stay readable on paper. */
-  --accent-text: var(--accent);
 
   --font: 'JetBrainsMono NFM', 'JetBrains Mono', ui-monospace, Consolas, monospace;
   /* One size for everything. Hierarchy comes from case, weight, colour and reverse video. */
@@ -189,6 +188,35 @@
     --p9 400ms var(--ease-out);
 }
 
+/* Tokens made from the look's colours, for every look: :root's, and a desk's own on its contents
+   (`data-look`, App.svelte), which sets the palette again. A var() in a custom property
+   resolves where the property is declared, so these are declared again with it, and so is the
+   crossfade. */
+:root,
+[data-look] {
+  /* Palette colours used as *text* (not fills). Same as the colour in dark mode; darkened in
+     light mode so bright palette hues stay readable on paper. */
+  --accent-text: var(--accent);
+}
+:root[data-mode='light'],
+:root[data-mode='light'] [data-look] {
+  --accent-text: color-mix(in srgb, var(--accent) 55%, #000);
+}
+[data-look] {
+  transition:
+    --accent 400ms var(--ease-out),
+    --p0 400ms var(--ease-out),
+    --p1 400ms var(--ease-out),
+    --p2 400ms var(--ease-out),
+    --p3 400ms var(--ease-out),
+    --p4 400ms var(--ease-out),
+    --p5 400ms var(--ease-out),
+    --p6 400ms var(--ease-out),
+    --p7 400ms var(--ease-out),
+    --p8 400ms var(--ease-out),
+    --p9 400ms var(--ease-out);
+}
+
 /* Light mode: warm paper, near-black ink. Status colours are darkened so they stay readable
    on a light background; palette colours are unchanged (fills carry their own ink). */
 :root[data-mode='light'] {
@@ -205,7 +233,6 @@
   --warn: #a87400;
   --danger: #cf2f3c;
   --info: #2c5cc9;
-  --accent-text: color-mix(in srgb, var(--accent) 55%, #000);
   color-scheme: light;
 }
 

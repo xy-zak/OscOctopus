@@ -1,6 +1,6 @@
 /* LED MATRIX: every surface is a grid of round LEDs on a dark panel. Unlit LEDs show faintly in
    the widget colour; parts light up as LEDs in the widget colour, in the text colour, or
-   ACTIVE green. Borders are dotted, the fader lights LED by LED, and the XY cursor is a 3 × 3
+   ACTIVE. Borders are dotted, the fader lights LED by LED, and the XY cursor is a 3 × 3
    cluster. Every rule is keyed on .frame[data-base='led']. Parts and states:
    skins/anatomy.ts; what every skin keeps the same (font, label placement, markers, the desk
    background): skins/base.css, docs/SKINS.md. */
@@ -13,7 +13,7 @@
     --led-panel: color-mix(in srgb, var(--bg) 70%, #000);
     --led-unlit: color-mix(in srgb, var(--led-ink) 16%, transparent);
     --led-border: var(--led-ink);
-    /* A grid of LEDs, one per colour: unlit, widget colour, text colour, ACTIVE green. */
+    /* A grid of LEDs, one per colour: unlit, widget colour, text colour, ACTIVE. */
     --led-off: radial-gradient(
         circle,
         var(--led-unlit) var(--led-r),
@@ -106,8 +106,8 @@
   }
 
   /* ---- keys (buttons, pads, sequencer): a dotted outline around unlit LEDs; pressed buttons
-     and sequencer keys and held or latched pads light all their LEDs green, and a sequencer
-     key's outline turns green while its run is going ---- */
+     and sequencer keys and held or latched pads light all their LEDs ACTIVE, and a sequencer
+     key's outline turns ACTIVE while its run is going ---- */
   .frame[data-base='led'] [data-part='keycap.face'] {
     --led-key: color-mix(in srgb, var(--led-ink) 70%, transparent);
     border: 2px dotted var(--led-key);
@@ -135,7 +135,7 @@
     animation: led-out 240ms steps(1, end) forwards;
   }
 
-  /* ---- button: every LED lights green while on ---- */
+  /* ---- button: every LED lights ACTIVE while on ---- */
   .frame[data-base='led'] [data-part='button.armed'] {
     background: var(--led-act-half);
     animation: led-blink 0.6s steps(1) infinite;
@@ -169,7 +169,7 @@
       0 0 5px var(--led-panel);
   }
 
-  /* ---- switch: a dotted slot; the block is lit in the widget colour, green when on ---- */
+  /* ---- switch: a dotted slot; the block is lit in the widget colour, ACTIVE when on ---- */
   .frame[data-base='led'] [data-part='switch.track'] {
     border: 2px dotted color-mix(in srgb, var(--led-ink) 70%, transparent);
     border-radius: 3px;
@@ -204,7 +204,7 @@
     transition: none;
   }
 
-  /* ---- fader: a strip of unlit LEDs lit green up to the value, and a bar of LEDs in the text
+  /* ---- fader: a strip of unlit LEDs lit ACTIVE up to the value, and a bar of LEDs in the text
      colour for the cap ---- */
   .frame[data-base='led'] [data-part='slider.track'],
   .frame[data-base='led'] [data-part='sequencer.timer'] {
@@ -333,7 +333,7 @@
   }
 
   /* ---- sequencer: two keys like the buttons (keys above) over a row of LEDs, a short run of
-     them per step: dim in the widget colour, the step sent last lit green (half-bright while
+     them per step: dim in the widget colour, the step sent last lit ACTIVE (half-bright while
      paused). PAUSE is dim while there is no run to pause. ---- */
   .frame[data-base='led']:not([data-running]):not([data-paused])
     [data-part='sequencer.key'][data-role='pause'] {

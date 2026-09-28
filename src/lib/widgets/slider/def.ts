@@ -6,6 +6,7 @@ import type { WidgetDef } from '../types';
 /** The widget type is `slider` (persisted in presets); the UI calls it a Fader. */
 export const sliderDef: WidgetDef<SliderWidget> = {
   label: 'Fader',
+  readout: 'The value',
   defaultSize: { w: 1, h: 4 },
   create: (base, n, outputIds) => ({
     ...base,

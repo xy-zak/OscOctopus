@@ -1,9 +1,12 @@
 <script lang="ts">
-  // GLOBAL SETTINGS › LOOK: the palette and accent, shared by every desk. Widgets and desk identity
-  // colours are palette indices, so changing the palette recolours everything (it crossfades).
-  // Custom palettes are made here too, from one source colour (PaletteEditor), and the widget
-  // skin is picked here, with the skins made on this device (import, export, delete).
+  // GLOBAL SETTINGS › LOOK: the look of every desk (theme/look.ts): its palette, ACTIVE colour
+  // and widget skin, which a desk can make its own (DESK › PRESET, the same pickers). Widgets and
+  // desk identity colours are palette indices, so changing the palette recolours them (it
+  // crossfades). Also here, for all desks: the background and the accent, the custom palettes
+  // (made from one source colour, PaletteEditor) and the skins made on this device (import,
+  // export, delete).
   import { appearance } from '../lib/state/appearance.svelte';
+  import { lookStore } from '../lib/state/look.svelte';
   import { skinStore } from '../lib/state/skins.svelte';
   import Field from '../lib/ui/Field.svelte';
   import Icon from '../lib/ui/Icon.svelte';
@@ -11,6 +14,7 @@
   import Panel from '../lib/ui/Panel.svelte';
   import Swatches from '../lib/ui/Swatches.svelte';
   import Segmented from '../lib/ui/Segmented.svelte';
+  import ActivePicker from './ActivePicker.svelte';
   import PaletteEditor from './PaletteEditor.svelte';
   import PalettePicker from './PalettePicker.svelte';
   import SkinPicker from './SkinPicker.svelte';
@@ -43,7 +47,7 @@
     </Panel>
 
     <Panel title="Palette · all desks">
-      <PalettePicker {editing} onedit={(id) => (editing = id)} />
+      <PalettePicker desk={null} {editing} onedit={(id) => (editing = id)} />
       <!-- Right under the list, where the new palette will appear. -->
       <div class="new">
         <button
@@ -57,16 +61,20 @@
             : 'Make your own: pick one colour and ten are made from it.'}
         </span>
       </div>
-      <Field label="Accent ({appearance.palette.name})">
+      <Field label="Active colour ({lookStore.global.palette.name})" group>
+        <ActivePicker desk={null} />
+      </Field>
+      <Field label="Accent ({lookStore.global.palette.name})" group>
         <Swatches
           value={appearance.theme.accent}
-          allowAuto={false}
-          onchange={(i) => appearance.set({ accent: i ?? 0 })}
+          onchange={(accent) => appearance.set({ accent })}
         />
       </Field>
       <p class="faint">
-        Widgets and each desk's identity colour pick one of these ten (widgets can also use AUTO =
-        accent). The accent is used for highlights and selection.
+        Widgets and each desk's identity colour pick one of the palette's ten colours (widgets can
+        also use AUTO: their desk's colour). What is pressed, on, filled or held turns the active
+        colour: pick one your widgets don't use, so it stands out. The accent is for highlights and
+        selection. A desk can have its own palette and active colour (DESK › PRESET).
       </p>
     </Panel>
 
@@ -78,7 +86,7 @@
     {/if}
 
     <Panel title="Widget skin · all desks">
-      <SkinPicker>
+      <SkinPicker desk={null}>
         {#snippet actions(skin)}
           <button
             class="btn ghost"
@@ -118,9 +126,9 @@
         </div>
       {/each}
       <p class="faint">
-        How widgets are drawn: their shapes, lines, fills and motion. The palette still colours
-        them, and the text, the markers and the background stay the same in every skin. A desk can
-        have its own skin (DESK › PRESET).
+        How widgets are drawn: their shapes, lines, fills and motion. The palette and the active
+        colour still colour them, and the text, the markers and the background stay the same in
+        every skin. A desk can have its own skin (DESK › PRESET).
       </p>
     </Panel>
   </Lockable>

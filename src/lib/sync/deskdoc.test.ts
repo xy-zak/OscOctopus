@@ -49,6 +49,8 @@ describe('desk record paths', () => {
     expect(validEntry('w/a/rect', { x: 0, y: 0, w: 1, h: 1 }, none)).toBe(true);
     expect(validEntry('w/a/rect', { x: -1, y: 0, w: 1, h: 1 }, none)).toBe(false);
     expect(validEntry('w/a', { type: 'rocket' }, none)).toBe(false);
+    expect(validEntry('w/a/show', { title: false, value: true }, none)).toBe(true);
+    expect(validEntry('w/a/show', { title: false }, none)).toBe(false);
     expect(validEntry('w/a/props/min', 'x', () => 'slider')).toBe(false);
     expect(validEntry('w/a/props/nope', 1, () => 'slider')).toBe(false);
     expect(validEntry('w/a/props/min', 0, () => 'slider')).toBe(true);

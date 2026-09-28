@@ -46,7 +46,11 @@ export function newWidget<T extends WidgetType>(
   n = 1,
 ): WidgetOf<T> {
   const def: WidgetDef<WidgetOf<T>> = DEFS[type];
-  return def.create({ id: uid('w'), ...rect, color: null }, n, outputIds);
+  return def.create(
+    { id: uid('w'), ...rect, color: null, show: { title: true, value: true } },
+    n,
+    outputIds,
+  );
 }
 
 export const initialValue = (w: Widget): WidgetValue => defOf(w).initialValue(w);

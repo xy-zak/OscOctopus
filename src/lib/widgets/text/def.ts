@@ -37,7 +37,7 @@ export const textDef: WidgetDef<TextWidget> = {
     props: {
       mode: 'text',
       source: 'Write **anything** here.',
-      size: 'm',
+      size: 'fit',
       align: 'left',
       valign: 'top',
       target: null,

@@ -154,7 +154,7 @@
     color: var(--fg);
   }
 
-  /* ---- switch: a metal block in a sunk slot; the slot lights green when on ---- */
+  /* ---- switch: a metal block in a sunk slot; the slot lights ACTIVE when on ---- */
   .frame[data-base='hardware'] [data-part='switch.track'] {
     border-radius: 4px;
     background: var(--hw-slot);
@@ -355,9 +355,9 @@
   }
 
   /* ---- sequencer: two rubber keys (keys above) over a row of LEDs sunk in the panel, one
-     per step; the step sent last lit ACTIVE green, half lit while paused. PAUSE is dim while
+     per step; the step sent last lit ACTIVE, half lit while paused. PAUSE is dim while
      there is no run to pause. ---- */
-  /* A key while its run is going is lit from behind, through a green rim round its edge. */
+  /* A key while its run is going is lit from behind, through an ACTIVE rim round its edge. */
   .frame[data-base='hardware'][data-running]
     [data-part='sequencer.key'][data-role='play']
     [data-part='keycap']:not([data-down])

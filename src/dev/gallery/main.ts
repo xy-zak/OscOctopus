@@ -1,13 +1,14 @@
 // Dev gallery entry (not part of the app build). Open /src/dev/gallery/ on the Vite dev
-// server; `?skin=glass` for a skin, `?mode=light` for light mode, `?only=<scenario id>` for
-// one scenario.
+// server; `?skin=glass` for a skin, `?active=6` for a palette ACTIVE colour (not green),
+// `?mode=light` for light mode, `?only=<scenario id>` for one scenario.
 //
 // `window.gallery` is the screenshot script's handle (scripts/shots.mjs): the scenario list,
 // `show(id)` to render one, and `freeze(ms)` to hold every animation at a fixed moment.
 import { mount, unmount } from 'svelte';
 import '../../app.css';
-import { BUILTIN_SKIN_IDS, BUILTIN_SKIN_LIST, resolveSkin } from '../../lib/skins/builtin';
-import { DEFAULT_ACCENT, DEFAULT_PALETTE, PALETTES, paletteVars } from '../../lib/theme/palettes';
+import { BUILTIN_SKIN_IDS, BUILTIN_SKIN_LIST } from '../../lib/skins/builtin';
+import { LookSettingSchema, lookVars, resolveLook } from '../../lib/theme/look';
+import { DEFAULT_ACCENT } from '../../lib/theme/palettes';
 import { measureCharWidth } from '../../lib/ui/textfit';
 import Gallery from './Gallery.svelte';
 import { SCENARIOS } from './scenarios';
@@ -26,10 +27,18 @@ declare global {
 const q = new URLSearchParams(location.search);
 const root = document.documentElement;
 root.dataset.mode = q.get('mode') === 'light' ? 'light' : 'dark';
-const vars = paletteVars(PALETTES[DEFAULT_PALETTE].colors, DEFAULT_ACCENT);
-for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
+// The look of every desk, as the app applies it; what the query doesn't say is the default.
+const active = q.get('active');
+const look = resolveLook(
+  LookSettingSchema.parse({
+    global: { skin: q.get('skin'), active: active === null ? undefined : Number(active) },
+  }),
+  null,
+  { custom: [], skins: BUILTIN_SKIN_LIST },
+);
+for (const [k, v] of Object.entries(lookVars(look, DEFAULT_ACCENT))) root.style.setProperty(k, v);
 
-const skin = resolveSkin(q.get('skin'), BUILTIN_SKIN_LIST);
+const skin = look.skin;
 
 const target = document.getElementById('gallery')!;
 let app: ReturnType<typeof mount> | null = null;

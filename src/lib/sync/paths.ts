@@ -5,7 +5,8 @@
 //   name · color · grid                            the desk
 //   w/<id>                {type}                   a widget exists (its stamp orders widgets)
 //   w/<id>/rect           {x,y,w,h}                moved or resized together, never half
-//   w/<id>/label · w/<id>/color · w/<id>/bindings  (all bindings are one unit)
+//   w/<id>/label · w/<id>/color · w/<id>/show
+//   w/<id>/bindings                                (all bindings are one unit)
 //   w/<id>/props/<key>                             each prop on its own
 //   o/<id> · i/<id>       {}                       an output / input exists
 //   o/<id>/cfg · i/<id>/cfg                        its settings, minus the machine's own
@@ -20,6 +21,7 @@ import {
   InputConfigSchema,
   OutputConfigSchema,
   WidgetSchema,
+  WidgetShowSchema,
   type Preset,
   type Widget,
   type WidgetType,
@@ -56,15 +58,17 @@ export type Flat = Map<string, unknown>;
 /** A deep copy that also works on Svelte state proxies (which structuredClone refuses). */
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 
+type WidgetPart = 'create' | 'rect' | 'label' | 'color' | 'show' | 'bindings';
+
 export type ParsedKey =
   | { group: 'desk'; field: 'name' | 'color' | 'grid' }
-  | { group: 'widget'; id: string; part: 'create' | 'rect' | 'label' | 'color' | 'bindings' }
+  | { group: 'widget'; id: string; part: WidgetPart }
   | { group: 'widget'; id: string; part: 'prop'; prop: string }
   | { group: 'output' | 'input'; id: string; part: 'create' | 'cfg' };
 
 const ID = '[A-Za-z0-9_-]{1,64}';
 const WIDGET_KEY = new RegExp(
-  `^w/(${ID})(?:/(rect|label|color|bindings)|/props/([A-Za-z0-9_]{1,64}))?$`,
+  `^w/(${ID})(?:/(rect|label|color|show|bindings)|/props/([A-Za-z0-9_]{1,64}))?$`,
 );
 const ENDPOINT_KEY = new RegExp(`^([oi])/(${ID})(/cfg)?$`);
 
@@ -74,7 +78,7 @@ export function parseKey(key: string): ParsedKey | null {
   if (w) {
     const id = w[1]!;
     if (w[3]) return { group: 'widget', id, part: 'prop', prop: w[3] };
-    const part = (w[2] ?? 'create') as 'create' | 'rect' | 'label' | 'color' | 'bindings';
+    const part = (w[2] ?? 'create') as WidgetPart;
     return { group: 'widget', id, part };
   }
   const e = ENDPOINT_KEY.exec(key);
@@ -126,6 +130,8 @@ export function validEntry(
           return ok(z.string().max(500));
         case 'color':
           return ok(ColorIndex.nullable());
+        case 'show':
+          return ok(WidgetShowSchema);
         case 'bindings':
           return ok(z.array(BindingSchema).max(64));
         case 'prop': {
@@ -158,6 +164,7 @@ export function flatten(desk: Preset): Flat {
     out.set(`w/${w.id}/rect`, { x: w.x, y: w.y, w: w.w, h: w.h });
     out.set(`w/${w.id}/label`, w.label);
     out.set(`w/${w.id}/color`, w.color);
+    out.set(`w/${w.id}/show`, { ...w.show });
     out.set(`w/${w.id}/bindings`, clone(w.bindings));
     for (const [k, v] of Object.entries(w.props)) out.set(`w/${w.id}/props/${k}`, clone(v));
   }
@@ -225,6 +232,7 @@ export function materialize(record: RecordView, local: Preset): Materialized {
       ...rect,
       label: record.live(`w/${id}/label`),
       color: record.live(`w/${id}/color`),
+      show: record.live(`w/${id}/show`),
       bindings: record.live(`w/${id}/bindings`),
       props,
     };

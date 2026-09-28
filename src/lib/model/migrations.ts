@@ -94,6 +94,15 @@ const steps: Record<number, (preset: Raw) => Raw> = {
   // app refuse such a desk with "update" instead of a schema error, and keeps older sync peers
   // out of the session.
   9: (p) => ({ ...p, schemaVersion: 10 }),
+  // v11: a widget can hide its title and its value readout. Every widget still shows both.
+  10: (p) => ({
+    ...p,
+    schemaVersion: 11,
+    widgets: ((p.widgets as Raw[] | undefined) ?? []).map((w) => ({
+      ...w,
+      show: { title: true, value: true },
+    })),
+  }),
 };
 
 const OLD_PAD_CHANNELS: Record<string, string> = {

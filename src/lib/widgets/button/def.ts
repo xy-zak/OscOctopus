@@ -5,6 +5,7 @@ import type { WidgetDef } from '../types';
 
 export const buttonDef: WidgetDef<ButtonWidget> = {
   label: 'Button',
+  readout: 'The value it sends, ARMED or HOLD',
   defaultSize: { w: 2, h: 2 },
   create: (base, n, outputIds) => ({
     ...base,

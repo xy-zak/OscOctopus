@@ -75,12 +75,10 @@
 </script>
 
 <WidgetFrame
-  type="list"
+  {widget}
   {live}
   data-horizontal={flag(horizontal)}
-  title={widget.label}
   status="{index + 1}/{p.options.length}"
-  color={widget.color}
   role="listbox"
   aria-label={widget.label}
   aria-activedescendant="{widget.id}-opt-{index}"

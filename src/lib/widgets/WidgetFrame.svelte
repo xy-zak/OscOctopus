@@ -1,25 +1,24 @@
 <script lang="ts">
-  // Shared shell of every widget: the frame, with the title and an optional status readout
-  // (value) set into its border (labels.ts). Where they go is the same in every skin; how they
-  // look is the skin's (skins/terminal.css, …): this only lays out the parts and marks their
-  // state (see skins/anatomy.ts). Widgets pass their own state attributes (data-on, …) via
-  // `rest`.
+  // Shared shell of every widget: the frame, with the title (its label) and an optional status
+  // readout (value) set into its border (labels.ts), unless the widget hides them (`show`).
+  // Where they go is the same in every skin; how they look is the skin's (skins/terminal.css,
+  // …): this only lays out the parts and marks their state (see skins/anatomy.ts). Widgets
+  // pass their own state attributes (data-on, …) via `rest`.
   import type { Snippet } from 'svelte';
   import type { HTMLAttributes } from 'svelte/elements';
+  import type { Widget } from '../model/preset';
   import { flag } from '../skins/anatomy';
   import { useSkin } from '../skins/context';
   import { colorVars } from '../theme/palettes';
   import { charWidth } from '../ui/textfit';
   import { labelLayout } from './labels';
 
-  interface Props extends Omit<HTMLAttributes<HTMLDivElement>, 'color' | 'children' | 'title'> {
-    /** The widget type, for skins and cursors (`data-type`). */
-    type: string;
+  interface Props extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
+    /** Its type (`data-type`, for skins and cursors), label, colour and what it shows. */
+    widget: Widget;
     /** Takes input (not editing, not LOCKED). */
     live?: boolean;
-    title?: string;
     status?: string;
-    color: number | null;
     /** Border + title take the widget colour (being touched, switched on, ...). */
     active?: boolean;
     /** Sink into the shadow. */
@@ -28,11 +27,9 @@
     children: Snippet<[{ w: number; h: number }]>;
   }
   let {
-    type,
+    widget,
     live = false,
-    title = '',
     status = '',
-    color,
     active = false,
     pressed = false,
     element = $bindable(),
@@ -42,10 +39,12 @@
 
   let w = $state(0);
   let h = $state(0);
-  const colors = $derived(colorVars(color));
+  const colors = $derived(colorVars(widget.color));
   const skin = useSkin();
 
-  const layout = $derived(labelLayout(title, status, w, h, charWidth()));
+  const title = $derived(widget.show.title ? widget.label : '');
+  const shownStatus = $derived(widget.show.value ? status : '');
+  const layout = $derived(labelLayout(title, shownStatus, w, h, charWidth()));
 </script>
 
 <div
@@ -54,7 +53,7 @@
   bind:clientHeight={h}
   class="frame"
   data-part="frame"
-  data-type={type}
+  data-type={widget.type}
   data-base={skin().base}
   data-skin={skin().id}
   data-live={flag(live)}
@@ -74,7 +73,7 @@
   {/if}
   {#if layout.statusPos !== 'none'}
     <span class="status {layout.statusPos}" data-part="frame.status" data-pos={layout.statusPos}
-      >{status}</span
+      >{shownStatus}</span
     >
   {/if}
 </div>

@@ -1,6 +1,6 @@
 /* SKETCH: widgets drawn in coloured pencil. Outlines are hand-drawn line art
    (assets/skins/sketch/*.svg) used as masks, so every line takes the widget's colour (and
-   ACTIVE green when on); fills are pencil hatching. Every rule is keyed on
+   ACTIVE when on); fills are pencil hatching. Every rule is keyed on
    .frame[data-base='sketch']. Parts and states: skins/anatomy.ts; what every skin keeps the
    same (font, label placement, markers, the desk background): skins/base.css, docs/SKINS.md.
 
@@ -77,7 +77,7 @@
   }
 
   /* Pressed buttons and sequencer keys, held or latched pads and held list options are hatched
-     green (--sk-flash). On release the hatching fades off the page; it is drawn by the
+     ACTIVE (--sk-flash). On release the hatching fades off the page; it is drawn by the
      keyframes, so without motion a released one is simply clear. */
   .frame[data-base='sketch'] [data-part='button.fill'],
   .frame[data-base='sketch'] [data-part='sequencer.fill'],
@@ -155,7 +155,7 @@
     text-shadow: var(--sk-halo);
   }
 
-  /* ---- switch: a hatched groove with a paper block on it; green hatching when on ---- */
+  /* ---- switch: a hatched groove with a paper block on it; ACTIVE hatching when on ---- */
   .frame[data-base='sketch'] [data-part='switch.track'] {
     background: var(--sk-hatch);
   }
@@ -192,7 +192,7 @@
     transition: none;
   }
 
-  /* ---- fader: a pencil groove scribbled green up to the value, and a hatched cap ---- */
+  /* ---- fader: a pencil groove scribbled ACTIVE up to the value, and a hatched cap ---- */
   .frame[data-base='sketch'] [data-part='slider.grip'] {
     visibility: hidden;
   }
@@ -306,12 +306,12 @@
     background: var(--paper);
   }
 
-  /* ---- pads: pencil boxes, cross-hatched green while held or latched ---- */
+  /* ---- pads: pencil boxes, cross-hatched ACTIVE while held or latched ---- */
   .frame[data-base='sketch'] [data-part='pads.pad'] [data-part='keycap.face'] {
     background: none;
   }
   /* Held or latched pads, pressed sequencer keys and the one whose run is going (see the
-     sequencer, below) are drawn in green pencil. */
+     sequencer, below) are drawn in ACTIVE pencil. */
   .frame[data-base='sketch'] [data-part='pads.pad'][data-on],
   .frame[data-base='sketch'] [data-part='sequencer.key'] [data-part='keycap'][data-down],
   .frame[data-base='sketch'][data-running] [data-part='sequencer.key'][data-role='play'],
@@ -323,7 +323,7 @@
     text-shadow: var(--sk-halo);
   }
 
-  /* ---- list: handwritten options; the current one boxed, a pressed one hatched green ---- */
+  /* ---- list: handwritten options; the current one boxed, a pressed one hatched ACTIVE ---- */
   .frame[data-base='sketch'] [data-part='list.option'] {
     color: var(--fg-dim);
     transition: color 120ms ease;
@@ -351,9 +351,9 @@
   }
 
   /* ---- sequencer: two hatched pencil boxes (keys above) over a row of pencil strokes, one
-     per step. The keys keep the widget colour while the frame is green; the one whose run is
-     going is redrawn in green and hatched green (pads, above). The step sent last is
-     cross-hatched green (hatched once while paused). PAUSE is faint while there is no run to
+     per step. The keys keep the widget colour while the frame turns ACTIVE; the one whose run is
+     going is redrawn in ACTIVE and hatched ACTIVE (pads, above). The step sent last is
+     cross-hatched ACTIVE (hatched once while paused). PAUSE is faint while there is no run to
      pause. ---- */
   .frame[data-base='sketch'] [data-part='sequencer.key'] {
     --sk-line: var(--c);
@@ -381,7 +381,7 @@
     -webkit-mask: url('../../assets/skins/sketch/hline.svg') 0 50% / 96px 12px repeat-x;
     mask: url('../../assets/skins/sketch/hline.svg') 0 50% / 96px 12px repeat-x;
   }
-  /* A dense scribble, so even a narrow step reads green. */
+  /* A dense scribble, so even a narrow step reads ACTIVE. */
   .frame[data-base='sketch'] [data-part='sequencer.step'][data-current] {
     --sk-scribble: repeating-linear-gradient(-45deg, var(--act) 0 1.5px, transparent 1.5px 3.5px);
     background:

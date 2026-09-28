@@ -52,11 +52,9 @@
 </script>
 
 <WidgetFrame
-  type="log"
+  {widget}
   {live}
-  title={widget.label}
   status="{rows.length}/{p.rows}"
-  color={widget.color}
   role="log"
   aria-label={widget.label || 'Log'}
 >

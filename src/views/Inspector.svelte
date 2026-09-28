@@ -1,14 +1,15 @@
 <script lang="ts">
   // Edit-mode side panel for the selected widget, in four foldable sections:
-  //   VISUAL       what every widget has (label, colour, cell);
+  //   VISUAL       what every widget has (label, colour from its desk's palette, whether its
+  //                title and value show, cell);
   //   INTERACTION  its type's own props (its <Type>Inspector, see widgets/registry.ts);
   //   MESSAGES     what it sends and receives, and a preview of exactly what it sends now
   //                (only what it receives, or no section, per `WidgetDef.messages`);
   //   ACTIVITY     what actually happened on the wire (folded by default).
   // Which sections are open is remembered per device once one is folded or unfolded.
   import type { Widget } from '../lib/model/preset';
-  import { appearance } from '../lib/state/appearance.svelte';
   import { ACTIVITY_ROWS, debugStore } from '../lib/state/debug.svelte';
+  import { lookStore } from '../lib/state/look.svelte';
   import { persistSetting } from '../lib/state/persist';
   import { presetStore } from '../lib/state/preset.svelte';
   import { showDesk, ui, type InspectorSection } from '../lib/state/ui.svelte';
@@ -19,6 +20,7 @@
   import Field from '../lib/ui/Field.svelte';
   import Icon from '../lib/ui/Icon.svelte';
   import Swatches from '../lib/ui/Swatches.svelte';
+  import Toggle from '../lib/ui/Toggle.svelte';
   import { DEFS, messagesOf } from '../lib/widgets/defs';
   import { viewsOf } from '../lib/widgets/registry';
   import BindingsEditor from './inspector/BindingsEditor.svelte';
@@ -42,8 +44,12 @@
   };
 
   const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+  const readout = $derived(DEFS[widget.type].readout);
+  const hidden = $derived(
+    [!widget.show.title && 'title', readout && !widget.show.value && 'value'].filter(Boolean),
+  );
   const lookSummary = $derived(
-    `${widget.label ? `“${widget.label}”` : 'no label'} · x${widget.x} y${widget.y} · ${widget.w}×${widget.h}`,
+    `${widget.label ? `“${widget.label}”` : 'no label'}${hidden.length ? ` (${hidden.join(', ')} hidden)` : ''} · x${widget.x} y${widget.y} · ${widget.w}×${widget.h}`,
   );
   const messages = $derived(messagesOf(widget));
   const messagesSummary = $derived.by(() => {
@@ -99,18 +105,39 @@
           <input class="input" bind:value={widget.label} oninput={touch} />
         </Field>
         <Field
-          label="Colour · {appearance.palette.name}"
-          hint="AUTO follows the desk’s colour"
+          label="Colour · {lookStore.forDesk(deskId).palette.name}"
+          hint="From this desk’s palette (DESK › PRESET). AUTO follows the desk’s colour"
+          group
           wide
         >
           <Swatches
             value={widget.color}
-            autoColor={colorVars(presetStore.current.color).c}
+            extras={[
+              {
+                value: null,
+                label: 'AUTO',
+                title: 'AUTO: the desk’s colour',
+                color: colorVars(presetStore.current.color).c,
+              },
+            ]}
             onchange={(c) => {
               widget.color = c;
               touch();
             }}
           />
+        </Field>
+        <Field label="Show" hint="On the desk, in the frame’s border" group wide>
+          <span class="shows">
+            <label class="row"
+              ><Toggle bind:checked={widget.show.title} onchange={touch} /> Title</label
+            >
+            {#if readout}
+              <label class="row" title={readout}
+                ><Toggle bind:checked={widget.show.value} onchange={touch} /> Value
+                <span class="faint">({readout.toLowerCase()})</span></label
+              >
+            {/if}
+          </span>
         </Field>
         <Field label="Cell" wide>
           <span class="readout">x{widget.x} y{widget.y} · {widget.w}×{widget.h}</span>
@@ -182,6 +209,11 @@
   }
   .readout {
     line-height: var(--control-h);
+  }
+  .shows {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 3ch;
   }
   /* Layout vocabulary shared by every section of the panel, including each widget type's
      own inspector (widgets/<type>/<Type>Inspector.svelte). :where() keeps the element rules

@@ -2,7 +2,7 @@
   // A fader: a narrow track that fills up to the value, and a cap wider than the track, like a
   // real fader knob, that tracks the exact value 1:1 under the finger, with a scale either side
   // of the track. TERMINAL draws it like the Switch: a dithered groove filling with ACTIVE
-  // green dots and a solid cap.
+  // dots and a solid cap.
   import type { SliderWidget } from '../../model/preset';
   import { sliderPosition, sliderValue } from '../../osc/curves';
   import { emitValue } from '../../osc/flow';
@@ -97,11 +97,9 @@
 </script>
 
 <WidgetFrame
-  type="slider"
+  {widget}
   {live}
-  title={widget.label}
   status={value.toFixed(decimals)}
-  color={widget.color}
   active={drag !== null}
   data-vertical={flag(vertical)}
   data-dragging={flag(drag !== null)}

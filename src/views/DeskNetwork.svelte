@@ -156,13 +156,6 @@
     justify-content: space-between;
     gap: 8px;
   }
-  .link {
-    padding: 0;
-    border: 0;
-    background: none;
-    color: var(--accent-text);
-    text-decoration: underline;
-  }
   p {
     margin: 0;
   }

@@ -1,6 +1,7 @@
 // Colour palettes. The UI itself is always near-black on near-white; palettes only colour
 // active things (fills, lit buttons, switches, cursors). Each palette has exactly ten colours,
-// so a widget's colour is just an index 0–9 and switching palette recolours the whole desk.
+// so a widget's colour is just an index 0–9 and switching palette recolours the whole desk
+// (which palette a desk uses is its look, look.ts).
 // Two kinds. RAINBOW, NEON and PASTEL run through every hue. The themed ones are heavily
 // inspired by one colour but travel across its neighbouring hues (SUNSET goes yellow → orange →
 // pink → purple), so their colours stay distinct; most end with two contrasting accents
@@ -311,7 +312,11 @@ export function nearestIndex(hex: string, palette: PaletteId): number {
 export const isBuiltIn = (id: string): id is PaletteId =>
   (PALETTE_IDS as readonly string[]).includes(id);
 
-/** A theme's palette: built-in, or one of its custom ones. One that was deleted is RAINBOW. */
+/** Whether there is a palette by that id: a built-in one, or one of the custom ones. */
+export const hasPalette = (id: string, custom: readonly CustomPalette[]) =>
+  isBuiltIn(id) || custom.some((p) => p.id === id);
+
+/** A palette by id: built-in, or one of the custom ones. One that was deleted is RAINBOW. */
 export function resolvePalette(id: string, custom: readonly CustomPalette[]): Palette {
   if (isBuiltIn(id)) return PALETTES[id];
   return custom.find((p) => p.id === id) ?? PALETTES[DEFAULT_PALETTE];
@@ -326,13 +331,9 @@ export function withCustomPalette(theme: Theme, palette: CustomPalette): Theme {
   return { ...theme, custom };
 }
 
-/** The theme without that custom palette; if it was in use, RAINBOW takes its place. */
+/** The theme without that custom palette. */
 export function withoutCustomPalette(theme: Theme, id: string): Theme {
-  return {
-    ...theme,
-    palette: theme.palette === id ? DEFAULT_PALETTE : theme.palette,
-    custom: theme.custom.filter((p) => p.id !== id),
-  };
+  return { ...theme, custom: theme.custom.filter((p) => p.id !== id) };
 }
 
 /** CSS custom properties for a palette's colours: --p0…--p9, their inks, and the accent. */
@@ -347,14 +348,20 @@ export function paletteVars(colors: readonly string[], accent: number): Record<s
   return vars;
 }
 
-/** Style values for something coloured by palette index (null = theme accent). */
 /**
- * CSS colours for a palette index. `null` (AUTO) is the colour of the surrounding desk:
- * `--auto-c` / `--auto-ink`, which the desk's grid sets (GridCanvas). Outside a desk it falls
- * back to the accent.
+ * CSS colours for a palette index, in the palette of wherever they are used (the look around
+ * it). `null` (AUTO) is the colour of the surrounding desk: `--auto-c` / `--auto-ink`, which the
+ * desk's grid sets (GridCanvas). Outside a desk it falls back to the accent.
  */
 export function colorVars(index: number | null): { c: string; ink: string } {
   return index === null
     ? { c: 'var(--auto-c, var(--accent))', ink: 'var(--auto-ink, var(--accent-ink))' }
     : { c: `var(--p${index})`, ink: `var(--p${index}-ink)` };
+}
+
+/** A colour of a given palette as plain colours, for showing it outside that palette's look
+ *  (a desk's tab shows the desk's colour in the desk's own palette). */
+export function swatchOf(palette: Palette, index: number): { c: string; ink: string } {
+  const c = palette.colors[index] ?? palette.colors[0]!;
+  return { c, ink: inkFor(c) };
 }

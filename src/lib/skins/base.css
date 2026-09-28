@@ -5,17 +5,18 @@
    the widget's own colour and light/dark mode:
      --c        the widget's own colour, for lines and dots (border, tracks, key edges)
      --c-solid  --c slightly faded into the background, for solid areas (faces, blocks, caps);
-                the ACTIVE green is never faded
+                the ACTIVE colour is never faded
      --c-ink    text on a --c-solid fill: the plain foreground, since a half-faded colour
                 sits close to the background in either mode
      --c-text   --c used as text (darkened in light mode, see tokens.css --accent-text)
      --w-bg     the widget's background: a neutral grey, whatever its colour
-     --act      the app-wide ACTIVE green: pressed, on, filled, held
+     --act      the ACTIVE colour: pressed, on, filled, held (the look's: green, or one of
+                the palette's; "ACTIVE" in the skins' comments)
      --act-ink  text on an --act fill
    Dither fills (the pixel "tints"), resolved per widget: a var() inside a custom property
    resolves where the property is declared, so these must sit on the widget, not :root.
-     --dither-50-act  every other pixel ACTIVE green
-     --dither-25-act  one pixel in four ACTIVE green
+     --dither-50-act  every other pixel ACTIVE
+     --dither-25-act  one pixel in four ACTIVE
      --dither-25-c    one pixel in four in the widget colour (grooves, tracks)
 
    The same in every skin, so a desk reads the same whatever it wears (anatomy.test.ts holds
@@ -126,25 +127,14 @@
     }
   }
 
-  /* ---- the text widget: its own size (the one exception to the app's one size, chosen per
-     widget), heading lines in bold capitals, bold, reverse video and palette colours. A skin
-     colours the text through --text-c; the marks follow it. ---- */
+  /* ---- the text widget: its own size (the one exception to the app's one size: as large as
+     the widget's size allows, shrunk to fit its box, --text-px from widgets/text/fit.ts),
+     heading lines in bold capitals, bold, reverse video and palette colours. A skin colours
+     the text through --text-c; the marks follow it. ---- */
   [data-part='frame'] [data-part='text.body'] {
     color: var(--text-c, var(--fg));
-    font-size: var(--fs);
-    line-height: var(--lh);
-  }
-  [data-part='frame'] [data-part='text.body'][data-size='m'] {
-    font-size: 20px;
-    line-height: 28px;
-  }
-  [data-part='frame'] [data-part='text.body'][data-size='l'] {
-    font-size: 26px;
-    line-height: 34px;
-  }
-  [data-part='frame'] [data-part='text.body'][data-size='xl'] {
-    font-size: 39px;
-    line-height: 48px;
+    font-size: var(--text-px, var(--fs));
+    line-height: calc(1.2em + 4px);
   }
   [data-part='frame'] [data-part='text.block'][data-kind='heading'] {
     font-weight: 700;

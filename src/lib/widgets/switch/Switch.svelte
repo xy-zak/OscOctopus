@@ -93,11 +93,9 @@
 </script>
 
 <WidgetFrame
-  type="switch"
+  {widget}
   {live}
-  title={widget.label}
   status={String(value)}
-  color={widget.color}
   active={on}
   pressed={drag !== null}
   data-on={flag(on)}

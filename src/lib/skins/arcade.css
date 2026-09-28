@@ -14,7 +14,7 @@
     --ar-chrome: #a8a8ae;
     --ar-ball: radial-gradient(circle at 35% 30%, #fff 0 8%, #d4d4d8 25%, #7a7a80 70%, #3a3a3f);
     --ar-slot: #0a0a0b;
-    /* Domes, in the widget colour and ACTIVE green: a highlight up and to the left, darker
+    /* Domes, in the widget colour and ACTIVE: a highlight up and to the left, darker
        towards the rim. (Declared here, where --c and --act resolve.) */
     --ar-dome: radial-gradient(
       circle at 38% 30%,
@@ -92,7 +92,7 @@
     color: var(--fg);
   }
 
-  /* A pressed button or sequencer key, or a held or latched pad: the dome lights up green.
+  /* A pressed button or sequencer key, or a held or latched pad: the dome lights up ACTIVE.
      Release: the lamp under the dome dims. */
   .frame[data-base='arcade'] [data-part='button.fill'][data-on],
   .frame[data-base='arcade'] [data-part='sequencer.fill'][data-on],
@@ -162,7 +162,7 @@
       inset 0 -3px 4px rgb(0 0 0 / 0.35);
   }
 
-  /* ---- button: the dome lights up green while on (keys above) ---- */
+  /* ---- button: the dome lights up ACTIVE while on (keys above) ---- */
   .frame[data-base='arcade'] [data-part='button.armed'] {
     background: radial-gradient(
       circle,
@@ -193,7 +193,7 @@
     text-shadow: 0 1px 2px rgb(0 0 0 / 0.7);
   }
 
-  /* ---- switch: a chrome ball in a black slot; the slot lights green when on ---- */
+  /* ---- switch: a chrome ball in a black slot; the slot lights ACTIVE when on ---- */
   .frame[data-base='arcade'] [data-part='switch.track'] {
     border-radius: 999px;
     background: var(--ar-slot);
@@ -230,7 +230,7 @@
     transition: none;
   }
 
-  /* ---- fader: a black slot lit green up to the value, and a ball-top lever ---- */
+  /* ---- fader: a black slot lit ACTIVE up to the value, and a ball-top lever ---- */
   .frame[data-base='arcade'] [data-part='slider.track'],
   .frame[data-base='arcade'] [data-part='sequencer.timer'] {
     border-radius: 999px;
@@ -337,7 +337,7 @@
     background: var(--paper);
   }
 
-  /* ---- pads: a grid of small domes; held or latched, lit green ---- */
+  /* ---- pads: a grid of small domes; held or latched, lit ACTIVE ---- */
   /* Pad numbers and the sequencer's key legends: white on the dome, dark on a lit one. */
   .frame[data-base='arcade'] [data-part='pads.num'],
   .frame[data-base='arcade'] [data-part='sequencer.legend'] {
@@ -394,7 +394,7 @@
   }
 
   /* ---- sequencer: two domed buttons (keys above) over a row of little lamps in black bezels,
-     one per step: unlit glass of the widget colour, the step sent last lit green (dim green
+     one per step: unlit glass of the widget colour, the step sent last lit ACTIVE (dim ACTIVE
      while paused). PAUSE is dim while there is no run to pause. ---- */
   .frame[data-base='arcade']:not([data-running]):not([data-paused])
     [data-part='sequencer.key'][data-role='pause'] {

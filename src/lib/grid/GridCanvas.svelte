@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Preset } from '../model/preset';
   import { provideSkin } from '../skins/context';
-  import { skinStore } from '../state/skins.svelte';
+  import { lookStore } from '../state/look.svelte';
   import { viewsOf } from '../widgets/registry';
   import GridItem from './GridItem.svelte';
   import { colorVars } from '../theme/palettes';
@@ -41,8 +41,9 @@
   const grid = $derived(preset.grid);
   // Widgets whose colour is AUTO take the desk's own colour (see colorVars).
   const auto = $derived(colorVars(preset.color));
-  // This desk's widgets wear its own skin, or the one for every desk.
-  provideSkin(() => skinStore.forDesk(preset.id));
+  // This desk's widgets wear its look's skin (its colours are around it, App.svelte).
+  const skin = $derived(lookStore.forDesk(preset.id).skin);
+  provideSkin(() => skin);
   const m = $derived(computeMetrics(width, height, grid, grid.gap));
   // The grid is drawn in edit mode only: live, the desk is just its widgets.
   const cells = $derived(

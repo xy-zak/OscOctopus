@@ -171,6 +171,14 @@ h2::after {
   cursor: default;
   pointer-events: none;
 }
+/* A button that reads as a link in running text (e.g. to GLOBAL SETTINGS › LOOK). */
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-text);
+  text-decoration: underline;
+}
 
 /* ---- master bar: every all-desk control has one shape (App.svelte, HoldSwitch.svelte) -------
    Readouts (OUT, SYNC) show a status lamp and open their settings. Switches (OSC-IN, OSC-OUT,

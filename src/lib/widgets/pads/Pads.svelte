@@ -70,11 +70,9 @@
 </script>
 
 <WidgetFrame
-  type="pads"
+  {widget}
   {live}
-  title={widget.label}
   status="{p.rows}×{p.cols}"
-  color={widget.color}
   active={Object.values(lit).some(Boolean) || Object.values(down).some(Boolean)}
   role="group"
   aria-label={widget.label}

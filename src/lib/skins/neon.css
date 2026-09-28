@@ -1,6 +1,6 @@
 /* NEON: glowing tubes on a dark wall. Every line is a 2px tube in the widget colour with a
    soft bloom around it; fills stay dark and hollow, and anything pressed, on or held burns
-   ACTIVE green. In light mode the bloom is kept small, so the tubes read on a pale wall.
+   ACTIVE. In light mode the bloom is kept small, so the tubes read on a pale wall.
    Every rule is keyed on .frame[data-base='neon']. Parts and states: skins/anatomy.ts; what
    every skin keeps the same (font, label placement, markers, the desk background):
    skins/base.css, docs/SKINS.md. */
@@ -82,7 +82,7 @@
     color: var(--fg);
   }
 
-  /* Release, for buttons, sequencer keys, pads and list options: the green burns down. */
+  /* Release, for buttons, sequencer keys, pads and list options: the ACTIVE colour burns down. */
   @keyframes neon-fade {
     from {
       background: var(--n-glow-act);
@@ -100,7 +100,7 @@
 
   /* ---- keys (buttons, pads, sequencer): a tube outline around a hollow face; lit (a fired,
      armed or holding button, a held or latched pad, a sequencer key while its run is going),
-     the tube burns green ---- */
+     the tube burns ACTIVE ---- */
   .frame[data-base='neon'] [data-part='keycap.face'] {
     --n-key: var(--c);
     border: 2px solid var(--n-key);
@@ -131,7 +131,7 @@
       inset 0 0 calc(1.6 * var(--n-bloom)) var(--n-glow-act);
   }
 
-  /* ---- button: the face fills with a green glow while on ---- */
+  /* ---- button: the face fills with an ACTIVE glow while on ---- */
   .frame[data-base='neon'] [data-part='button.fill'][data-on],
   .frame[data-base='neon'] [data-part='sequencer.fill'][data-on] {
     background: radial-gradient(ellipse at center, var(--n-glow-act), transparent 80%);
@@ -172,14 +172,14 @@
       clip-path: inset(0 0 0 0);
     }
   }
-  /* Glowing green text: the armed hint, and the switch's ON. */
+  /* Glowing ACTIVE text: the armed hint, and the switch's ON. */
   .frame[data-base='neon'] [data-part='button.hint'],
   .frame[data-base='neon'] [data-part='switch.legend'][data-side='on'] {
     color: var(--act);
     text-shadow: 0 0 6px var(--n-glow-act);
   }
 
-  /* ---- switch: a tube loop with a glowing bead; the loop turns green when on ---- */
+  /* ---- switch: a tube loop with a glowing bead; the loop turns ACTIVE when on ---- */
   .frame[data-base='neon'] [data-part='switch.track'] {
     --n-sw: var(--c);
     border: 2px solid var(--n-sw);
@@ -215,7 +215,7 @@
       background 160ms ease,
       box-shadow 160ms ease;
   }
-  /* A lit bead burns green: the switch's while on, the fader's grip while dragged. */
+  /* A lit bead burns ACTIVE: the switch's while on, the fader's grip while dragged. */
   .frame[data-base='neon'][data-on] [data-part='switch.thumb'],
   .frame[data-base='neon'][data-dragging] [data-part='slider.grip'] {
     background: var(--n-bead-act);
@@ -229,7 +229,7 @@
       box-shadow 160ms ease;
   }
 
-  /* ---- fader: a thin dim tube lit green up to the value, and a glowing bar for a cap ---- */
+  /* ---- fader: a thin dim tube lit ACTIVE up to the value, and a glowing bar for a cap ---- */
   .frame[data-base='neon'] [data-part='slider.track'],
   .frame[data-base='neon'] [data-part='sequencer.timer'] {
     border-radius: 999px;
@@ -333,7 +333,7 @@
     background: var(--paper);
   }
 
-  /* ---- pads: tube squares; held or latched, a green bloom fills them ---- */
+  /* ---- pads: tube squares; held or latched, an ACTIVE bloom fills them ---- */
   .frame[data-base='neon'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
     background: radial-gradient(ellipse at center, var(--n-glow-act), transparent 85%);
   }
@@ -345,7 +345,7 @@
     text-shadow: 0 0 4px var(--act);
   }
 
-  /* ---- list: dim tube rows; the current one lit in the widget colour, held ones green ---- */
+  /* ---- list: dim tube rows; the current one lit in the widget colour, held ones ACTIVE ---- */
   .frame[data-base='neon'] [data-part='list.option'] {
     border: 1px solid color-mix(in srgb, var(--c) 40%, transparent);
     border-radius: 5px;
@@ -383,8 +383,8 @@
   }
 
   /* ---- sequencer: two tube keys (keys above) over a row of short dim tubes, one per step:
-     the step sent last burns green, and dims to a low green while paused. The legend glows
-     in the widget colour, green on a lit key; PAUSE is a switched-off tube while there is no
+     the step sent last burns ACTIVE, and dims to a low ACTIVE while paused. The legend glows
+     in the widget colour, ACTIVE on a lit key; PAUSE is a switched-off tube while there is no
      run to pause. ---- */
   .frame[data-base='neon'] [data-part='sequencer.legend'] {
     color: var(--c-text);

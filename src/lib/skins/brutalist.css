@@ -59,7 +59,7 @@
   }
 
   /* Pressed buttons and sequencer keys, held or latched pads and held list options are solid
-     green. Release: off in two hard steps. */
+     ACTIVE. Release: off in two hard steps. */
   .frame[data-base='brutalist'] [data-part='button.fill'][data-on],
   .frame[data-base='brutalist'] [data-part='sequencer.fill'][data-on],
   .frame[data-base='brutalist'] [data-part='pads.pad'][data-on] [data-part='pads.fill'],
@@ -139,7 +139,7 @@
     color: var(--br-ink);
   }
 
-  /* ---- switch: a thick box; the block is the widget colour, the box floods green when
+  /* ---- switch: a thick box; the block is the widget colour, the box floods ACTIVE when
      on ---- */
   /* The fader's slot is the same box. */
   .frame[data-base='brutalist'] [data-part='switch.track'],
@@ -170,7 +170,7 @@
     transition: none;
   }
 
-  /* ---- fader: a thick slot filling solid green, and a slab of a cap ---- */
+  /* ---- fader: a thick slot filling solid ACTIVE, and a slab of a cap ---- */
   .frame[data-base='brutalist'] [data-part='slider.fill'],
   .frame[data-base='brutalist'] [data-part='sequencer.elapsed'] {
     background: var(--act);
@@ -257,7 +257,7 @@
     background: var(--paper);
   }
 
-  /* ---- pads: blocks of the widget colour; held or latched, green ---- */
+  /* ---- pads: blocks of the widget colour; held or latched, ACTIVE ---- */
   .frame[data-base='brutalist'] [data-part='pads.num'] {
     color: var(--br-ink);
   }
@@ -284,8 +284,8 @@
   }
 
   /* ---- sequencer: two blocks (keys above) over a thick box of cells, one per step: the step
-     sent last solid green, in hazard stripes while paused. A key while its run is going has
-     its edge and shadow in green; PAUSE is faded while there is no run to pause. ---- */
+     sent last solid ACTIVE, in hazard stripes while paused. A key while its run is going has
+     its edge and shadow in ACTIVE; PAUSE is faded while there is no run to pause. ---- */
   .frame[data-base='brutalist'][data-running] [data-part='sequencer.key'][data-role='play'],
   .frame[data-base='brutalist'][data-paused] [data-part='sequencer.key'][data-role='pause'] {
     --br-line: var(--act);

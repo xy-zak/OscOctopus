@@ -5,6 +5,7 @@ import type { WidgetDef } from '../types';
 
 export const switchDef: WidgetDef<SwitchWidget> = {
   label: 'Switch',
+  readout: 'The value it sends',
   defaultSize: { w: 2, h: 1 },
   create: (base, n, outputIds) => ({
     ...base,

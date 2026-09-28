@@ -1,6 +1,6 @@
 /* BLUEPRINT: widgets as a technical drawing. Hairline outlines in the widget colour on
    drafting paper, registration crosses at the frame's corners, 45° section hatching for solid
-   parts (denser and ACTIVE green when pressed, on or filled), dash-dot centre lines, and a
+   parts (denser and ACTIVE when pressed, on or filled), dash-dot centre lines, and a
    drafting target for the XY cursor. Every rule is keyed on .frame[data-base='blueprint'].
    Parts and states: skins/anatomy.ts; what every skin keeps the same (font, label placement,
    markers, the desk background): skins/base.css, docs/SKINS.md. */
@@ -131,7 +131,7 @@
   .frame[data-base='blueprint'] [data-part='list.fill'][data-flash] {
     animation: blueprint-erase 300ms steps(1, end) forwards;
   }
-  /* Held or latched pads and held list options: hatched green. */
+  /* Held or latched pads and held list options: hatched ACTIVE. */
   .frame[data-base='blueprint'] [data-part='pads.pad'][data-on] [data-part='pads.fill'],
   .frame[data-base='blueprint'] [data-part='list.option'][data-held] [data-part='list.fill'] {
     background: var(--bp-hatch-act);
@@ -225,7 +225,7 @@
     transition: none;
   }
 
-  /* ---- fader: a slot with a dash-dot centre line, hatched green up to the value, and a
+  /* ---- fader: a slot with a dash-dot centre line, hatched ACTIVE up to the value, and a
      cap drawn as a box with a centre mark ---- */
   .frame[data-base='blueprint'] [data-part='slider.track'],
   .frame[data-base='blueprint'] [data-part='sequencer.timer'] {
@@ -343,7 +343,7 @@
     background: var(--paper);
   }
 
-  /* ---- pads: hatched boxes; held or latched, densely hatched green ---- */
+  /* ---- pads: hatched boxes; held or latched, densely hatched ACTIVE ---- */
   .frame[data-base='blueprint'] [data-part='pads.num'] {
     color: var(--fg);
     text-shadow: var(--bp-halo);
@@ -380,10 +380,10 @@
   }
 
   /* ---- sequencer: two hatched keys (keys above) over a row of hairline boxes, one per step:
-     the step sent last filled solid green, hatched green while paused. With no run to pause,
+     the step sent last filled solid ACTIVE, hatched ACTIVE while paused. With no run to pause,
      PAUSE is drawn as a hidden part: dashed, unhatched and faint. ---- */
-  /* A key while its run is going: its section hatched in green (a run lights every line of
-     the frame, so a green outline alone wouldn't tell the keys apart). */
+  /* A key while its run is going: its section hatched in ACTIVE (a run lights every line of
+     the frame, so an ACTIVE outline alone wouldn't tell the keys apart). */
   .frame[data-base='blueprint'][data-running]
     [data-part='sequencer.key'][data-role='play']
     [data-part='keycap.face'],

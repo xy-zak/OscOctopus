@@ -1,20 +1,12 @@
-// The global look: one palette and accent shared by every desk (a device setting, not part of
-// any preset), plus the custom palettes made on this device. Widgets store palette *indices*,
-// so switching palette recolours all desks.
+// The device's colours beyond the look (which palette each desk uses: state/look.svelte.ts):
+// the accent, dark or light, and the custom palettes made on this device. None of it is part of
+// any preset.
 import { LIMITS, ThemeSchema, type CustomPalette, type Theme } from '../model/preset';
 import { getSetting } from '../platform/settings';
-import {
-  DEFAULT_ACCENT,
-  DEFAULT_PALETTE,
-  resolvePalette,
-  withCustomPalette,
-  withoutCustomPalette,
-  type Palette,
-} from '../theme/palettes';
+import { DEFAULT_ACCENT, withCustomPalette, withoutCustomPalette } from '../theme/palettes';
 import { persistSetting } from './persist';
 
 export const DEFAULT_THEME: Theme = {
-  palette: DEFAULT_PALETTE,
   accent: DEFAULT_ACCENT,
   mode: 'dark',
   custom: [],
@@ -24,11 +16,6 @@ class AppearanceStore {
   theme: Theme = $state({ ...DEFAULT_THEME });
   private loaded = false;
 
-  /** The palette in use, built-in or custom. */
-  get palette(): Palette {
-    return resolvePalette(this.theme.palette, this.theme.custom);
-  }
-
   /** No room for another custom palette (a saved theme over the cap would not load). */
   get customFull(): boolean {
     return this.theme.custom.length >= LIMITS.customPalettes.max;
@@ -36,7 +23,7 @@ class AppearanceStore {
 
   /**
    * Loads the saved theme. `fallback` (e.g. a v3 preset's old per-desk theme) is used only
-   * when nothing has been saved yet, so upgrading keeps the desk's colours.
+   * when nothing has been saved yet, so upgrading keeps the desk's accent.
    */
   async load(fallback?: unknown) {
     if (this.loaded) return;
@@ -53,17 +40,18 @@ class AppearanceStore {
   }
 
   /**
-   * Adds or updates a custom palette and switches every desk to it. Resolves false, changing
-   * nothing, for a new palette while `customFull`.
+   * Adds or updates a custom palette. Resolves false, changing nothing, for a new palette
+   * while `customFull`.
    */
   async saveCustom(palette: CustomPalette): Promise<boolean> {
     const isNew = !this.theme.custom.some((p) => p.id === palette.id);
     if (isNew && this.customFull) return false;
-    this.theme = { ...withCustomPalette(this.theme, palette), palette: palette.id };
+    this.theme = withCustomPalette(this.theme, palette);
     await this.save();
     return true;
   }
 
+  /** Deletes a custom palette (lookStore.forget takes it off the desks that wear it). */
   async deleteCustom(id: string) {
     this.theme = withoutCustomPalette(this.theme, id);
     await this.save();
