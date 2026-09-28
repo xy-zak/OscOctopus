@@ -26,6 +26,10 @@
     --pads-gap: 7px;
     --list-gap: 4px;
     --list-row-h: 24px;
+    --seq-gap: 7px;
+    --seq-steps-h: 8px;
+    --seq-timer-h: 10px;
+    --seq-step-gap: 3px;
     background: var(--wb-tint);
     border-radius: 8px;
     transition: scale 200ms var(--wb-ease);
@@ -67,7 +71,7 @@
     color: var(--fg);
   }
 
-  /* Release, for buttons, pads and list options: the ACTIVE colour fades out. */
+  /* Release, for buttons, sequencer keys, pads and list options: the ACTIVE colour fades out. */
   @keyframes wobbly-fade {
     from {
       background: var(--act);
@@ -76,19 +80,22 @@
       background: transparent;
     }
   }
-  /* Pressed buttons, held or latched pads and held list options fill ACTIVE green. */
+  /* Pressed buttons and sequencer keys, held or latched pads and held list options fill
+     ACTIVE green. */
   .frame[data-base='wobbly'] [data-part='button.fill'][data-on],
+  .frame[data-base='wobbly'] [data-part='sequencer.fill'][data-on],
   .frame[data-base='wobbly'] [data-part='pads.pad'][data-on] [data-part='pads.fill'],
   .frame[data-base='wobbly'] [data-part='list.option'][data-held] [data-part='list.fill'] {
     background: var(--act);
   }
   .frame[data-base='wobbly'] [data-part='button.fill'][data-flash],
+  .frame[data-base='wobbly'] [data-part='sequencer.fill'][data-flash],
   .frame[data-base='wobbly'] [data-part='pads.fill'][data-flash],
   .frame[data-base='wobbly'] [data-part='list.fill'][data-flash] {
     animation: wobbly-fade 320ms ease-out forwards;
   }
 
-  /* ---- keys (buttons, pads): flat tiles in a wavy outline ---- */
+  /* ---- keys (buttons, pads, sequencer): flat tiles in a wavy outline ---- */
   .frame[data-base='wobbly'] [data-part='keycap.face'] {
     border-radius: 7px;
     background: var(--wb-solid);
@@ -171,19 +178,23 @@
   .frame[data-base='wobbly'] [data-part='slider.grip'] {
     visibility: hidden;
   }
-  .frame[data-base='wobbly'] [data-part='slider.track']::before {
+  .frame[data-base='wobbly'] [data-part='slider.track']::before,
+  .frame[data-base='wobbly'] [data-part='sequencer.timer']::before {
     content: '';
     position: absolute;
     inset: 0;
     background: color-mix(in srgb, var(--c) 70%, transparent);
   }
-  .frame[data-base='wobbly'] [data-part='slider.fill'] {
+  .frame[data-base='wobbly'] [data-part='slider.fill'],
+  .frame[data-base='wobbly'] [data-part='sequencer.elapsed'] {
     background: var(--act);
     transition: clip-path 220ms ease;
   }
   /* Groove and fill are the same wave. */
   .frame[data-base='wobbly'] [data-part='slider.track']::before,
-  .frame[data-base='wobbly'] [data-part='slider.fill'] {
+  .frame[data-base='wobbly'] [data-part='sequencer.timer']::before,
+  .frame[data-base='wobbly'] [data-part='slider.fill'],
+  .frame[data-base='wobbly'] [data-part='sequencer.elapsed'] {
     -webkit-mask: url('../../assets/skins/wobbly/wave-h.svg') 0 50% / 24px 12px repeat-x;
     mask: url('../../assets/skins/wobbly/wave-h.svg') 0 50% / 24px 12px repeat-x;
   }
@@ -314,7 +325,12 @@
   }
 
   /* ---- pads: wavy tiles, ACTIVE green while held or latched ---- */
-  .frame[data-base='wobbly'] [data-part='pads.pad'][data-on] {
+  /* Held or latched pads, pressed sequencer keys and the one whose run is going (see the
+     sequencer, below) have green outlines. */
+  .frame[data-base='wobbly'] [data-part='pads.pad'][data-on],
+  .frame[data-base='wobbly'] [data-part='sequencer.key'] [data-part='keycap'][data-down],
+  .frame[data-base='wobbly'][data-running] [data-part='sequencer.key'][data-role='play'],
+  .frame[data-base='wobbly'][data-paused] [data-part='sequencer.key'][data-role='pause'] {
     --wb-line: var(--act);
   }
   .frame[data-base='wobbly'] [data-part='pads.num'] {
@@ -353,5 +369,70 @@
   }
   .frame[data-base='wobbly'] [data-part='list.mark'] {
     color: var(--wb-line);
+  }
+
+  /* ---- sequencer: two wavy tiles (keys above) over a row of tinted pills, one per step. The
+     keys keep the widget colour while the frame is green; the one whose run is going has a
+     green outline (pads, above) and a green tint. The step sent last is a solid ACTIVE green
+     pill (a pale ringed one while paused). PAUSE is dim while there is no run to pause. ---- */
+  .frame[data-base='wobbly'] [data-part='sequencer.key'] {
+    --wb-line: var(--c);
+    transition: opacity 200ms ease;
+  }
+  .frame[data-base='wobbly'][data-running]
+    [data-part='sequencer.key'][data-role='play']
+    [data-part='keycap.face'],
+  .frame[data-base='wobbly'][data-paused]
+    [data-part='sequencer.key'][data-role='pause']
+    [data-part='keycap.face'] {
+    background: color-mix(in srgb, var(--act) 30%, var(--bg));
+  }
+  .frame[data-base='wobbly']:not([data-running]):not([data-paused])
+    [data-part='sequencer.key'][data-role='pause'] {
+    opacity: 0.4;
+  }
+  .frame[data-base='wobbly'] [data-part='sequencer.legend'] {
+    color: var(--fg);
+  }
+  .frame[data-base='wobbly'] [data-part='keycap'][data-down] [data-part='sequencer.legend'] {
+    color: var(--act-ink);
+  }
+  .frame[data-base='wobbly'] [data-part='sequencer.step'] {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--c) 35%, transparent);
+    transition:
+      background 200ms ease,
+      box-shadow 200ms ease;
+  }
+  .frame[data-base='wobbly'] [data-part='sequencer.step'][data-current] {
+    background: var(--act);
+  }
+  .frame[data-base='wobbly'][data-paused] [data-part='sequencer.step'][data-current] {
+    background: color-mix(in srgb, var(--act) 35%, transparent);
+    box-shadow: inset 0 0 0 1.5px var(--act);
+  }
+
+  /* ---- text: plain text on the tinted panel (the text itself is base.css's) ---- */
+
+  /* ---- log: headings on a flat tile, rows in soft tinted stripes, received ones dimmer
+     (errors and held rows are coloured by base.css, so no rule here gives a row a colour of
+     its own) ---- */
+  .frame[data-base='wobbly'] [data-part='log.head'] {
+    border-radius: 6px;
+    background: var(--wb-solid);
+    color: var(--fg);
+  }
+  .frame[data-base='wobbly'] [data-part='log.row']:nth-child(even) {
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--c) 12%, transparent);
+  }
+  .frame[data-base='wobbly'] [data-part='log.row'][data-in] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='wobbly'] [data-part='log.cell'][data-col='dir'] {
+    color: var(--c-text);
+  }
+  .frame[data-base='wobbly'] [data-part='log.empty'] {
+    color: var(--fg-faint);
   }
 }

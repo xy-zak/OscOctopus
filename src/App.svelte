@@ -27,6 +27,7 @@
   import { inputStore } from './lib/state/input.svelte';
   import { persistSetting } from './lib/state/persist';
   import { presetStore } from './lib/state/preset.svelte';
+  import { sequencerStore } from './lib/state/sequencer.svelte';
   import { skinStore } from './lib/state/skins.svelte';
   import { sharedDesks, startSharedDesks } from './lib/sync/app.svelte';
   import { syncSession } from './lib/sync/session.svelte';
@@ -83,6 +84,8 @@
       ui.locked = (await getSetting('locked')) ?? false;
       setPresenting((await getSetting('presenting')) ?? false);
       await presetStore.init();
+      // After the desks: a reloaded page picks up the sequences still playing in the core.
+      await sequencerStore.start();
       await skinStore.load();
       ui.infoOpen = (await getSetting('infoOpen')) ?? true;
       Object.assign(ui.inspectorOpen, await getSetting('inspectorSections'));

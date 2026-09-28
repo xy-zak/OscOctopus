@@ -37,8 +37,9 @@ built-in skin that fits in. Read the whole of *The contract* before writing any 
 **A skin may not change**. These stay the same in every skin, so a desk reads the same whatever
 it wears:
 
-1. **Typography.** Use the app's one font and one size. The weights and case of titles, values,
-   legends, pad numbers and list options are set once in `src/lib/skins/base.css`. So never use
+1. **Typography.** Use the app's one font and one size (a Text widget's own size, which
+   base.css sets, is the one exception). The weights and case of titles, values, legends, pad
+   numbers, list options, log headings and text marks are set once in `src/lib/skins/base.css`. So never use
    `font-*`, `text-transform`, `letter-spacing`, `line-height`, `text-align`, `writing-mode` or
    `@font-face` in a skin.
 2. **Where titles and values go.** `WidgetFrame` sets them into the frame's border, horizontal
@@ -49,7 +50,9 @@ it wears:
    - the switch's ON / OFF legend;
    - the pad numbers;
    - the graph's axis labels and its quarter lines;
-   - the list's `▸`.
+   - the list's `▸`;
+   - the sequencer's key legends (▶ START, ■ STOP, ❚❚ PAUSE, ▶ PLAY);
+   - a Text widget's text, and a Log's cells.
 
    base.css draws the fader scale, and a skin only colours it with `--slider-tick-c`. A skin may
    restyle the other markers, but never hide or move any of them. The graph's quarter lines
@@ -85,6 +88,9 @@ truth. Components mark each part with `data-part="<name>"` and each state with a
 | Graph | `graph.plot`, `graph.grid`, `graph.trail` (fading), `graph.dot`, `graph.cross` (`data-axis` x/y), `graph.cursor`, `graph.lock`, `graph.tick` (`data-at` x-min/x-max/y-max). States on the frame: dragging |
 | Pads | `pads.grid`, `pads.pad` (on), `pads.fill` (on, flash), `pads.num` (on) |
 | List | `list.options`, `list.option` (current, held), `list.fill` (held, flash), `list.mark` (current), `list.text` (current, held). States on the frame: horizontal |
+| Sequencer | `sequencer.timer` (the wait bar), `sequencer.elapsed` (its fill: base.css times it, a skin paints it), `sequencer.keys`, `sequencer.key` (`data-role` play/pause; each holds a `keycap`), `sequencer.fill` (on, flash), `sequencer.legend`, `sequencer.steps`, `sequencer.step` (current). States on the frame: running, paused |
+| Text | `text.body` (`data-size` s/m/l/xl, `data-align`, `data-valign`), `text.block` (`data-kind` line/heading/item/gap), `text.run` (strong, reverse, tinted) |
+| Log | `log.head`, `log.rows`, `log.row` (in, out, error, blocked), `log.cell` (`data-col` time, dir, widget, …), `log.empty` |
 
 † `lifted` is set on an ancestor while the widget is dragged in EDIT: style it as
 `[data-lifted] .frame[data-base='<id>']`.
@@ -123,7 +129,11 @@ Geometry a skin may change, set on the frame (defaults in `TOKENS` in anatomy.ts
 - switch: `--switch-inset`, `--switch-thumb-len`;
 - fader: `--slider-cap-len`, `--slider-track-w`, `--slider-tick-c` (the scale's colour);
 - graph: `--graph-cursor`, `--graph-dot`, `--graph-lock-inset`;
-- pads and list: `--pads-gap`, `--list-gap`, `--list-row-h`.
+- pads and list: `--pads-gap`, `--list-gap`, `--list-row-h`;
+- sequencer: `--seq-timer-h` (the wait bar's height), `--seq-gap` (between its keys),
+  `--seq-steps-h`, `--seq-step-gap`;
+- text: `--text-c` (its text colour: base.css draws reverse video and tints from it);
+- log: `--log-row-h`.
 
 Components use these in their own layout, so changing a token moves the part *and* keeps
 pointer maths right. For example, the switch measures its thumb to work out the drag travel.
@@ -341,6 +351,9 @@ Prettier will spread this over more lines; that's fine.
 - use `backdrop-filter` (the background is plain, so it costs speed and shows nothing);
 - use live SVG `filter:url()` effects on widgets (redrawn on the CPU on every change);
 - set `display` or `visibility` on markers;
+- give `text.body`, `text.run` or `log.row` a `color` of their own: a skin always beats
+  base.css, which colours text marks (through `--text-c`) and a log's error and held rows.
+  Set `--text-c`, and colour only `log.row[data-in]` (received rows can't be errors);
 - style anything outside `.frame[data-base='<id>']`.
 
 ## Checking it
@@ -354,8 +367,9 @@ Prettier will spread this over more lines; that's fine.
 2. `npm test`. `anatomy.test.ts` checks the contract and that you only used known part names.
 3. `npm run shots -- compare`. It shoots every skin and compares against `.shots/baseline`:
    - the other skins must show **no differences**;
-   - yours is new, so it shows as missing: look through `.shots/current/neon/`, then add it
-     with `npm run shots -- save baseline`.
+   - it only compares the shots the baseline has, so yours (or a new scenario) isn't listed:
+     `npm run shots -- compare current baseline` lists every shot the baseline lacks. Look
+     through `.shots/current/neon/`, then add them with `npm run shots -- save baseline`.
 4. `npm run lint` (Prettier and svelte-check).
 5. In the app, pick the skin in GLOBAL SETTINGS › LOOK and play a desk. EDIT mode (drag a
    widget: `lifted`) and LOCK should look right too.

@@ -17,6 +17,7 @@ use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+use crate::debug::now_micros;
 use crate::osc::{OscArg, OscPacketView};
 
 /// Where an inbound packet came from, when it isn't the outside world. Such packets are shown
@@ -38,7 +39,10 @@ pub enum Origin {
 #[ts(export)]
 pub struct InboundMessage {
     /// The DebugEvent it was recorded as, so TRAFFIC can show what input mapping did with it.
+    /// Every message of one bundle shares it.
     pub seq: u64,
+    /// When it arrived: wall-clock microseconds since the Unix epoch.
+    pub ts_micros: u64,
     pub desk: String,
     pub endpoint_id: String,
     pub remote: String,
@@ -300,10 +304,12 @@ impl InputHub {
         let mut messages = Vec::new();
         flatten(view, 0, &mut messages);
         let remote = canon(remote).to_string();
+        let ts_micros = now_micros();
         let mut pending = self.pending.lock().unwrap();
         for (address, args) in messages {
             pending.queue.push_back(InboundMessage {
                 seq,
+                ts_micros,
                 desk: desk.to_string(),
                 endpoint_id: endpoint_id.to_string(),
                 remote: remote.clone(),

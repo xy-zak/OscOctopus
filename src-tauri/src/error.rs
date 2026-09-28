@@ -25,6 +25,9 @@ pub enum AppError {
     #[error("skin error: {0}")]
     Skin(String),
 
+    #[error("sequencer: {0}")]
+    Sequencer(String),
+
     #[error("{0}")]
     InvalidPath(String),
 

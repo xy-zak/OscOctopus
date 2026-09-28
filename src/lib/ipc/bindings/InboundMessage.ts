@@ -7,5 +7,10 @@ import type { OscArg } from "./OscArg";
 export type InboundMessage = { 
 /**
  * The DebugEvent it was recorded as, so TRAFFIC can show what input mapping did with it.
+ * Every message of one bundle shares it.
  */
-seq: number, desk: string, endpointId: string, remote: string, address: string, args: Array<OscArg>, };
+seq: number, 
+/**
+ * When it arrived: wall-clock microseconds since the Unix epoch.
+ */
+tsMicros: number, desk: string, endpointId: string, remote: string, address: string, args: Array<OscArg>, };

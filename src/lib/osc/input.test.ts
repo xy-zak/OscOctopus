@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { OscArg } from '../ipc/types';
 import type { ArgTemplate, Binding, Widget } from '../model/preset';
-import { initialValue, inputValue, newWidget, WIDGET_TYPES } from '../widgets/defs';
+import { initialValue, inputValue, messagesOf, newWidget, WIDGET_TYPES } from '../widgets/defs';
 import { nearestOnOff, rangeTolerance, toBoolean, toNumber } from './coerce';
 import {
   compileAddress,
@@ -177,6 +177,16 @@ describe('what a binding may do', () => {
     expect(receiveProblem({ ...s, props: { onValue: 1, offValue: 1 } }, b)).toMatch(/same/);
     expect(receiveProblem(s, { ...b, args: [{ kind: 'value', type: 'm' }] })).toMatch(/MIDI/);
   });
+  it('follows what a widget’s messages may do, whatever its bindings say', () => {
+    const text = newWidget('text', rect, []);
+    const b = receiving({ ...text.bindings[0]!, forward: true, send: true });
+    expect(receiveProblem(text, b)).toMatch(/no messages/);
+    text.props.mode = 'osc';
+    expect(receiveProblem(text, b)).toBeNull();
+    expect(forwardProblem(text)).toMatch(/only shows/);
+    const seq = newWidget('sequencer', rect, ['out']);
+    expect(receiveProblem(seq, b)).toMatch(/no messages/);
+  });
   it('never forwards armed buttons', () => {
     const btn = newWidget('button', rect, []);
     expect(forwardProblem(btn)).toBeNull();
@@ -206,6 +216,11 @@ function sample(type: Widget['type']): { widget: Widget; value: WidgetValue } {
       return { widget, value: { number: 6, row: 2, col: 2, on: true } };
     case 'list':
       return { widget, value: { index: 1, label: 'Two', value: 2 } };
+    // They never send (see below).
+    case 'sequencer':
+    case 'text':
+    case 'log':
+      return { widget, value: initialValue(widget) };
   }
 }
 
@@ -220,8 +235,9 @@ function close(a: WidgetValue, b: WidgetValue): boolean {
   return a === b;
 }
 
-describe('send → receive is the identity, for every widget type', () => {
-  it.each(WIDGET_TYPES)('%s', (type) => {
+describe('send → receive is the identity, for every widget type that sends', () => {
+  const sending = WIDGET_TYPES.filter((t) => messagesOf(newWidget(t, rect, [])) === 'full');
+  it.each(sending)('%s', (type) => {
     const { widget, value } = sample(type);
     let current = initialValue(widget);
     for (const { bindingId, message } of buildMessages(widget, value)) {

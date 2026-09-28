@@ -124,9 +124,9 @@ export const SkinImage = z
   .strict();
 export type SkinImage = z.infer<typeof SkinImage>;
 
-/** Lengths a skin may set (px); the fader scale's colour is `scale`, a paint. */
+/** Lengths a skin may set (px); of the colours, the fader scale's is `scale`, a paint. */
 export const LENGTH_TOKENS = (Object.keys(TOKENS) as (keyof typeof TOKENS)[]).filter(
-  (t) => t !== '--slider-tick-c',
+  (t) => !('paint' in TOKENS[t]),
 );
 const Tokens = z.partialRecord(
   z.enum(LENGTH_TOKENS as [string, ...string[]]),

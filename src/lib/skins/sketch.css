@@ -35,6 +35,10 @@
     --pads-gap: 6px;
     --list-gap: 3px;
     --list-row-h: 24px;
+    --seq-gap: 6px;
+    --seq-steps-h: 8px;
+    --seq-timer-h: 10px;
+    --seq-step-gap: 3px;
     transition:
       translate 120ms ease,
       rotate 120ms ease;
@@ -72,10 +76,11 @@
     color: var(--fg-dim);
   }
 
-  /* Pressed buttons, held or latched pads and held list options are hatched green
-     (--sk-flash). On release the hatching fades off the page; it is drawn by the keyframes, so
-     without motion a released one is simply clear. */
+  /* Pressed buttons and sequencer keys, held or latched pads and held list options are hatched
+     green (--sk-flash). On release the hatching fades off the page; it is drawn by the
+     keyframes, so without motion a released one is simply clear. */
   .frame[data-base='sketch'] [data-part='button.fill'],
+  .frame[data-base='sketch'] [data-part='sequencer.fill'],
   .frame[data-base='sketch'] [data-part='pads.fill'] {
     --sk-flash: var(--sk-cross-act);
   }
@@ -83,6 +88,7 @@
     --sk-flash: var(--sk-hatch-act);
   }
   .frame[data-base='sketch'] [data-part='button.fill'][data-on],
+  .frame[data-base='sketch'] [data-part='sequencer.fill'][data-on],
   .frame[data-base='sketch'] [data-part='pads.pad'][data-on] [data-part='pads.fill'],
   .frame[data-base='sketch'] [data-part='list.option'][data-held] [data-part='list.fill'] {
     background: var(--sk-flash);
@@ -97,12 +103,13 @@
     }
   }
   .frame[data-base='sketch'] [data-part='button.fill'][data-flash],
+  .frame[data-base='sketch'] [data-part='sequencer.fill'][data-flash],
   .frame[data-base='sketch'] [data-part='pads.fill'][data-flash],
   .frame[data-base='sketch'] [data-part='list.fill'][data-flash] {
     animation: sketch-fade 280ms ease-out forwards;
   }
 
-  /* ---- keys (buttons, pads): pencil boxes, hatched in the widget colour ---- */
+  /* ---- keys (buttons, pads, sequencer): pencil boxes, hatched in the widget colour ---- */
   .frame[data-base='sketch'] [data-part='keycap.face'] {
     background: var(--sk-hatch);
     transition: scale 120ms ease;
@@ -189,7 +196,8 @@
   .frame[data-base='sketch'] [data-part='slider.grip'] {
     visibility: hidden;
   }
-  .frame[data-base='sketch'] [data-part='slider.track']::before {
+  .frame[data-base='sketch'] [data-part='slider.track']::before,
+  .frame[data-base='sketch'] [data-part='sequencer.timer']::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -201,7 +209,8 @@
     -webkit-mask: url('../../assets/skins/sketch/vline.svg') 50% 0 / 12px 96px repeat-y;
     mask: url('../../assets/skins/sketch/vline.svg') 50% 0 / 12px 96px repeat-y;
   }
-  .frame[data-base='sketch'] [data-part='slider.fill'] {
+  .frame[data-base='sketch'] [data-part='slider.fill'],
+  .frame[data-base='sketch'] [data-part='sequencer.elapsed'] {
     background: repeating-linear-gradient(-60deg, var(--act) 0 1.5px, transparent 1.5px 4px);
     transition: clip-path 160ms ease-out;
   }
@@ -301,7 +310,12 @@
   .frame[data-base='sketch'] [data-part='pads.pad'] [data-part='keycap.face'] {
     background: none;
   }
-  .frame[data-base='sketch'] [data-part='pads.pad'][data-on] {
+  /* Held or latched pads, pressed sequencer keys and the one whose run is going (see the
+     sequencer, below) are drawn in green pencil. */
+  .frame[data-base='sketch'] [data-part='pads.pad'][data-on],
+  .frame[data-base='sketch'] [data-part='sequencer.key'] [data-part='keycap'][data-down],
+  .frame[data-base='sketch'][data-running] [data-part='sequencer.key'][data-role='play'],
+  .frame[data-base='sketch'][data-paused] [data-part='sequencer.key'][data-role='pause'] {
     --sk-line: var(--act);
   }
   .frame[data-base='sketch'] [data-part='pads.num'] {
@@ -334,5 +348,77 @@
   }
   .frame[data-base='sketch'] [data-part='list.mark'] {
     color: var(--sk-line);
+  }
+
+  /* ---- sequencer: two hatched pencil boxes (keys above) over a row of pencil strokes, one
+     per step. The keys keep the widget colour while the frame is green; the one whose run is
+     going is redrawn in green and hatched green (pads, above). The step sent last is
+     cross-hatched green (hatched once while paused). PAUSE is faint while there is no run to
+     pause. ---- */
+  .frame[data-base='sketch'] [data-part='sequencer.key'] {
+    --sk-line: var(--c);
+    transition: opacity 120ms ease;
+  }
+  .frame[data-base='sketch'][data-running]
+    [data-part='sequencer.key'][data-role='play']
+    [data-part='keycap.face'],
+  .frame[data-base='sketch'][data-paused]
+    [data-part='sequencer.key'][data-role='pause']
+    [data-part='keycap.face'] {
+    background: var(--sk-hatch-act);
+  }
+  .frame[data-base='sketch']:not([data-running]):not([data-paused])
+    [data-part='sequencer.key'][data-role='pause'] {
+    opacity: 0.4;
+  }
+  .frame[data-base='sketch'] [data-part='sequencer.legend'] {
+    color: var(--fg);
+    text-shadow: var(--sk-halo);
+  }
+  /* The steps are empty marks, so masking them clips nothing. */
+  .frame[data-base='sketch'] [data-part='sequencer.step'] {
+    background: var(--c);
+    -webkit-mask: url('../../assets/skins/sketch/hline.svg') 0 50% / 96px 12px repeat-x;
+    mask: url('../../assets/skins/sketch/hline.svg') 0 50% / 96px 12px repeat-x;
+  }
+  /* A dense scribble, so even a narrow step reads green. */
+  .frame[data-base='sketch'] [data-part='sequencer.step'][data-current] {
+    --sk-scribble: repeating-linear-gradient(-45deg, var(--act) 0 1.5px, transparent 1.5px 3.5px);
+    background:
+      var(--sk-scribble),
+      repeating-linear-gradient(45deg, var(--act) 0 1.5px, transparent 1.5px 3.5px);
+    -webkit-mask: none;
+    mask: none;
+  }
+  .frame[data-base='sketch'][data-paused] [data-part='sequencer.step'][data-current] {
+    background: var(--sk-scribble);
+  }
+
+  /* ---- text: plain text on the page (the text itself is base.css's) ---- */
+
+  /* ---- log: headings on a hatched band, rows over dashed pencil rules, received ones dimmer
+     (errors and held rows are coloured by base.css, so no rule here gives a row a colour of
+     its own) ---- */
+  .frame[data-base='sketch'] [data-part='log.head'] {
+    background: var(--sk-hatch);
+    color: var(--fg);
+    text-shadow: var(--sk-halo);
+  }
+  .frame[data-base='sketch'] [data-part='log.row'] {
+    background: repeating-linear-gradient(
+        to right,
+        color-mix(in srgb, var(--c) 35%, transparent) 0 4px,
+        transparent 4px 8px
+      )
+      0 100% / 100% 1px no-repeat;
+  }
+  .frame[data-base='sketch'] [data-part='log.row'][data-in] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='sketch'] [data-part='log.cell'][data-col='dir'] {
+    color: var(--c-text);
+  }
+  .frame[data-base='sketch'] [data-part='log.empty'] {
+    color: var(--fg-faint);
   }
 }

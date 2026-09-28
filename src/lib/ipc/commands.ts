@@ -13,6 +13,9 @@ import type {
   NetworkConfig,
   OscMessage,
   PresetSummary,
+  SeqBatch,
+  SeqPlan,
+  SeqProgress,
   SkinFile,
   SyncBatch,
   SyncConfig,
@@ -58,6 +61,25 @@ export const input = {
   /** The endpoints of a desk that a widget listens on. */
   setListen: (desk: string, endpointIds: string[]) =>
     invoke<void>('input_set_listen', { desk, endpointIds }),
+};
+
+/** Sequencer runs, timed in the Rust core (src-tauri/src/sequencer.rs). */
+export const seq = {
+  /** Streams progress (~30 Hz, latest per run) to `onBatch`; resolves with the runs going now. */
+  subscribe: (onBatch: (batch: SeqBatch) => void) => {
+    const channel = new Channel<SeqBatch>();
+    channel.onmessage = onBatch;
+    return invoke<SeqProgress[]>('seq_subscribe', { channel });
+  },
+  /** Plays from the first step, replacing a run of the same widget; resolves with the run id. */
+  start: (desk: string, widget: string, plan: SeqPlan) =>
+    invoke<number>('seq_start', { desk, widget, plan }),
+  /** A running sequence's edited plan; it takes effect at the next step. */
+  update: (desk: string, widget: string, plan: SeqPlan) =>
+    invoke<void>('seq_update', { desk, widget, plan }),
+  pause: (desk: string, widget: string) => invoke<void>('seq_pause', { desk, widget }),
+  resume: (desk: string, widget: string) => invoke<void>('seq_resume', { desk, widget }),
+  stop: (desk: string, widget: string) => invoke<void>('seq_stop', { desk, widget }),
 };
 
 export const sync = {

@@ -19,9 +19,10 @@
      --dither-25-c    one pixel in four in the widget colour (grooves, tracks)
 
    The same in every skin, so a desk reads the same whatever it wears (anatomy.test.ts holds
-   the skins to it): the typography (one font, one size; weights and case below), where titles
-   and values go (WidgetFrame), the markers (the fader's scale, the switch's ON/OFF, pad
-   numbers, the list's ▸, the graph's axis labels), and the desk's plain background (no skin
+   the skins to it): the typography (one font, one size but the text widget's own; weights and
+   case below), where titles and values go (WidgetFrame), the markers (the fader's scale, the
+   switch's ON/OFF, pad numbers, the list's ▸, the graph's axis labels, the sequencer's key
+   legends, the text widget's text, the log's cells), and the desk's plain background (no skin
    styles the desk). */
 @layer skin.base {
   /* [data-part='frame'], not .frame: the app shell has a .frame of its own (App.svelte). */
@@ -40,8 +41,9 @@
     --c-text: color-mix(in srgb, var(--c) 50%, #000);
   }
 
-  /* List options are <button>s: no native look under any skin. */
-  [data-part='frame'] [data-part='list.option'] {
+  /* List options and sequencer keys are <button>s: no native look under any skin. */
+  [data-part='frame'] [data-part='list.option'],
+  [data-part='frame'] [data-part='sequencer.key'] {
     border: 0;
     background: none;
   }
@@ -56,6 +58,8 @@
   [data-part='frame'] [data-part='switch.legend'],
   [data-part='frame'] [data-part='switch.grip'],
   [data-part='frame'] [data-part='pads.num'],
+  [data-part='frame'] [data-part='sequencer.legend'],
+  [data-part='frame'] [data-part='log.head'],
   [data-part='frame'] [data-part='list.option'][data-current] {
     font-weight: 700;
   }
@@ -100,6 +104,76 @@
       linear-gradient(var(--t), var(--t)) 100% 50% / 6px 1px no-repeat,
       linear-gradient(var(--t), var(--t)) 100% 75% / 3px 1px no-repeat,
       linear-gradient(var(--t), var(--t)) 100% 100% / 6px 1px no-repeat;
+  }
+
+  /* ---- the sequencer's wait bar fills over the wait until the next step, the same in every
+     skin: Sequencer.svelte sets the wait (--seq-wait) and how much of it has passed (a
+     negative --seq-waited), from the core's last report, and it holds still while paused. A
+     skin paints the bar and its fill. Like the hold fill it keeps moving under reduced
+     motion: it says how long is left. ---- */
+  [data-part='frame'] [data-part='sequencer.elapsed'] {
+    animation: seq-elapse var(--seq-wait, 0ms) linear var(--seq-waited, 0ms) both;
+  }
+  [data-part='frame'][data-paused] [data-part='sequencer.elapsed'] {
+    animation-play-state: paused;
+  }
+  @keyframes seq-elapse {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      clip-path: inset(0);
+    }
+  }
+
+  /* ---- the text widget: its own size (the one exception to the app's one size, chosen per
+     widget), heading lines in bold capitals, bold, reverse video and palette colours. A skin
+     colours the text through --text-c; the marks follow it. ---- */
+  [data-part='frame'] [data-part='text.body'] {
+    color: var(--text-c, var(--fg));
+    font-size: var(--fs);
+    line-height: var(--lh);
+  }
+  [data-part='frame'] [data-part='text.body'][data-size='m'] {
+    font-size: 20px;
+    line-height: 28px;
+  }
+  [data-part='frame'] [data-part='text.body'][data-size='l'] {
+    font-size: 26px;
+    line-height: 34px;
+  }
+  [data-part='frame'] [data-part='text.body'][data-size='xl'] {
+    font-size: 39px;
+    line-height: 48px;
+  }
+  [data-part='frame'] [data-part='text.block'][data-kind='heading'] {
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  [data-part='frame'] [data-part='text.run'][data-strong] {
+    font-weight: 700;
+  }
+  [data-part='frame'] [data-part='text.run'][data-tinted] {
+    color: var(--tone);
+  }
+  :root[data-mode='light'] [data-part='frame'] [data-part='text.run'][data-tinted] {
+    color: color-mix(in srgb, var(--tone) 50%, #000);
+  }
+  [data-part='frame'] [data-part='text.run'][data-reverse] {
+    background: var(--text-c, var(--fg));
+    color: var(--w-bg);
+  }
+  [data-part='frame'] [data-part='text.run'][data-reverse][data-tinted] {
+    background: var(--tone);
+    color: var(--tone-ink);
+  }
+
+  /* ---- the log: what went wrong reads as wrong in every skin ---- */
+  [data-part='frame'] [data-part='log.row'][data-error] {
+    color: var(--danger);
+  }
+  [data-part='frame'] [data-part='log.row'][data-blocked] {
+    color: var(--warn);
   }
 
   /* Reduced motion, for every skin (important in the lowest layer beats every skin): no

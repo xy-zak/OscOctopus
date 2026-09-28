@@ -1,5 +1,5 @@
-//! IPC surface. Thin wrappers only: all logic lives in `net`, `debug`, `presets`, `skins` and
-//! `sync`.
+//! IPC surface. Thin wrappers only: all logic lives in `net`, `debug`, `presets`, `skins`,
+//! `sequencer` and `sync`.
 //! Commands are named `<area>_<verb>`.
 
 use std::path::PathBuf;
@@ -16,6 +16,7 @@ use crate::net::interfaces::{self, NetInterface};
 use crate::net::{EndpointStatus, NetworkConfig};
 use crate::osc::OscMessage;
 use crate::presets::{self, PresetSummary};
+use crate::sequencer::{SeqBatch, SeqPlan, SeqProgress};
 use crate::skins::{self, SkinFile};
 use crate::sync::docs;
 use crate::sync::identity::{derive_psk, new_session_key, normalize_session, RememberedSession};
@@ -58,6 +59,7 @@ pub async fn net_close_desk(
     state: State<'_, AppState>,
     desk: String,
 ) -> AppResult<Vec<EndpointStatus>> {
+    state.seq.stop_desk(&desk);
     state.net.close_desk(&desk).await
 }
 
@@ -126,6 +128,55 @@ pub fn input_enabled(state: State<'_, AppState>) -> bool {
 #[tauri::command]
 pub fn input_set_listen(state: State<'_, AppState>, desk: String, endpoint_ids: Vec<String>) {
     state.net.input().set_listen(&desk, endpoint_ids);
+}
+
+/// Registers the channel for sequencer progress (~30 Hz) and returns every run still going,
+/// so a reloaded UI shows them.
+#[tauri::command]
+pub fn seq_subscribe(
+    state: State<'_, AppState>,
+    webview: Webview,
+    channel: Channel<SeqBatch>,
+) -> Vec<SeqProgress> {
+    subscribe(&state.seq_subscribers, &webview, channel);
+    state.seq.snapshot()
+}
+
+/// Plays a sequencer widget's plan from its first step; returns the run's id.
+#[tauri::command]
+pub async fn seq_start(
+    state: State<'_, AppState>,
+    desk: String,
+    widget: String,
+    plan: SeqPlan,
+) -> AppResult<u64> {
+    state.seq.start(&desk, &widget, plan)
+}
+
+/// A running sequence's edited plan, from the next step on.
+#[tauri::command]
+pub async fn seq_update(
+    state: State<'_, AppState>,
+    desk: String,
+    widget: String,
+    plan: SeqPlan,
+) -> AppResult<()> {
+    state.seq.update(&desk, &widget, plan)
+}
+
+#[tauri::command]
+pub fn seq_pause(state: State<'_, AppState>, desk: String, widget: String) {
+    state.seq.pause(&desk, &widget);
+}
+
+#[tauri::command]
+pub fn seq_resume(state: State<'_, AppState>, desk: String, widget: String) {
+    state.seq.resume(&desk, &widget);
+}
+
+#[tauri::command]
+pub fn seq_stop(state: State<'_, AppState>, desk: String, widget: String) {
+    state.seq.stop(&desk, &widget);
 }
 
 /// Registers a channel that receives batched debug events (~30 Hz) and returns the

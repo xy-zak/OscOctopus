@@ -2,10 +2,11 @@
 // `id`, `name` and that `network` deserializes). Bump CURRENT_SCHEMA_VERSION and add a step to
 // migrations.ts for every breaking change.
 import { z } from 'zod';
+import { SEQUENCER_LIMITS } from '../ipc/defaults';
 import type { InputConfig, NetworkConfig, OutputConfig } from '../ipc/types';
 import { PALETTE_IDS, PALETTE_SIZE } from '../theme/palettes';
 
-export const CURRENT_SCHEMA_VERSION = 9;
+export const CURRENT_SCHEMA_VERSION = 10;
 
 /**
  * Every numeric range the schema enforces. The zod schemas below and the editor fields
@@ -26,6 +27,16 @@ export const LIMITS = {
   /** Custom palettes (GLOBAL SETTINGS › LOOK) and the length of their names. */
   customPalettes: { min: 0, max: 32 },
   paletteName: { min: 1, max: 12 },
+  /** A sequencer's steps, the wait after each (ms) and its passes; Rust enforces them too. */
+  seqSteps: { min: 1, max: SEQUENCER_LIMITS.maxSteps },
+  seqDelayMs: { min: 0, max: SEQUENCER_LIMITS.maxDelayMs },
+  seqCount: { min: 1, max: SEQUENCER_LIMITS.maxCount },
+  /** A text widget's source, and the most of a received text it shows. */
+  textChars: { min: 0, max: 2000 },
+  /** Decimal places a text widget shows numbers with. */
+  textDecimals: { min: 0, max: 6 },
+  /** Rows a log widget keeps. */
+  logRows: { min: 1, max: 200 },
 } as const;
 
 /**
@@ -112,10 +123,17 @@ export type ConstArgType = z.infer<typeof ConstArgType>;
 export const Channel = z.string().max(32);
 export type Channel = z.infer<typeof Channel>;
 
+/** A fixed argument, stored as a string so the editor can hold any value (converted at send time). */
+export const ConstArgSchema = z.object({
+  kind: z.literal('const'),
+  type: ConstArgType,
+  value: z.string(),
+});
+export type ConstArg = z.infer<typeof ConstArgSchema>;
+
 export const ArgTemplateSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('value'), type: ValueArgType, channel: Channel.optional() }),
-  // Stored as a string so the editor can hold any value; converted at send time.
-  z.object({ kind: z.literal('const'), type: ConstArgType, value: z.string() }),
+  ConstArgSchema,
 ]);
 export type ArgTemplate = z.infer<typeof ArgTemplateSchema>;
 
@@ -237,6 +255,69 @@ export const ListPropsSchema = z.object({
 });
 export type ListProps = z.infer<typeof ListPropsSchema>;
 
+/** One message of a sequence, and how long to wait after it before the next. */
+export const SeqStepSchema = z.object({
+  id: IdSchema,
+  address: z.string(),
+  args: z.array(ConstArgSchema),
+  delayMs: inRange(z.number().int(), LIMITS.seqDelayMs),
+});
+export type SeqStep = z.infer<typeof SeqStepSchema>;
+
+/**
+ * Messages played in a loop by the Rust core (src-tauri/src/sequencer.rs), each followed by
+ * its wait. Every step goes to `outputIds`; `repeat` plays it forever or `count` passes.
+ */
+export const SequencerPropsSchema = z.object({
+  outputIds: z.array(IdSchema),
+  steps: z.array(SeqStepSchema).min(LIMITS.seqSteps.min).max(LIMITS.seqSteps.max),
+  repeat: z.enum(['forever', 'count']),
+  count: inRange(z.number().int(), LIMITS.seqCount),
+});
+export type SequencerProps = z.infer<typeof SequencerPropsSchema>;
+
+/**
+ * A block of text in a small markup (widgets/text/markup.ts). Its `{value}` placeholders show
+ * nothing in `text` mode, the value its messages receive in `osc` mode, and the live value of
+ * `target` (a widget on the same desk) in `monitor` mode.
+ */
+export const TextPropsSchema = z.object({
+  mode: z.enum(['text', 'osc', 'monitor']),
+  source: z.string().max(LIMITS.textChars.max),
+  /** The one exception to the app's one text size (docs/ARCHITECTURE.md › Visual system). */
+  size: z.enum(['s', 'm', 'l', 'xl']),
+  align: z.enum(['left', 'center', 'right']),
+  valign: z.enum(['top', 'middle', 'bottom']),
+  target: IdSchema.nullable(),
+  /** Decimal places for numbers that aren't whole. */
+  decimals: inRange(z.number().int(), LIMITS.textDecimals),
+});
+export type TextProps = z.infer<typeof TextPropsSchema>;
+
+/** What a log widget can show about each message, in column order. */
+export const LOG_COLUMNS = [
+  'time',
+  'dir',
+  'widget',
+  'address',
+  'value',
+  'endpoint',
+  'ip',
+  'result',
+  'size',
+] as const;
+export type LogColumn = (typeof LOG_COLUMNS)[number];
+
+/** Messages widgets sent and received, newest first: this device's own traffic, never synced. */
+export const LogPropsSchema = z.object({
+  /** desk: every widget of its desk · chosen: the widgets in `sources`. */
+  follow: z.enum(['desk', 'chosen']),
+  sources: z.array(IdSchema),
+  rows: inRange(z.number().int(), LIMITS.logRows),
+  columns: z.array(z.enum(LOG_COLUMNS)),
+});
+export type LogProps = z.infer<typeof LogPropsSchema>;
+
 export const ButtonWidgetSchema = WidgetBase.extend({
   type: z.literal('button'),
   props: ButtonPropsSchema,
@@ -261,6 +342,18 @@ export const ListWidgetSchema = WidgetBase.extend({
   type: z.literal('list'),
   props: ListPropsSchema,
 });
+export const SequencerWidgetSchema = WidgetBase.extend({
+  type: z.literal('sequencer'),
+  props: SequencerPropsSchema,
+});
+export const TextWidgetSchema = WidgetBase.extend({
+  type: z.literal('text'),
+  props: TextPropsSchema,
+});
+export const LogWidgetSchema = WidgetBase.extend({
+  type: z.literal('log'),
+  props: LogPropsSchema,
+});
 export const WidgetSchema = z.discriminatedUnion('type', [
   ButtonWidgetSchema,
   SwitchWidgetSchema,
@@ -268,6 +361,9 @@ export const WidgetSchema = z.discriminatedUnion('type', [
   GraphWidgetSchema,
   PadsWidgetSchema,
   ListWidgetSchema,
+  SequencerWidgetSchema,
+  TextWidgetSchema,
+  LogWidgetSchema,
 ]);
 
 export type ButtonWidget = z.infer<typeof ButtonWidgetSchema>;
@@ -276,6 +372,9 @@ export type SliderWidget = z.infer<typeof SliderWidgetSchema>;
 export type GraphWidget = z.infer<typeof GraphWidgetSchema>;
 export type PadsWidget = z.infer<typeof PadsWidgetSchema>;
 export type ListWidget = z.infer<typeof ListWidgetSchema>;
+export type SequencerWidget = z.infer<typeof SequencerWidgetSchema>;
+export type TextWidget = z.infer<typeof TextWidgetSchema>;
+export type LogWidget = z.infer<typeof LogWidgetSchema>;
 export type Widget = z.infer<typeof WidgetSchema>;
 export type WidgetType = Widget['type'];
 

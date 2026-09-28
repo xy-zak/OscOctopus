@@ -90,6 +90,10 @@ const steps: Record<number, (preset: Raw) => Raw> = {
       w.type === 'knob' ? knobToFader(w) : w,
     ),
   }),
+  // v10 added the sequencer, text and log widgets. Nothing to change: the bump makes an older
+  // app refuse such a desk with "update" instead of a schema error, and keeps older sync peers
+  // out of the session.
+  9: (p) => ({ ...p, schemaVersion: 10 }),
 };
 
 const OLD_PAD_CHANNELS: Record<string, string> = {

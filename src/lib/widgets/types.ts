@@ -32,6 +32,12 @@ export type Gate = { kind: 'queue' } | { kind: 'throttle'; maxHz: number };
  */
 export type InputPatch = Record<string, Scalar | ValueList>;
 
+/**
+ * What a widget's messages (MESSAGES in the Inspector) may do: send and receive (`full`), only
+ * set the widget from received OSC (`receive`), or nothing: it has none (`none`).
+ */
+export type Messages = 'full' | 'receive' | 'none';
+
 /** Where a shown value came from (see osc/flow.ts for what each origin may do). */
 export type ValueOrigin = 'touch' | 'input' | 'peer' | 'init';
 
@@ -77,4 +83,19 @@ export interface WidgetDef<W extends Widget> {
   show?(w: W, value: WidgetValue, fx: FeedbackApi): void;
   /** The touch key a value belongs to, when finer than the widget (one pad of a grid). */
   touchKey?(w: W, value: WidgetValue): string;
+  /**
+   * What its messages may do; `full` when left out. Enforced where messages are sent,
+   * received and forwarded, not only in the editor: an imported or synced widget can carry
+   * any binding.
+   */
+  messages?(w: W): Messages;
+  /** Outputs it sends to other than through its messages (a sequencer's steps). */
+  outputRefs?(w: W): readonly string[];
+  /** Forgets an output that was removed from its desk (see `outputRefs`). */
+  dropOutput?(w: W, id: string): void;
+  /**
+   * Points its references to other widgets of its desk at their new ids, when a whole desk is
+   * copied with fresh ids (duplicated or imported). A widget missing from `ids` is dropped.
+   */
+  remapRefs?(w: W, ids: ReadonlyMap<string, string>): void;
 }

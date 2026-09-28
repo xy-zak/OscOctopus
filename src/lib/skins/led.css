@@ -105,8 +105,9 @@
     }
   }
 
-  /* ---- keys (buttons, pads): a dotted outline around unlit LEDs; pressed buttons and held
-     or latched pads light all their LEDs green ---- */
+  /* ---- keys (buttons, pads, sequencer): a dotted outline around unlit LEDs; pressed buttons
+     and sequencer keys and held or latched pads light all their LEDs green, and a sequencer
+     key's outline turns green while its run is going ---- */
   .frame[data-base='led'] [data-part='keycap.face'] {
     --led-key: color-mix(in srgb, var(--led-ink) 70%, transparent);
     border: 2px dotted var(--led-key);
@@ -114,14 +115,22 @@
     background: var(--led-off);
   }
   .frame[data-base='led'] [data-part='keycap'][data-down] [data-part='keycap.face'],
-  .frame[data-base='led'][data-lit] [data-part='keycap.face'] {
+  .frame[data-base='led'][data-lit] [data-part='keycap.face'],
+  .frame[data-base='led'][data-running]
+    [data-part='sequencer.key'][data-role='play']
+    [data-part='keycap.face'],
+  .frame[data-base='led'][data-paused]
+    [data-part='sequencer.key'][data-role='pause']
+    [data-part='keycap.face'] {
     --led-key: var(--act);
   }
   .frame[data-base='led'] [data-part='button.fill'][data-on],
+  .frame[data-base='led'] [data-part='sequencer.fill'][data-on],
   .frame[data-base='led'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
     background: var(--led-act), var(--led-halo-act);
   }
   .frame[data-base='led'] [data-part='button.fill'][data-flash],
+  .frame[data-base='led'] [data-part='sequencer.fill'][data-flash],
   .frame[data-base='led'] [data-part='pads.fill'][data-flash] {
     animation: led-out 240ms steps(1, end) forwards;
   }
@@ -148,9 +157,11 @@
       clip-path: inset(0 0 0 0);
     }
   }
-  /* A dark halo, so the words read over lit LEDs: the armed hint, and pad numbers. */
+  /* A dark halo, so the words read over lit LEDs: the armed hint, pad numbers and the
+     sequencer's key legends. */
   .frame[data-base='led'] [data-part='button.hint'],
-  .frame[data-base='led'] [data-part='pads.num'] {
+  .frame[data-base='led'] [data-part='pads.num'],
+  .frame[data-base='led'] [data-part='sequencer.legend'] {
     color: var(--fg);
     text-shadow:
       0 0 2px var(--led-panel),
@@ -195,10 +206,12 @@
 
   /* ---- fader: a strip of unlit LEDs lit green up to the value, and a bar of LEDs in the text
      colour for the cap ---- */
-  .frame[data-base='led'] [data-part='slider.track'] {
+  .frame[data-base='led'] [data-part='slider.track'],
+  .frame[data-base='led'] [data-part='sequencer.timer'] {
     background: var(--led-off);
   }
-  .frame[data-base='led'] [data-part='slider.fill'] {
+  .frame[data-base='led'] [data-part='slider.fill'],
+  .frame[data-base='led'] [data-part='sequencer.elapsed'] {
     background: var(--led-act), var(--led-halo-act);
     transition: clip-path 120ms steps(3, end);
   }
@@ -317,5 +330,77 @@
   }
   .frame[data-base='led'] [data-part='list.mark'] {
     color: var(--act);
+  }
+
+  /* ---- sequencer: two keys like the buttons (keys above) over a row of LEDs, a short run of
+     them per step: dim in the widget colour, the step sent last lit green (half-bright while
+     paused). PAUSE is dim while there is no run to pause. ---- */
+  .frame[data-base='led']:not([data-running]):not([data-paused])
+    [data-part='sequencer.key'][data-role='pause'] {
+    opacity: 0.45;
+  }
+  /* The strip on the plain panel, so its LEDs don't sit among the panel's. */
+  .frame[data-base='led'] [data-part='sequencer.steps'] {
+    background: var(--led-panel);
+  }
+  /* Indicator LEDs, a size up from the panel's, whole ones spread over each step (`space`)
+     so the steps show as separate runs. */
+  .frame[data-base='led'] [data-part='sequencer.step'] {
+    --led-step: color-mix(in srgb, var(--led-ink) 45%, transparent);
+    --led-step-bg: transparent;
+    border-radius: 2px;
+    background:
+      radial-gradient(circle, var(--led-step) 2px, transparent 2.5px) 50% 50% / 6px 6px space
+        no-repeat,
+      var(--led-step-bg);
+  }
+  .frame[data-base='led'] [data-part='sequencer.step'][data-current] {
+    --led-step: var(--act);
+    --led-step-bg: var(--led-halo-act);
+  }
+  .frame[data-base='led'][data-paused] [data-part='sequencer.step'][data-current] {
+    --led-step: color-mix(in srgb, var(--act) 60%, transparent);
+    --led-step-bg: transparent;
+  }
+
+  /* ---- text: lit on the LED panel (the text itself is base.css's), with a dark halo like
+     the pad numbers' so it reads over the LEDs; reverse video has a patch of its own ---- */
+  .frame[data-base='led'] [data-part='text.body'] {
+    text-shadow:
+      0 0 2px var(--led-panel),
+      0 0 3px var(--led-panel),
+      0 0 5px var(--led-panel);
+  }
+  .frame[data-base='led'] [data-part='text.run'][data-reverse] {
+    text-shadow: none;
+  }
+
+  /* ---- log: a listing on the dark panel. Headings in the widget colour over a row of lit
+     dots, rows underlined in dim dots like the list's, received ones dimmer (errors and held
+     rows are coloured by base.css, so no rule here gives a row a colour of its own). ---- */
+  .frame[data-base='led'] [data-part='log.head'] {
+    background:
+      radial-gradient(circle, var(--led-ink) 1px, transparent 1.5px) 0 100% / 4px 2px repeat-x,
+      var(--led-panel);
+    color: var(--c-text);
+  }
+  .frame[data-base='led'] [data-part='log.row'] {
+    background:
+      radial-gradient(
+          circle,
+          color-mix(in srgb, var(--led-ink) 35%, transparent) 1px,
+          transparent 1.5px
+        )
+        0 100% / 4px 2px repeat-x,
+      var(--led-panel);
+  }
+  .frame[data-base='led'] [data-part='log.row'][data-in] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='led'] [data-part='log.cell'][data-col='dir'] {
+    color: var(--c-text);
+  }
+  .frame[data-base='led'] [data-part='log.empty'] {
+    color: var(--fg-faint);
   }
 }

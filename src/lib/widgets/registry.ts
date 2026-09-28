@@ -8,12 +8,18 @@ import Graph from './graph/Graph.svelte';
 import GraphInspector from './graph/GraphInspector.svelte';
 import List from './list/List.svelte';
 import ListInspector from './list/ListInspector.svelte';
+import Log from './log/Log.svelte';
+import LogInspector from './log/LogInspector.svelte';
 import Pads from './pads/Pads.svelte';
 import PadsInspector from './pads/PadsInspector.svelte';
+import Sequencer from './sequencer/Sequencer.svelte';
+import SequencerInspector from './sequencer/SequencerInspector.svelte';
 import Slider from './slider/Slider.svelte';
 import SliderInspector from './slider/SliderInspector.svelte';
 import Switch from './switch/Switch.svelte';
 import SwitchInspector from './switch/SwitchInspector.svelte';
+import Text from './text/Text.svelte';
+import TextInspector from './text/TextInspector.svelte';
 import type { WidgetOf } from './types';
 
 export interface WidgetViews<W extends Widget> {
@@ -31,6 +37,9 @@ export const VIEWS: { [T in WidgetType]: WidgetViews<WidgetOf<T>> } = {
   graph: { component: Graph, inspector: GraphInspector },
   pads: { component: Pads, inspector: PadsInspector },
   list: { component: List, inspector: ListInspector },
+  sequencer: { component: Sequencer, inspector: SequencerInspector },
+  text: { component: Text, inspector: TextInspector },
+  log: { component: Log, inspector: LogInspector },
 };
 
 /** The components of a widget (see `defOf` in defs.ts for why this needs a cast). */

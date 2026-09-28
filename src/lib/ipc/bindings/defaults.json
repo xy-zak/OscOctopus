@@ -23,5 +23,12 @@
     "port": 9000,
     "reconnectMs": 1000,
     "transport": "udp"
+  },
+  "sequencer": {
+    "maxCount": 9999,
+    "maxDelayMs": 3600000,
+    "maxSteps": 64,
+    "minPassMs": 10,
+    "minPassMsPerStep": 1
   }
 }

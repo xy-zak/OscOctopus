@@ -13,7 +13,7 @@ import type { Avoid, InboundMessage, InputBatch } from '../ipc/types';
 import type { Binding, Preset, Widget } from '../model/preset';
 import { forwardPolicy } from '../state/changes';
 import { debugStore } from '../state/debug.svelte';
-import { inputStore, type Outcome } from '../state/input.svelte';
+import { inputStore, type Outcome, type Received } from '../state/input.svelte';
 import { presetStore } from '../state/preset.svelte';
 import { isTouched } from '../state/touch';
 import { values } from '../state/values.svelte';
@@ -61,8 +61,9 @@ interface Hit {
 export function planBatch(
   messages: readonly InboundMessage[],
   deps: PlanDeps,
-): { applies: Apply[]; outcomes: Map<number, Outcome[]> } {
+): { applies: Apply[]; outcomes: Map<number, Outcome[]>; received: Omit<Received, 'id'>[] } {
   const outcomes = new Map<number, Outcome[]>();
+  const received: Omit<Received, 'id'>[] = [];
   const note = (seq: number, outcome: Outcome) => {
     const list = outcomes.get(seq) ?? [];
     list.push(outcome);
@@ -96,7 +97,10 @@ export function planBatch(
   hits.forEach((hit, i) => {
     const { msg, widget, binding } = hit;
     const kind = gateFor(widget).kind;
-    const record = (result: Outcome['result']) => note(msg.seq, { result, widget: widget.label });
+    const record = (result: Outcome['result']) => {
+      note(msg.seq, { result, widget: widget.label });
+      received.push({ widgetId: widget.id, msg, result });
+    };
     if (kind === 'throttle' && newest.get(binding.id) !== i) return record('coalesced');
     if (kind !== 'throttle') {
       const n = (discreteCount.get(widget.id) ?? 0) + 1;
@@ -128,7 +132,7 @@ export function planBatch(
     applies.push({ deskId: hit.deskId, widget, value: next, forward });
     record(result);
   });
-  return { applies, outcomes };
+  return { applies, outcomes, received };
 }
 
 // ---- wiring ------------------------------------------------------------------------------
@@ -169,7 +173,7 @@ function pushListen(next: RouteIndex) {
 
 function handle(batch: InputBatch) {
   inputStore.totalDropped = batch.totalDropped;
-  const { applies, outcomes } = planBatch(batch.messages, {
+  const { applies, outcomes, received } = planBatch(batch.messages, {
     index,
     find: (id) => presetStore.findWidget(id),
     current: (w) => values[w.id] ?? initialValue(w),
@@ -180,7 +184,7 @@ function handle(batch: InputBatch) {
     mayForward: (deskId) => forwardPolicy.mayForward(deskId),
   });
   for (const a of applies) applyInput(a.deskId, a.widget, a.value, a.forward);
-  inputStore.record(outcomes);
+  inputStore.record(outcomes, received);
 }
 
 /** Subscribes to Rust's input hub and keeps the routes in step with the desks. Idempotent. */

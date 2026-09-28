@@ -22,6 +22,9 @@
     --pads-gap: 6px;
     --list-gap: 3px;
     --list-row-h: 22px;
+    --seq-gap: 6px;
+    --seq-steps-h: 6px;
+    --seq-step-gap: 3px;
     border: 1px solid rgb(0 0 0 / 0.6);
     border-radius: 6px;
     background: linear-gradient(to bottom, var(--hw-panel-hi), var(--hw-panel-lo));
@@ -68,7 +71,8 @@
     color: var(--fg);
   }
 
-  /* Release, for buttons, pads and list options: the ACTIVE light fades out. */
+  /* Release, for buttons, sequencer keys, pads and list options: the ACTIVE light fades
+     out. */
   @keyframes hardware-fade {
     from {
       background: var(--act);
@@ -78,12 +82,14 @@
     }
   }
   .frame[data-base='hardware'] [data-part='button.fill'][data-flash],
+  .frame[data-base='hardware'] [data-part='sequencer.fill'][data-flash],
   .frame[data-base='hardware'] [data-part='pads.fill'][data-flash],
   .frame[data-base='hardware'] [data-part='list.fill'][data-flash] {
     animation: hardware-fade 300ms ease-out forwards;
   }
 
-  /* ---- keys (buttons, pads): rubber, shaded top to bottom, pressed into the panel ---- */
+  /* ---- keys (buttons, pads, sequencer): rubber, shaded top to bottom, pressed into the
+     panel ---- */
   .frame[data-base='hardware'] [data-part='keycap.face'] {
     border-radius: 5px;
     background: linear-gradient(
@@ -114,7 +120,8 @@
   }
 
   /* ---- button ---- */
-  .frame[data-base='hardware'] [data-part='button.fill'][data-on] {
+  .frame[data-base='hardware'] [data-part='button.fill'][data-on],
+  .frame[data-base='hardware'] [data-part='sequencer.fill'][data-on] {
     background: radial-gradient(
       circle at 50% 40%,
       color-mix(in srgb, var(--act) 75%, #fff),
@@ -185,12 +192,14 @@
   }
 
   /* ---- fader: a sunk slot with an LED strip up to the value, and a ridged metal cap ---- */
-  .frame[data-base='hardware'] [data-part='slider.track'] {
+  .frame[data-base='hardware'] [data-part='slider.track'],
+  .frame[data-base='hardware'] [data-part='sequencer.timer'] {
     border-radius: 4px;
     background: var(--hw-slot);
     box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.7);
   }
-  .frame[data-base='hardware'] [data-part='slider.fill'] {
+  .frame[data-base='hardware'] [data-part='slider.fill'],
+  .frame[data-base='hardware'] [data-part='sequencer.elapsed'] {
     border-radius: 4px;
     background: var(--act);
     box-shadow: 0 0 8px var(--hw-glow);
@@ -343,5 +352,78 @@
   .frame[data-base='hardware'] [data-part='list.mark'] {
     color: var(--act);
     text-shadow: 0 0 6px var(--act);
+  }
+
+  /* ---- sequencer: two rubber keys (keys above) over a row of LEDs sunk in the panel, one
+     per step; the step sent last lit ACTIVE green, half lit while paused. PAUSE is dim while
+     there is no run to pause. ---- */
+  /* A key while its run is going is lit from behind, through a green rim round its edge. */
+  .frame[data-base='hardware'][data-running]
+    [data-part='sequencer.key'][data-role='play']
+    [data-part='keycap']:not([data-down])
+    [data-part='keycap.face'],
+  .frame[data-base='hardware'][data-paused]
+    [data-part='sequencer.key'][data-role='pause']
+    [data-part='keycap']:not([data-down])
+    [data-part='keycap.face'] {
+    box-shadow:
+      inset 0 0 0 2px var(--act),
+      inset 0 3px 0 rgb(255 255 255 / 0.2),
+      0 0 14px var(--hw-glow),
+      0 2px 0 rgb(0 0 0 / 0.55);
+  }
+  .frame[data-base='hardware'] [data-part='sequencer.legend'] {
+    color: color-mix(in srgb, var(--fg) 85%, transparent);
+  }
+  .frame[data-base='hardware'] [data-part='keycap'][data-down] [data-part='sequencer.legend'] {
+    color: var(--act-ink);
+  }
+  .frame[data-base='hardware']:not([data-running]):not([data-paused])
+    [data-part='sequencer.key'][data-role='pause'] {
+    opacity: 0.45;
+  }
+  .frame[data-base='hardware'] [data-part='sequencer.step'] {
+    border-radius: 2px;
+    background: var(--hw-slot);
+    box-shadow:
+      inset 0 1px 2px rgb(0 0 0 / 0.6),
+      0 1px 0 rgb(255 255 255 / 0.06);
+    transition:
+      background 120ms ease,
+      box-shadow 120ms ease;
+  }
+  .frame[data-base='hardware'] [data-part='sequencer.step'][data-current] {
+    background: var(--act);
+    box-shadow: 0 0 8px var(--hw-glow);
+  }
+  .frame[data-base='hardware'][data-paused] [data-part='sequencer.step'][data-current] {
+    background: color-mix(in srgb, var(--act) 40%, transparent);
+    box-shadow: inset 0 0 0 1px var(--act);
+  }
+
+  /* ---- text: plain text on the panel (the text itself is base.css's) ---- */
+
+  /* ---- log: headings on a label patch over a line in the channel colour; rows parted by
+     grooves pressed into the panel, received ones dimmer (errors and held rows are coloured
+     by base.css, so no rule here gives a row a colour of its own) ---- */
+  .frame[data-base='hardware'] [data-part='log.head'] {
+    border-radius: 3px;
+    background: var(--bg);
+    color: var(--fg);
+    box-shadow: inset 0 -2px 0 var(--c);
+  }
+  .frame[data-base='hardware'] [data-part='log.row'] {
+    background:
+      linear-gradient(var(--hw-slot), var(--hw-slot)) 0 100% / 100% 1px no-repeat,
+      linear-gradient(rgb(255 255 255 / 0.05), rgb(255 255 255 / 0.05)) 0 0 / 100% 1px no-repeat;
+  }
+  .frame[data-base='hardware'] [data-part='log.row'][data-in] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='hardware'] [data-part='log.cell'][data-col='dir'] {
+    color: var(--c-text);
+  }
+  .frame[data-base='hardware'] [data-part='log.empty'] {
+    color: var(--fg-faint);
   }
 }

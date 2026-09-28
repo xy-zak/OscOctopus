@@ -127,6 +127,19 @@ describe('workspace', () => {
     expect(deleted).toEqual([`i/${input.id}`, `w/${w.id}`]);
   });
 
+  it('counts and strips a sequence’s output like a message’s', async () => {
+    await presetStore.init();
+    const out = presetStore.current.network.outputs[0]!;
+    const before = presetStore.outputUsage(out.id);
+    presetStore.addWidget('sequencer');
+    const seq = presetStore.current.widgets.at(-1)!;
+    expect(seq.type === 'sequencer' && seq.props.outputIds).toEqual([out.id]);
+    expect(presetStore.outputUsage(out.id)).toBe(before + 1);
+    presetStore.removeOutput(out.id);
+    expect(seq.type === 'sequencer' && seq.props.outputIds).toEqual([]);
+    expect(presetStore.outputUsage(out.id)).toBe(0);
+  });
+
   it('never opens the same preset twice', async () => {
     const p = newPreset('Twice');
     files.set(p.id, p);

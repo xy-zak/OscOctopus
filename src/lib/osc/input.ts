@@ -9,7 +9,7 @@
 // turns it into a value.
 import type { OscArg } from '../ipc/types';
 import type { ArgTemplate, Binding, Widget } from '../model/preset';
-import { defaultChannel } from '../widgets/defs';
+import { defaultChannel, messagesOf } from '../widgets/defs';
 import type { InputPatch } from '../widgets/types';
 import { buildMessages } from './mapping';
 import type { Scalar, ValueList, WidgetValue } from './value';
@@ -207,6 +207,7 @@ export function decodePatch(
 
 /** Why this binding can't receive, or null if it can (shown in the editor). */
 export function receiveProblem(widget: Widget, binding: Binding): string | null {
+  if (messagesOf(widget) === 'none') return 'this widget has no messages';
   const c = compileAddress(binding.address);
   if (c.kind === 'invalid') return c.error;
   if (binding.args.some((a) => a.kind === 'value' && a.type === 'm')) {
@@ -222,6 +223,7 @@ export function receiveProblem(widget: Widget, binding: Binding): string | null 
 
 /** Why received input must never be forwarded through this widget's messages, or null. */
 export function forwardProblem(widget: Widget): string | null {
+  if (messagesOf(widget) !== 'full') return 'this widget only shows what it receives';
   if (widget.type === 'button' && widget.props.arm !== 'none') {
     return 'an armed button only fires from a deliberate local press';
   }

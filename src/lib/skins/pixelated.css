@@ -39,6 +39,10 @@
     --pads-gap: 6px;
     --list-gap: 3px;
     --list-row-h: 22px;
+    --seq-gap: 6px;
+    --seq-steps-h: 9px;
+    --seq-timer-h: calc(3 * var(--px));
+    --seq-step-gap: 3px;
     border: var(--px) solid var(--c);
     background: var(--w-bg);
     box-shadow:
@@ -87,7 +91,8 @@
     color: var(--fg);
   }
 
-  /* Release, for buttons, pads and list options: ACTIVE green breaks up into big pixels. */
+  /* Release, for buttons, sequencer keys, pads and list options: ACTIVE green breaks up into
+     big pixels. */
   @keyframes pixelated-dissolve {
     0% {
       background: var(--act);
@@ -103,12 +108,13 @@
     }
   }
   .frame[data-base='pixelated'] [data-part='button.fill'][data-flash],
+  .frame[data-base='pixelated'] [data-part='sequencer.fill'][data-flash],
   .frame[data-base='pixelated'] [data-part='pads.fill'][data-flash],
   .frame[data-base='pixelated'] [data-part='list.fill'][data-flash] {
     animation: pixelated-dissolve 240ms steps(1, end) forwards;
   }
 
-  /* ---- keys (buttons, pads): bevelled blocks that sink when pressed ---- */
+  /* ---- keys (buttons, pads, sequencer): bevelled blocks that sink when pressed ---- */
   .frame[data-base='pixelated'] [data-part='keycap.face'] {
     border: var(--px) solid color-mix(in srgb, var(--c) 70%, #000);
     background: var(--c-solid);
@@ -118,8 +124,9 @@
     translate: 0 var(--px);
     box-shadow: var(--pp-sunk);
   }
-  /* A pressed button or a held or latched pad lights ACTIVE green, sunk. */
+  /* A pressed button or sequencer key, or a held or latched pad lights ACTIVE green, sunk. */
   .frame[data-base='pixelated'] [data-part='button.fill'][data-on],
+  .frame[data-base='pixelated'] [data-part='sequencer.fill'][data-on],
   .frame[data-base='pixelated'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
     background: var(--act);
     box-shadow: var(--pp-sunk);
@@ -185,7 +192,8 @@
   }
 
   /* ---- fader: a sunk groove, a segmented LED meter up to the value, a bevelled cap ---- */
-  .frame[data-base='pixelated'] [data-part='slider.track'] {
+  .frame[data-base='pixelated'] [data-part='slider.track'],
+  .frame[data-base='pixelated'] [data-part='sequencer.timer'] {
     border: var(--px) solid var(--c);
     background: var(--bg);
     box-shadow: var(--pp-sunk);
@@ -193,7 +201,8 @@
   .frame[data-base='pixelated'][data-dragging] [data-part='slider.track'] {
     border-color: var(--act);
   }
-  .frame[data-base='pixelated'] [data-part='slider.fill'] {
+  .frame[data-base='pixelated'] [data-part='slider.fill'],
+  .frame[data-base='pixelated'] [data-part='sequencer.elapsed'] {
     background: repeating-linear-gradient(
       to right,
       var(--act) 0 var(--px2),
@@ -344,5 +353,68 @@
   }
   .frame[data-base='pixelated'] [data-part='list.option'][data-held] [data-part='list.fill'] {
     background: var(--act);
+  }
+
+  /* ---- sequencer: two bevelled blocks (keys above) over a row of LED segments, one per step:
+     unlit in the widget colour, the step sent last lit ACTIVE green (a chunky green dither
+     while paused). The key whose run is going has an ACTIVE green border. PAUSE is dim while
+     there is no run to pause. ---- */
+  .frame[data-base='pixelated'][data-running]
+    [data-part='sequencer.key'][data-role='play']
+    [data-part='keycap.face'],
+  .frame[data-base='pixelated'][data-paused]
+    [data-part='sequencer.key'][data-role='pause']
+    [data-part='keycap.face'] {
+    border-color: var(--act);
+  }
+  .frame[data-base='pixelated'] [data-part='sequencer.legend'] {
+    color: var(--c-ink);
+  }
+  .frame[data-base='pixelated'] [data-part='keycap'][data-down] [data-part='sequencer.legend'] {
+    color: var(--act-ink);
+  }
+  .frame[data-base='pixelated']:not([data-running]):not([data-paused])
+    [data-part='sequencer.key'][data-role='pause'] {
+    opacity: 0.45;
+  }
+  .frame[data-base='pixelated'] [data-part='sequencer.step'] {
+    background: color-mix(in srgb, var(--c) 40%, var(--w-bg));
+    box-shadow: inset 0 calc(-1 * var(--px)) 0 0 var(--pp-lo);
+  }
+  .frame[data-base='pixelated'] [data-part='sequencer.step'][data-current] {
+    background: var(--act);
+    box-shadow: inset 0 var(--px) 0 0 var(--pp-hi);
+  }
+  .frame[data-base='pixelated'][data-paused] [data-part='sequencer.step'][data-current] {
+    background: var(--pp-d50-act);
+    box-shadow: none;
+  }
+
+  /* ---- text: plain text on the panel (the text itself is base.css's) ---- */
+
+  /* ---- log: headings on a bevelled block, rows over chunky dotted rules, received ones
+     dimmer (errors and held rows are coloured by base.css, so no rule here gives a row a
+     colour of its own) ---- */
+  .frame[data-base='pixelated'] [data-part='log.head'] {
+    background: var(--c-solid);
+    color: var(--c-ink);
+    box-shadow: var(--pp-raised);
+  }
+  .frame[data-base='pixelated'] [data-part='log.row'] {
+    background: repeating-linear-gradient(
+        to right,
+        var(--line-strong) 0 var(--px),
+        transparent var(--px) var(--px2)
+      )
+      0 100% / 100% var(--px) no-repeat;
+  }
+  .frame[data-base='pixelated'] [data-part='log.row'][data-in] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='pixelated'] [data-part='log.cell'][data-col='dir'] {
+    color: var(--c-text);
+  }
+  .frame[data-base='pixelated'] [data-part='log.empty'] {
+    color: var(--fg-faint);
   }
 }

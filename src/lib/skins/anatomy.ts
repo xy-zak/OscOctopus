@@ -28,6 +28,15 @@ export const STATES = [
   'held',
   'flash',
   'fading',
+  'running',
+  'paused',
+  'strong',
+  'reverse',
+  'tinted',
+  'in',
+  'out',
+  'error',
+  'blocked',
 ] as const;
 export type State = (typeof STATES)[number];
 
@@ -49,6 +58,8 @@ export interface Part {
 }
 
 const FRAME_STATES = { active: 'frame', pressed: 'frame', lifted: 'frame' } as const;
+/** A sequencer's run, on its frame. */
+const SEQ_STATES = { running: 'frame', paused: 'frame' } as const;
 
 export const PARTS = {
   frame: { label: 'Frame', states: { ...FRAME_STATES, live: 'frame' }, image: 'region' },
@@ -131,6 +142,45 @@ export const PARTS = {
   'list.fill': { label: 'Option light', states: { held: 'self', flash: 'self' }, image: 'region' },
   'list.mark': { label: 'Current mark', states: { current: 'self' }, image: 'none' },
   'list.text': { label: 'Option text', states: { current: 'self', held: 'self' }, image: 'none' },
+
+  'sequencer.timer': { label: 'Wait bar', states: SEQ_STATES, image: 'region' },
+  'sequencer.elapsed': { label: 'Wait bar fill', states: SEQ_STATES, image: 'region' },
+  'sequencer.keys': { label: 'Sequencer keys', states: SEQ_STATES, image: 'none' },
+  'sequencer.key': { label: 'Sequencer key', states: SEQ_STATES, image: 'none' },
+  'sequencer.fill': {
+    label: 'Sequencer key light',
+    states: { on: 'self', flash: 'self' },
+    image: 'region',
+  },
+  'sequencer.legend': {
+    label: 'START / STOP · PAUSE / PLAY',
+    states: { ...SEQ_STATES, down: 'key' },
+    image: 'none',
+  },
+  'sequencer.steps': { label: 'Step strip', states: SEQ_STATES, image: 'region' },
+  'sequencer.step': {
+    label: 'Step mark',
+    states: { ...SEQ_STATES, current: 'self' },
+    image: 'region',
+  },
+
+  'text.body': { label: 'Text area', states: {}, image: 'region' },
+  'text.block': { label: 'Text line', states: {}, image: 'none' },
+  'text.run': {
+    label: 'Text run',
+    states: { strong: 'self', reverse: 'self', tinted: 'self' },
+    image: 'none',
+  },
+
+  'log.head': { label: 'Log headings', states: {}, image: 'none' },
+  'log.rows': { label: 'Log rows', states: {}, image: 'region' },
+  'log.row': {
+    label: 'Log row',
+    states: { in: 'self', out: 'self', error: 'self', blocked: 'self' },
+    image: 'none',
+  },
+  'log.cell': { label: 'Log cell', states: {}, image: 'none' },
+  'log.empty': { label: 'Empty log', states: {}, image: 'none' },
 } as const satisfies Record<string, Part>;
 
 export type PartName = keyof typeof PARTS;
@@ -151,12 +201,18 @@ export const MARKER_PARTS: ReadonlySet<PartName> = new Set<PartName>([
   'pads.num',
   'list.mark',
   'list.text',
+  'sequencer.legend',
+  'text.block',
+  'text.run',
+  'log.cell',
+  'log.empty',
 ]);
 
 /**
- * What a skin may change besides paint: geometry, and the colour of the fader's scale (drawn
- * by skins/base.css, the same in every skin). Components and base.css read each with its
- * default as the fallback (`var(--slider-cap-len, 10px)`); nothing declares them but skins.
+ * What a skin may change besides paint: geometry, and the colours of what skins/base.css draws
+ * the same in every skin (the fader's scale, a text widget's text; marked `paint`). Components
+ * and base.css read each with its default as the fallback (`var(--slider-cap-len, 10px)`);
+ * nothing declares them but skins.
  */
 export const TOKENS = {
   '--frame-inset-t': { label: 'Frame inside, top', default: '9px' },
@@ -169,14 +225,20 @@ export const TOKENS = {
   },
   '--slider-cap-len': { label: 'Fader cap thickness', default: '10px' },
   '--slider-track-w': { label: 'Fader track width', default: 'clamp(8px, 34%, 26px)' },
-  '--slider-tick-c': { label: 'Fader scale colour', default: 'var(--fg-faint)' },
+  '--slider-tick-c': { label: 'Fader scale colour', default: 'var(--fg-faint)', paint: true },
   '--graph-cursor': { label: 'Graph cursor size', default: '10px' },
   '--graph-dot': { label: 'Trail dot size', default: '4px' },
   '--graph-lock-inset': { label: 'Cursor brackets distance', default: '0px' },
   '--pads-gap': { label: 'Gap between pads', default: '4px' },
   '--list-gap': { label: 'Gap between options', default: '2px' },
   '--list-row-h': { label: 'Option height', default: 'var(--lh)' },
-} as const;
+  '--seq-gap': { label: 'Gap between sequencer keys', default: '4px' },
+  '--seq-timer-h': { label: 'Wait bar height', default: '4px' },
+  '--seq-steps-h': { label: 'Step strip height', default: '6px' },
+  '--seq-step-gap': { label: 'Gap between step marks', default: '2px' },
+  '--text-c': { label: 'Text colour', default: 'var(--fg)', paint: true },
+  '--log-row-h': { label: 'Log row height', default: 'var(--lh)' },
+} as const satisfies Record<string, { label: string; default: string; paint?: true }>;
 
 export type Token = keyof typeof TOKENS;
 

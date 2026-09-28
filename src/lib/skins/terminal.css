@@ -5,6 +5,8 @@
 @layer skin.builtin {
   /* ---- frame: the title and value are set into the border on a patch of page colour ---- */
   .frame[data-base='terminal'] {
+    /* Room for the dithered fill inside the wait bar's 1px lines. */
+    --seq-timer-h: 6px;
     border: 1px solid var(--c);
     background: var(--w-bg);
     box-shadow: 4px 4px 0 0 var(--shadow-px);
@@ -71,29 +73,35 @@
   .frame[data-base='terminal'] [data-part='keycap'][data-down] [data-part='keycap.face'] {
     box-shadow: inset 1px 1px 0 0 var(--shadow-px);
   }
-  /* Button and pad keys are the widget colour; lit (a fired, armed or holding button, a held
-     or latched pad), their lines and shading turn ACTIVE green. */
+  /* Button, pad and sequencer keys are the widget colour; lit (a fired, armed or holding
+     button, a held or latched pad, a sequencer key while its run is going), their lines and
+     shading turn ACTIVE green. */
   .frame[data-base='terminal'] [data-part='button.key'],
-  .frame[data-base='terminal'] [data-part='pads.pad'] {
+  .frame[data-base='terminal'] [data-part='pads.pad'],
+  .frame[data-base='terminal'] [data-part='sequencer.key'] {
     --key-edge: var(--c);
     --key-dots: color-mix(in srgb, var(--c) 55%, transparent);
     --key-face: var(--c-solid);
   }
   .frame[data-base='terminal'][data-lit] [data-part='button.key'],
-  .frame[data-base='terminal'] [data-part='pads.pad'][data-on] {
+  .frame[data-base='terminal'] [data-part='pads.pad'][data-on],
+  .frame[data-base='terminal'][data-running] [data-part='sequencer.key'][data-role='play'],
+  .frame[data-base='terminal'][data-paused] [data-part='sequencer.key'][data-role='pause'] {
     --key-edge: var(--act);
     --key-dots: color-mix(in srgb, var(--act) 55%, transparent);
   }
 
-  /* Pressed buttons, held or latched pads and held list options fill ACTIVE green. Release: a
-     pixel dissolve from ACTIVE green back to the widget colour, solid → 50% dither → 25%
-     dither → gone. */
+  /* Pressed buttons and sequencer keys, held or latched pads and held list options fill ACTIVE
+     green. Release: a pixel dissolve from ACTIVE green back to the widget colour, solid → 50%
+     dither → 25% dither → gone. */
   .frame[data-base='terminal'] [data-part='button.fill'][data-on],
+  .frame[data-base='terminal'] [data-part='sequencer.fill'][data-on],
   .frame[data-base='terminal'] [data-part='pads.pad'][data-on] [data-part='pads.fill'],
   .frame[data-base='terminal'] [data-part='list.option'][data-held] [data-part='list.fill'] {
     background: var(--act);
   }
   .frame[data-base='terminal'] [data-part='button.fill'][data-flash],
+  .frame[data-base='terminal'] [data-part='sequencer.fill'][data-flash],
   .frame[data-base='terminal'] [data-part='pads.fill'][data-flash],
   .frame[data-base='terminal'] [data-part='list.fill'][data-flash] {
     animation: terminal-dissolve 210ms steps(1, end) forwards;
@@ -145,7 +153,8 @@
   /* ---- switch: a solid block on a dithered groove; everything turns ACTIVE green when on ---- */
   /* The fader's track is the same groove. */
   .frame[data-base='terminal'] [data-part='switch.track'],
-  .frame[data-base='terminal'] [data-part='slider.track'] {
+  .frame[data-base='terminal'] [data-part='slider.track'],
+  .frame[data-base='terminal'] [data-part='sequencer.timer'] {
     border: 1px solid var(--c);
     background: var(--dither-25-c);
     transition: border-color var(--t-ui) steps(2);
@@ -190,7 +199,8 @@
     border-color: var(--act);
   }
   /* Its own backing, so the groove's dots don't show through. */
-  .frame[data-base='terminal'] [data-part='slider.fill'] {
+  .frame[data-base='terminal'] [data-part='slider.fill'],
+  .frame[data-base='terminal'] [data-part='sequencer.elapsed'] {
     background: var(--dither-50-act), var(--w-bg);
     transition: clip-path var(--t-release) var(--ease-out);
   }
@@ -315,5 +325,56 @@
   }
   .frame[data-base='terminal'] [data-part='list.option'][data-held] {
     color: var(--act-ink);
+  }
+
+  /* ---- sequencer: two keys in the widget colour (keys above) over a strip of pixel marks,
+     one per step: dithered, the step sent last solid ACTIVE green (dithered green while
+     paused). PAUSE is dim while there is no run to pause. ---- */
+  .frame[data-base='terminal'] [data-part='sequencer.legend'] {
+    color: var(--c-ink);
+  }
+  .frame[data-base='terminal'] [data-part='keycap'][data-down] [data-part='sequencer.legend'] {
+    color: var(--act-ink);
+  }
+  .frame[data-base='terminal']:not([data-running]):not([data-paused])
+    [data-part='sequencer.key'][data-role='pause'] {
+    opacity: 0.45;
+  }
+  .frame[data-base='terminal'] [data-part='sequencer.step'] {
+    border: 1px solid color-mix(in srgb, var(--c) 60%, transparent);
+    background: var(--dither-25-c);
+    transition:
+      background var(--t-ui) steps(2),
+      border-color var(--t-ui) steps(2);
+  }
+  .frame[data-base='terminal'] [data-part='sequencer.step'][data-current] {
+    border-color: var(--act);
+    background: var(--act);
+  }
+  .frame[data-base='terminal'][data-paused] [data-part='sequencer.step'][data-current] {
+    background: var(--dither-50-act);
+  }
+
+  /* ---- text: plain text on the widget's panel (the text itself is base.css's) ---- */
+
+  /* ---- log: a terminal listing. Headings in reverse video in the widget colour; rows over
+     dotted rules, received ones dimmer (errors and held rows are coloured by base.css, so no
+     rule here gives a row a colour of its own). ---- */
+  .frame[data-base='terminal'] [data-part='log.head'] {
+    background: var(--c-solid);
+    color: var(--c-ink);
+  }
+  .frame[data-base='terminal'] [data-part='log.row'] {
+    background: linear-gradient(to right, var(--line-strong) 1px, transparent 1px) 0 100% / 3px 1px
+      repeat-x;
+  }
+  .frame[data-base='terminal'] [data-part='log.row'][data-in] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='terminal'] [data-part='log.cell'][data-col='dir'] {
+    color: var(--c-text);
+  }
+  .frame[data-base='terminal'] [data-part='log.empty'] {
+    color: var(--fg-faint);
   }
 }

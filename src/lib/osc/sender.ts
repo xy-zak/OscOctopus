@@ -12,7 +12,7 @@ import type { Widget } from '../model/preset';
 import { debugStore } from '../state/debug.svelte';
 import { presetStore } from '../state/preset.svelte';
 import { errorText } from '../util';
-import { gateFor } from '../widgets/defs';
+import { gateFor, messagesOf } from '../widgets/defs';
 import type { Gate } from '../widgets/types';
 import { expectations } from './expect';
 import { buildMessages } from './mapping';
@@ -79,9 +79,11 @@ function gateImpl(widgetId: string, widget: Widget): GateImpl {
 
 /**
  * Sends a widget's value through its gate. `final` marks the end of a gesture (pointer up),
- * which bypasses the rate limit so the resting value always goes out promptly.
+ * which bypasses the rate limit so the resting value always goes out promptly. A widget whose
+ * messages can't send (`WidgetDef.messages`) sends nothing, whatever its bindings say.
  */
 export function sendValue(widget: Widget, value: WidgetValue, final: boolean, avoid?: Avoid) {
+  if (messagesOf(widget) !== 'full') return;
   const gate = gateImpl(widget.id, widget);
   gate.push({ value, avoid });
   if (final) gate.flush();

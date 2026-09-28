@@ -4,7 +4,7 @@
 // filled from the value) and its argument templates, each converted from (a channel of) the
 // value to the template's OSC type.
 import type { OscArg, OscMessage } from '../ipc/types';
-import type { ArgTemplate, Widget } from '../model/preset';
+import type { ArgTemplate, ConstArg, Widget } from '../model/preset';
 import { clamp } from '../util';
 import {
   channelValue,
@@ -90,7 +90,8 @@ export function buildArgs(t: ArgTemplate, widgetValue: WidgetValue): OscArg[] {
   }
 }
 
-function constArg(t: Extract<ArgTemplate, { kind: 'const' }>): OscArg {
+/** A fixed argument as sent: its text converted to its type (a bad number sends 0). */
+export function constArg(t: ConstArg): OscArg {
   const num = Number(t.value);
   const safe = Number.isFinite(num) ? num : 0;
   switch (t.type) {

@@ -4,6 +4,7 @@
 // only a person knows which move to undo.
 import { inBounds, overlaps } from '../grid/engine';
 import type { Preset } from '../model/preset';
+import { outputRefsOf } from '../widgets/defs';
 
 export interface Conflict {
   kind: 'overlap' | 'outside' | 'missingEndpoint';
@@ -42,10 +43,11 @@ export function findConflicts(desk: Preset): Conflict[] {
   const outputs = new Set(desk.network.outputs.map((o) => o.id));
   const sources = new Set([...outputs, ...desk.network.inputs.map((i) => i.id)]);
   for (const w of widgets) {
-    const missing = w.bindings.some(
-      (b) =>
-        b.outputIds.some((id) => !outputs.has(id)) || b.sourceIds.some((id) => !sources.has(id)),
-    );
+    const missing =
+      w.bindings.some(
+        (b) =>
+          b.outputIds.some((id) => !outputs.has(id)) || b.sourceIds.some((id) => !sources.has(id)),
+      ) || outputRefsOf(w).some((id) => !outputs.has(id));
     if (missing) {
       out.push({
         kind: 'missingEndpoint',

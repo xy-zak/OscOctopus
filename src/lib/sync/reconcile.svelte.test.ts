@@ -6,6 +6,7 @@ import { newPreset } from '../model/factory';
 import type { Preset } from '../model/preset';
 import { findConflicts } from './conflicts';
 import { patchInPlace } from './reconcile';
+import { newWidget } from '../widgets/defs';
 
 describe('patchInPlace', () => {
   it('makes the desk equal while keeping widget and endpoint objects', () => {
@@ -51,5 +52,14 @@ describe('conflicts', () => {
     expect(kinds).toContain('overlap');
     expect(kinds).toContain('outside');
     expect(kinds).toContain('missingEndpoint');
+  });
+
+  it('counts a sequence’s outputs as its messages', () => {
+    const desk = newPreset('Desk');
+    const seq = newWidget('sequencer', { x: 0, y: 7, w: 3, h: 1 }, ['gone']);
+    desk.widgets.push(seq);
+    expect(findConflicts(desk)).toEqual([
+      expect.objectContaining({ kind: 'missingEndpoint', widgetIds: [seq.id] }),
+    ]);
   });
 });

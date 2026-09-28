@@ -26,6 +26,22 @@ describe('withFreshWidgetIds', () => {
     expect(q.widgets[0]!.bindings[0]!.outputIds).toEqual(p.widgets[0]!.bindings[0]!.outputIds);
     expect(p.widgets[0]!.id).toBe(ids(p)[0]); // original untouched
   });
+
+  it('points widgets that follow others at their new ids, and drops the ones not copied', () => {
+    const p = newPreset();
+    const [a, b] = p.widgets;
+    const text = newWidget('text', { x: 0, y: 7, w: 2, h: 1 }, []);
+    text.props = { ...text.props, mode: 'monitor', target: a!.id };
+    const log = newWidget('log', { x: 2, y: 7, w: 2, h: 1 }, []);
+    log.props = { ...log.props, follow: 'chosen', sources: [a!.id, 'w-elsewhere', b!.id] };
+    p.widgets.push(text, log);
+    const q = withFreshWidgetIds(p);
+    const [qa, qb] = q.widgets;
+    const qText = q.widgets.find((w) => w.type === 'text');
+    const qLog = q.widgets.find((w) => w.type === 'log');
+    expect(qText?.type === 'text' && qText.props.target).toBe(qa!.id);
+    expect(qLog?.type === 'log' && qLog.props.sources).toEqual([qa!.id, qb!.id]);
+  });
 });
 
 describe('newWidget', () => {

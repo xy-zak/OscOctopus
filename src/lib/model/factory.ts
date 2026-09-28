@@ -3,7 +3,7 @@
 import { INPUT_DEFAULTS, OUTPUT_DEFAULTS } from '../ipc/defaults';
 import type { InputConfig, OutputConfig } from '../ipc/types';
 import { DEFAULT_ACCENT } from '../theme/palettes';
-import { newWidget } from '../widgets/defs';
+import { newWidget, remapRefsOf } from '../widgets/defs';
 import { uid } from './parts';
 import { CURRENT_SCHEMA_VERSION, type Preset, type Widget } from './preset';
 
@@ -56,13 +56,18 @@ export function newPreset(
 /**
  * A copy of a preset with new widget and binding ids. Live values and throttles are keyed by
  * widget id, so two open desks must never share one (e.g. a duplicated or re-imported desk).
- * Endpoint ids are kept: they are namespaced per desk by the network core.
+ * Widgets that refer to others of the desk (a text monitor, a log) follow them to their new
+ * ids. Endpoint ids are kept: they are namespaced per desk by the network core.
  */
 export function withFreshWidgetIds(preset: Preset): Preset {
   const copy = structuredClone(preset);
+  const ids = new Map<string, string>();
   for (const w of copy.widgets) {
-    w.id = uid('w');
+    const id = uid('w');
+    ids.set(w.id, id);
+    w.id = id;
     for (const b of w.bindings) b.id = uid('b');
   }
+  for (const w of copy.widgets) remapRefsOf(w, ids);
   return copy;
 }

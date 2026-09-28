@@ -20,12 +20,14 @@ import { getSetting } from '../platform/settings';
 import { patchInPlace } from '../sync/reconcile';
 import { PALETTE_SIZE } from '../theme/palettes';
 import { errorText } from '../util';
-import { DEFS, initialValue, newWidget } from '../widgets/defs';
+import { DEFS, dropOutputFrom, initialValue, newWidget, outputRefsOf } from '../widgets/defs';
 import { appearance } from './appearance.svelte';
 import { skinStore } from './skins.svelte';
 import { Autosave } from './autosave.svelte';
 import { deskChanges, syncKey, syncRecords } from './changes';
+import { debugStore } from './debug.svelte';
 import { forgetFeedback } from './feedback.svelte';
+import { inputStore } from './input.svelte';
 import { networkStore } from './network.svelte';
 import { persistSetting } from './persist';
 import { toast, ui } from './ui.svelte';
@@ -393,10 +395,13 @@ class PresetStore {
     this.touch({ network: true });
   }
 
-  /** Number of widget messages that send to an output. */
+  /** Number of widget messages (and sequences, see `WidgetDef.outputRefs`) that send to an output. */
   outputUsage(outputId: string): number {
     return this.current.widgets.reduce(
-      (n, w) => n + w.bindings.filter((b) => b.outputIds.includes(outputId)).length,
+      (n, w) =>
+        n +
+        w.bindings.filter((b) => b.outputIds.includes(outputId)).length +
+        (outputRefsOf(w).includes(outputId) ? 1 : 0),
       0,
     );
   }
@@ -409,13 +414,15 @@ class PresetStore {
     );
   }
 
-  /** Removes an output and every reference to it from widget messages. */
+  /** Removes an output and every reference to it from widgets. */
   removeOutput(id: string) {
-    for (const w of this.current.widgets)
+    for (const w of this.current.widgets) {
       for (const b of w.bindings) {
         b.outputIds = b.outputIds.filter((o) => o !== id);
         b.sourceIds = b.sourceIds.filter((s) => s !== id);
       }
+      dropOutputFrom(w, id);
+    }
     this.current.network.outputs = this.current.network.outputs.filter((o) => o.id !== id);
     this.touch({ network: true, deleted: [syncKey.output(id)] });
   }
@@ -511,10 +518,12 @@ class PresetStore {
   }
 }
 
-/** Drops a removed widget's live value and visual feedback. */
+/** Drops what a removed widget left behind: its live value, feedback and activity. */
 function forgetWidget(id: string) {
   delete values[id];
   forgetFeedback(id);
+  debugStore.forget(id);
+  inputStore.forget(id);
 }
 
 /** Sync keys of the widgets and endpoints `before` had and `after` doesn't (replaced desk). */

@@ -23,6 +23,8 @@
     --pads-gap: 8px;
     --list-gap: 4px;
     --list-row-h: 24px;
+    --seq-gap: 8px;
+    --seq-step-gap: 4px;
     border: 1px solid var(--g-line);
     border-radius: 12px;
     background: var(--g-fill);
@@ -80,7 +82,7 @@
     color: var(--fg);
   }
 
-  /* Release, for buttons, pads and list options: the ACTIVE light fades out. */
+  /* Release, for buttons, sequencer keys, pads and list options: the ACTIVE light fades out. */
   @keyframes glass-fade {
     from {
       background: color-mix(in srgb, var(--act) 85%, transparent);
@@ -90,6 +92,7 @@
     }
   }
   .frame[data-base='glass'] [data-part='button.fill'][data-flash],
+  .frame[data-base='glass'] [data-part='sequencer.fill'][data-flash],
   .frame[data-base='glass'] [data-part='pads.fill'][data-flash],
   .frame[data-base='glass'] [data-part='list.fill'][data-flash] {
     animation: glass-fade 360ms ease-out forwards;
@@ -100,7 +103,7 @@
     background: var(--act);
   }
 
-  /* ---- keys (buttons, pads): flat rounded tiles in the widget colour ---- */
+  /* ---- keys (buttons, pads, sequencer): flat rounded tiles in the widget colour ---- */
   .frame[data-base='glass'] [data-part='keycap.face'] {
     border-radius: 10px;
     background: var(--g-solid);
@@ -121,8 +124,9 @@
       inset 0 1px 0 var(--g-hi);
   }
 
-  /* ---- button ---- */
-  .frame[data-base='glass'] [data-part='button.fill'][data-on] {
+  /* ---- button (and a pressed sequencer key) ---- */
+  .frame[data-base='glass'] [data-part='button.fill'][data-on],
+  .frame[data-base='glass'] [data-part='sequencer.fill'][data-on] {
     background: color-mix(in srgb, var(--act) 85%, transparent);
   }
   .frame[data-base='glass'] [data-part='button.armed'] {
@@ -188,12 +192,14 @@
   .frame[data-base='glass'] [data-part='slider.grip'] {
     visibility: hidden;
   }
-  .frame[data-base='glass'] [data-part='slider.track'] {
+  .frame[data-base='glass'] [data-part='slider.track'],
+  .frame[data-base='glass'] [data-part='sequencer.timer'] {
     border-radius: 999px;
     background: var(--g-well);
     box-shadow: inset 0 1px 1px rgb(0 0 0 / 0.3);
   }
-  .frame[data-base='glass'] [data-part='slider.fill'] {
+  .frame[data-base='glass'] [data-part='slider.fill'],
+  .frame[data-base='glass'] [data-part='sequencer.elapsed'] {
     border-radius: 999px;
     background: var(--act);
     transition: clip-path 220ms var(--ease-out);
@@ -323,5 +329,75 @@
   }
   .frame[data-base='glass'] [data-part='list.mark'] {
     color: var(--act);
+  }
+
+  /* ---- sequencer: two rounded keys (keys above) over a row of tinted pills, one per step.
+     The key whose run is going is ringed and glows ACTIVE green; the step sent last glows
+     green (a green ring while paused). PAUSE is dim while there is no run to pause. ---- */
+  .frame[data-base='glass'][data-running]
+    [data-part='sequencer.key'][data-role='play']
+    [data-part='keycap.face'],
+  .frame[data-base='glass'][data-paused]
+    [data-part='sequencer.key'][data-role='pause']
+    [data-part='keycap.face'] {
+    box-shadow:
+      0 0 18px -2px color-mix(in srgb, var(--act) 70%, transparent),
+      inset 0 0 0 1.5px var(--act),
+      inset 0 1px 0 var(--g-hi);
+  }
+  .frame[data-base='glass'] [data-part='sequencer.legend'] {
+    color: var(--fg);
+  }
+  .frame[data-base='glass'] [data-part='keycap'][data-down] [data-part='sequencer.legend'] {
+    color: var(--act-ink);
+  }
+  .frame[data-base='glass'] [data-part='sequencer.key'] {
+    transition: opacity 200ms ease;
+  }
+  .frame[data-base='glass']:not([data-running]):not([data-paused])
+    [data-part='sequencer.key'][data-role='pause'] {
+    opacity: 0.4;
+  }
+  .frame[data-base='glass'] [data-part='sequencer.step'] {
+    border-radius: 999px;
+    background: var(--g-solid);
+    transition:
+      background 200ms ease,
+      box-shadow 200ms ease;
+  }
+  .frame[data-base='glass'] [data-part='sequencer.step'][data-current] {
+    background: var(--act);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--act) 70%, transparent);
+  }
+  .frame[data-base='glass'][data-paused] [data-part='sequencer.step'][data-current] {
+    background: color-mix(in srgb, var(--act) 30%, transparent);
+    box-shadow: inset 0 0 0 1.5px var(--act);
+  }
+
+  /* ---- text: plain text on the pane (the text itself is base.css's) ---- */
+
+  /* ---- log: headings on a rounded tinted bar; rows in soft rounded stripes, received ones
+     dimmer (errors and held rows are coloured by base.css, so no rule here gives a row a
+     colour of its own) ---- */
+  .frame[data-base='glass'] [data-part='log.head'] {
+    border-radius: 6px;
+    background: var(--g-solid);
+    color: var(--fg);
+  }
+  .frame[data-base='glass'] [data-part='log.row']:nth-child(even) {
+    border-radius: 6px;
+    background: rgb(255 255 255 / 0.05);
+  }
+  :root[data-mode='light'] .frame[data-base='glass'] [data-part='log.row']:nth-child(even) {
+    background: rgb(255 255 255 / 0.5);
+  }
+  .frame[data-base='glass'] [data-part='log.row'][data-in] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='glass'] [data-part='log.cell'][data-col='dir'] {
+    color: var(--c-text);
+  }
+  .frame[data-base='glass'] [data-part='log.empty'] {
+    color: var(--fg-faint);
   }
 }

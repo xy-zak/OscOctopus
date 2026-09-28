@@ -3,10 +3,14 @@
 // values coalesced by the throttle, and IPC failures that never reached Rust.
 import { debug as debugIpc } from '../ipc/commands';
 import type { DebugBatch, DebugEvent } from '../ipc/types';
+import { LIMITS } from '../model/preset';
 import type { ThrottleStats } from '../osc/throttle';
 
 const UI_CAP = 5000;
-const PER_SOURCE_CAP = 12;
+/** Per widget: as many as a log widget can show. */
+const PER_SOURCE_CAP = LIMITS.logRows.max;
+/** How many of a widget's recent events its ACTIVITY section lists. */
+export const ACTIVITY_ROWS = 12;
 
 class DebugStore {
   /** Displayed log, oldest first. Replaced (never mutated) so the list re-renders cheaply. */
@@ -43,7 +47,8 @@ class DebugStore {
     queued.forEach((b) => this.ingest(b));
   }
 
-  private ingest(batch: DebugBatch) {
+  /** Takes a batch from Rust (or, in the dev gallery, a made-up one). */
+  ingest(batch: DebugBatch) {
     this.totalDropped = Math.max(this.totalDropped, batch.totalDropped);
     const fresh = batch.events.filter((e) => e.seq > this.lastSeq);
     if (fresh.length === 0) return;
@@ -122,10 +127,15 @@ class DebugStore {
     if (changed) this.sourceVersion++;
   }
 
-  /** Most recent events caused by a widget (reactive). */
-  recentFor(widgetId: string): DebugEvent[] {
+  /** The most recent events caused by a widget, oldest first, at most `limit` (reactive). */
+  recentFor(widgetId: string, limit: number = PER_SOURCE_CAP): DebugEvent[] {
     void this.sourceVersion;
-    return this.bySource.get(widgetId) ?? [];
+    return (this.bySource.get(widgetId) ?? []).slice(-limit);
+  }
+
+  /** Drops a removed widget's events from its index (TRAFFIC keeps them). */
+  forget(widgetId: string) {
+    if (this.bySource.delete(widgetId)) this.sourceVersion++;
   }
 
   setPaused(paused: boolean) {

@@ -26,6 +26,9 @@
     --pads-gap: 7px;
     --list-gap: 4px;
     --list-row-h: 22px;
+    --seq-gap: 7px;
+    --seq-steps-h: 4px;
+    --seq-step-gap: 4px;
     border: 2px solid var(--n-tube);
     border-radius: 8px;
     background: var(--n-hollow);
@@ -79,7 +82,7 @@
     color: var(--fg);
   }
 
-  /* Release, for buttons, pads and list options: the green burns down. */
+  /* Release, for buttons, sequencer keys, pads and list options: the green burns down. */
   @keyframes neon-fade {
     from {
       background: var(--n-glow-act);
@@ -89,12 +92,15 @@
     }
   }
   .frame[data-base='neon'] [data-part='button.fill'][data-flash],
+  .frame[data-base='neon'] [data-part='sequencer.fill'][data-flash],
   .frame[data-base='neon'] [data-part='pads.fill'][data-flash],
   .frame[data-base='neon'] [data-part='list.fill'][data-flash] {
     animation: neon-fade 320ms ease-out forwards;
   }
 
-  /* ---- keys (buttons, pads): a tube outline around a hollow face ---- */
+  /* ---- keys (buttons, pads, sequencer): a tube outline around a hollow face; lit (a fired,
+     armed or holding button, a held or latched pad, a sequencer key while its run is going),
+     the tube burns green ---- */
   .frame[data-base='neon'] [data-part='keycap.face'] {
     --n-key: var(--c);
     border: 2px solid var(--n-key);
@@ -112,7 +118,13 @@
     scale: 0.97;
   }
   .frame[data-base='neon'][data-lit] [data-part='keycap.face'],
-  .frame[data-base='neon'] [data-part='pads.pad'][data-on] [data-part='keycap.face'] {
+  .frame[data-base='neon'] [data-part='pads.pad'][data-on] [data-part='keycap.face'],
+  .frame[data-base='neon'][data-running]
+    [data-part='sequencer.key'][data-role='play']
+    [data-part='keycap.face'],
+  .frame[data-base='neon'][data-paused]
+    [data-part='sequencer.key'][data-role='pause']
+    [data-part='keycap.face'] {
     --n-key: var(--act);
     box-shadow:
       0 0 calc(1.6 * var(--n-bloom)) var(--n-glow-act),
@@ -120,7 +132,8 @@
   }
 
   /* ---- button: the face fills with a green glow while on ---- */
-  .frame[data-base='neon'] [data-part='button.fill'][data-on] {
+  .frame[data-base='neon'] [data-part='button.fill'][data-on],
+  .frame[data-base='neon'] [data-part='sequencer.fill'][data-on] {
     background: radial-gradient(ellipse at center, var(--n-glow-act), transparent 80%);
   }
   .frame[data-base='neon'] [data-part='button.armed'] {
@@ -217,11 +230,13 @@
   }
 
   /* ---- fader: a thin dim tube lit green up to the value, and a glowing bar for a cap ---- */
-  .frame[data-base='neon'] [data-part='slider.track'] {
+  .frame[data-base='neon'] [data-part='slider.track'],
+  .frame[data-base='neon'] [data-part='sequencer.timer'] {
     border-radius: 999px;
     background: color-mix(in srgb, var(--c) 30%, var(--n-dark));
   }
-  .frame[data-base='neon'] [data-part='slider.fill'] {
+  .frame[data-base='neon'] [data-part='slider.fill'],
+  .frame[data-base='neon'] [data-part='sequencer.elapsed'] {
     border-radius: 999px;
     background: var(--n-core-act);
     box-shadow: 0 0 6px var(--act);
@@ -365,5 +380,77 @@
   .frame[data-base='neon'] [data-part='list.mark'] {
     color: var(--c);
     text-shadow: 0 0 6px var(--n-glow);
+  }
+
+  /* ---- sequencer: two tube keys (keys above) over a row of short dim tubes, one per step:
+     the step sent last burns green, and dims to a low green while paused. The legend glows
+     in the widget colour, green on a lit key; PAUSE is a switched-off tube while there is no
+     run to pause. ---- */
+  .frame[data-base='neon'] [data-part='sequencer.legend'] {
+    color: var(--c-text);
+    text-shadow: 0 0 6px var(--n-glow);
+    transition:
+      color 120ms ease,
+      text-shadow 120ms ease;
+  }
+  .frame[data-base='neon'][data-running]
+    [data-part='sequencer.key'][data-role='play']
+    [data-part='sequencer.legend'],
+  .frame[data-base='neon'][data-paused]
+    [data-part='sequencer.key'][data-role='pause']
+    [data-part='sequencer.legend'] {
+    color: var(--act);
+    text-shadow: 0 0 6px var(--n-glow-act);
+  }
+  .frame[data-base='neon'] [data-part='keycap'][data-down] [data-part='sequencer.legend'] {
+    color: var(--fg);
+    text-shadow: 0 0 4px var(--act);
+  }
+  .frame[data-base='neon']:not([data-running]):not([data-paused])
+    [data-part='sequencer.key'][data-role='pause'] {
+    opacity: 0.4;
+  }
+  .frame[data-base='neon'] [data-part='sequencer.step'] {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--c) 30%, var(--n-dark));
+    transition:
+      background 140ms ease,
+      box-shadow 140ms ease;
+  }
+  .frame[data-base='neon'] [data-part='sequencer.step'][data-current] {
+    background: var(--n-core-act);
+    box-shadow: 0 0 6px var(--act);
+  }
+  .frame[data-base='neon'][data-paused] [data-part='sequencer.step'][data-current] {
+    background: color-mix(in srgb, var(--act) 45%, var(--n-dark));
+    box-shadow: none;
+  }
+
+  /* ---- text: plain text on the dark wall (the text itself is base.css's) ---- */
+
+  /* ---- log: headings glowing in the widget colour over a tube; rows parted by faint tubes,
+     received ones dimmer (errors and held rows are coloured by base.css, so no rule here
+     gives a row a colour of its own) ---- */
+  .frame[data-base='neon'] [data-part='log.head'] {
+    background: linear-gradient(var(--c), var(--c)) 0 100% / 100% 2px no-repeat;
+    color: var(--c-text);
+    text-shadow: 0 0 6px var(--n-glow);
+  }
+  .frame[data-base='neon'] [data-part='log.row'] {
+    background: linear-gradient(
+        color-mix(in srgb, var(--c) 22%, transparent),
+        color-mix(in srgb, var(--c) 22%, transparent)
+      )
+      0 100% / 100% 1px no-repeat;
+  }
+  .frame[data-base='neon'] [data-part='log.row'][data-in] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='neon'] [data-part='log.cell'][data-col='dir'] {
+    color: var(--c-text);
+    text-shadow: 0 0 4px var(--n-glow);
+  }
+  .frame[data-base='neon'] [data-part='log.empty'] {
+    color: var(--fg-faint);
   }
 }

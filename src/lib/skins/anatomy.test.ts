@@ -54,9 +54,12 @@ describe('widget anatomy', () => {
       'Graph.svelte',
       'Keycap.svelte',
       'List.svelte',
+      'Log.svelte',
       'Pads.svelte',
+      'Sequencer.svelte',
       'Slider.svelte',
       'Switch.svelte',
+      'Text.svelte',
       'WidgetFrame.svelte',
     ]);
   });

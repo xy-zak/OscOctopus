@@ -9,6 +9,18 @@ Scripts.
 
 ### Added
 
+- **Three new widgets**, drawn in every skin:
+  - **Sequencer**: messages played in a loop, each followed by its wait, to the widget's
+    outputs, forever or for a number of passes. A wait bar that fills until the next step,
+    START/STOP and PAUSE/PLAY keys, and a step strip. The core times it (drift-free, never bursting to catch up, a pass never shorter
+    than 10 ms), so it keeps playing on another tab or in the background. Edits reach a
+    running sequence at its next step. It plays only on the device that started it.
+  - **Text**: static text in a small markup, the value of a received OSC message, or another
+    widget's live value, at one of four sizes. Received text can't add formatting.
+  - **Log**: a widget version of ACTIVITY for several widgets at once, with sent and received
+    messages, a history of up to 200 rows and a choice of columns.
+- **Preset schema v10** (for the new widgets; old desks are unchanged). Devices on v9 can't
+  join a v10 sync session.
 - **Presenting** (`[ ] PRESENT` at the right end of the master bar, or F11): the desk's
   widgets fill the screen, and on desktop the window goes fullscreen. Only the desk tabs,
   OSC-IN, OSC-OUT, LOCK and `[■] PRESENT` (click it, or Esc / F11, to stop) stay; the sections, the

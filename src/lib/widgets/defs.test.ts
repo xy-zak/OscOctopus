@@ -1,7 +1,7 @@
 // Every widget type's def must agree with the schema and with itself: what a new widget
 // sends, the value it starts with and the channels it offers.
 import { describe, expect, it } from 'vitest';
-import { WidgetSchema } from '../model/preset';
+import { LIMITS, WidgetSchema } from '../model/preset';
 import { isRecord } from '../osc/value';
 import {
   channelsFor,
@@ -10,6 +10,7 @@ import {
   initialValue,
   inputValue,
   isValueFor,
+  messagesOf,
   newWidget,
   WIDGET_TYPES,
 } from './defs';
@@ -28,8 +29,12 @@ describe('widget defs', () => {
     expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
     expect(w).toMatchObject({ type, x: 1, y: 2, color: null });
     expect(w.label).toBe(`${DEFS[type].label} 3`);
-    expect(w.bindings.length).toBeGreaterThan(0);
-    expect(w.bindings.every((b) => b.outputIds.includes('out-1'))).toBe(true);
+    if (messagesOf(w) === 'full') {
+      expect(w.bindings.length).toBeGreaterThan(0);
+      expect(w.bindings.every((b) => b.outputIds.includes('out-1'))).toBe(true);
+    } else {
+      expect(w.bindings.every((b) => !b.send)).toBe(true);
+    }
   });
 
   it.each(WIDGET_TYPES)('%s: the initial value has exactly the offered channels', (type) => {
@@ -59,6 +64,9 @@ describe('widget defs', () => {
       graph: 'throttle',
       pads: 'queue',
       list: 'queue',
+      sequencer: 'queue',
+      text: 'queue',
+      log: 'queue',
     });
   });
 });
@@ -126,6 +134,27 @@ describe('what a peer may set (WidgetDef.isValue)', () => {
     expect(isValueFor(pads, inputValue(pads, { number: 5 }, initialValue(pads)))).toBe(true);
     const list = newWidget('list', rect, []);
     expect(isValueFor(list, inputValue(list, { index: 1 }, initialValue(list)))).toBe(true);
+  });
+
+  it('text: any scalar it can show; received text is cut to the limit', () => {
+    const text = newWidget('text', rect, []);
+    expect(inputValue(text, {}, '')).toBeNull();
+    expect(inputValue(text, { value: 'Act 2' }, '')).toBe('Act 2');
+    expect(inputValue(text, { value: 0.5 }, '')).toBe(0.5);
+    expect(inputValue(text, { value: ['a', 1] }, '')).toBe('a 1');
+    const long = 'x'.repeat(LIMITS.textChars.max + 10);
+    expect(inputValue(text, { value: long }, '')).toHaveLength(LIMITS.textChars.max);
+    expect(isValueFor(text, long)).toBe(false);
+    expect(isValueFor(text, { forged: 1 })).toBe(false);
+  });
+
+  it('sequencer and log: never a peer’s value but their idle one', () => {
+    const seq = newWidget('sequencer', rect, []);
+    expect(isValueFor(seq, initialValue(seq))).toBe(true);
+    expect(isValueFor(seq, { state: 'running', step: 2, pass: 1 })).toBe(false);
+    const log = newWidget('log', rect, []);
+    expect(isValueFor(log, 1)).toBe(false);
+    expect(inputValue(seq, { state: 'running' }, initialValue(seq))).toBeNull();
   });
 
   it('refuses the wrong shape, out-of-range values and extra fields', () => {

@@ -27,7 +27,15 @@ function receiver<W extends Widget>(w: W, change: Partial<Binding> = {}): W {
 
 let seq = 0;
 function msg(p: Preset, address: string, args: OscArg[], endpointId = 'in'): InboundMessage {
-  return { seq: ++seq, desk: p.id, endpointId, remote: '192.0.2.9:8000', address, args };
+  return {
+    seq: ++seq,
+    tsMicros: 0,
+    desk: p.id,
+    endpointId,
+    remote: '192.0.2.9:8000',
+    address,
+    args,
+  };
 }
 const f = (value: number): OscArg => ({ type: 'f', value });
 const i = (value: number): OscArg => ({ type: 'i', value });

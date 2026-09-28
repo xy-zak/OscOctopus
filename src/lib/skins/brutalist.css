@@ -24,6 +24,10 @@
     --pads-gap: 6px;
     --list-gap: 4px;
     --list-row-h: 22px;
+    --seq-gap: 6px;
+    --seq-steps-h: 14px;
+    --seq-timer-h: 11px;
+    --seq-step-gap: 3px;
     border: 3px solid var(--br-line);
     background: var(--w-bg);
     box-shadow: var(--br-off) var(--br-off) 0 0 var(--br-shadow);
@@ -54,9 +58,10 @@
     color: var(--fg);
   }
 
-  /* Pressed buttons, held or latched pads and held list options are solid green. Release:
-     off in two hard steps. */
+  /* Pressed buttons and sequencer keys, held or latched pads and held list options are solid
+     green. Release: off in two hard steps. */
   .frame[data-base='brutalist'] [data-part='button.fill'][data-on],
+  .frame[data-base='brutalist'] [data-part='sequencer.fill'][data-on],
   .frame[data-base='brutalist'] [data-part='pads.pad'][data-on] [data-part='pads.fill'],
   .frame[data-base='brutalist'] [data-part='list.option'][data-held] [data-part='list.fill'] {
     background: var(--act);
@@ -73,15 +78,17 @@
     }
   }
   .frame[data-base='brutalist'] [data-part='button.fill'][data-flash],
+  .frame[data-base='brutalist'] [data-part='sequencer.fill'][data-flash],
   .frame[data-base='brutalist'] [data-part='pads.fill'][data-flash],
   .frame[data-base='brutalist'] [data-part='list.fill'][data-flash] {
     animation: brutalist-off 160ms steps(1, end) forwards;
   }
 
-  /* ---- keys (buttons, pads): a block of the widget colour with a thick edge and a hard
+  /* ---- keys (buttons, pads, sequencer): a block of the widget colour with a thick edge and a hard
      shadow; pressed, it is driven down into its shadow. The face gives up a margin on the
      right and bottom for the shadow, which the widget's inside would otherwise clip. ---- */
-  .frame[data-base='brutalist'] [data-part='button.key'] {
+  .frame[data-base='brutalist'] [data-part='button.key'],
+  .frame[data-base='brutalist'] [data-part='sequencer.key'] {
     --br-key-off: 5px;
   }
   .frame[data-base='brutalist'] [data-part='pads.pad'] {
@@ -136,7 +143,8 @@
      on ---- */
   /* The fader's slot is the same box. */
   .frame[data-base='brutalist'] [data-part='switch.track'],
-  .frame[data-base='brutalist'] [data-part='slider.track'] {
+  .frame[data-base='brutalist'] [data-part='slider.track'],
+  .frame[data-base='brutalist'] [data-part='sequencer.timer'] {
     border: 3px solid var(--br-line);
     background: var(--w-bg);
   }
@@ -163,7 +171,8 @@
   }
 
   /* ---- fader: a thick slot filling solid green, and a slab of a cap ---- */
-  .frame[data-base='brutalist'] [data-part='slider.fill'] {
+  .frame[data-base='brutalist'] [data-part='slider.fill'],
+  .frame[data-base='brutalist'] [data-part='sequencer.elapsed'] {
     background: var(--act);
     transition: clip-path 90ms steps(3, end);
   }
@@ -272,5 +281,63 @@
   }
   .frame[data-base='brutalist'] [data-part='list.option'][data-held] {
     color: var(--act-ink);
+  }
+
+  /* ---- sequencer: two blocks (keys above) over a thick box of cells, one per step: the step
+     sent last solid green, in hazard stripes while paused. A key while its run is going has
+     its edge and shadow in green; PAUSE is faded while there is no run to pause. ---- */
+  .frame[data-base='brutalist'][data-running] [data-part='sequencer.key'][data-role='play'],
+  .frame[data-base='brutalist'][data-paused] [data-part='sequencer.key'][data-role='pause'] {
+    --br-line: var(--act);
+  }
+  .frame[data-base='brutalist'] [data-part='sequencer.legend'] {
+    color: var(--br-ink);
+  }
+  .frame[data-base='brutalist'] [data-part='keycap'][data-down] [data-part='sequencer.legend'] {
+    color: var(--act-ink);
+  }
+  .frame[data-base='brutalist']:not([data-running]):not([data-paused])
+    [data-part='sequencer.key'][data-role='pause'] {
+    opacity: 0.4;
+  }
+  .frame[data-base='brutalist'] [data-part='sequencer.steps'] {
+    border: 3px solid var(--br-line);
+    background: var(--br-line);
+  }
+  .frame[data-base='brutalist'] [data-part='sequencer.step'] {
+    background: var(--w-bg);
+  }
+  .frame[data-base='brutalist'] [data-part='sequencer.step'][data-current] {
+    background: var(--act);
+  }
+  .frame[data-base='brutalist'][data-paused] [data-part='sequencer.step'][data-current] {
+    background:
+      repeating-linear-gradient(-45deg, var(--act) 0 3px, transparent 3px 6px), var(--w-bg);
+  }
+
+  /* ---- text: plain text on the widget's block (the text itself is base.css's) ---- */
+
+  /* ---- log: the headings on a solid bar like the title's; rows parted by heavy rules,
+     received ones dimmer (errors and held rows are coloured by base.css, so no rule here
+     gives a row a colour of its own) ---- */
+  .frame[data-base='brutalist'] [data-part='log.head'] {
+    background: var(--br-line);
+    color: var(--bg);
+  }
+  .frame[data-base='brutalist'] [data-part='log.row'] {
+    background: linear-gradient(
+        color-mix(in srgb, var(--br-line) 30%, transparent),
+        color-mix(in srgb, var(--br-line) 30%, transparent)
+      )
+      0 100% / 100% 2px no-repeat;
+  }
+  .frame[data-base='brutalist'] [data-part='log.row'][data-in] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='brutalist'] [data-part='log.cell'][data-col='dir'] {
+    color: var(--c-text);
+  }
+  .frame[data-base='brutalist'] [data-part='log.empty'] {
+    color: var(--fg-faint);
   }
 }

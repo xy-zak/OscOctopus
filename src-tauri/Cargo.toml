@@ -37,6 +37,10 @@ blake2 = "0.10"
 mdns-sd = "0.21"
 getrandom = "0.3"
 
+[dev-dependencies]
+# Virtual time (`#[tokio::test(start_paused = true)]`) for the sequencer's timing tests.
+tokio = { version = "1", features = ["test-util", "macros", "rt"] }
+
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
 tauri-plugin-haptics = "2"
 

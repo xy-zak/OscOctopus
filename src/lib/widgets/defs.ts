@@ -7,10 +7,13 @@ import type { WidgetValue } from '../osc/value';
 import { buttonDef } from './button/def';
 import { graphDef } from './graph/def';
 import { listDef } from './list/def';
+import { logDef } from './log/def';
 import { padsDef } from './pads/def';
+import { sequencerDef } from './sequencer/def';
 import { sliderDef } from './slider/def';
 import { switchDef } from './switch/def';
-import type { ChannelInfo, Gate, InputPatch, WidgetDef, WidgetOf } from './types';
+import { textDef } from './text/def';
+import type { ChannelInfo, Gate, InputPatch, Messages, WidgetDef, WidgetOf } from './types';
 
 /** In toolbar order. Typed over every WidgetType: a type without a def does not compile. */
 export const DEFS: { [T in WidgetType]: WidgetDef<WidgetOf<T>> } = {
@@ -20,6 +23,9 @@ export const DEFS: { [T in WidgetType]: WidgetDef<WidgetOf<T>> } = {
   graph: graphDef,
   pads: padsDef,
   list: listDef,
+  sequencer: sequencerDef,
+  text: textDef,
+  log: logDef,
 };
 
 export const WIDGET_TYPES = Object.keys(DEFS) as WidgetType[];
@@ -52,6 +58,11 @@ export const echoToleranceOf = (w: Widget) => defOf(w).echoTolerance(w);
 export const isValueFor = (w: Widget, value: unknown): value is WidgetValue =>
   defOf(w).isValue(w, value);
 export const touchKeyOf = (w: Widget, value: WidgetValue) => defOf(w).touchKey?.(w, value) ?? w.id;
+export const messagesOf = (w: Widget): Messages => defOf(w).messages?.(w) ?? 'full';
+export const outputRefsOf = (w: Widget): readonly string[] => defOf(w).outputRefs?.(w) ?? [];
+export const dropOutputFrom = (w: Widget, id: string) => defOf(w).dropOutput?.(w, id);
+export const remapRefsOf = (w: Widget, ids: ReadonlyMap<string, string>) =>
+  defOf(w).remapRefs?.(w, ids);
 
 /**
  * The channel a template without one refers to, mirroring `channelValue`: `value` if the

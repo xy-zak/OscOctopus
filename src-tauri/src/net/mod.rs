@@ -147,9 +147,10 @@ pub struct NetworkConfig {
 mod tests {
     use super::*;
 
-    /// Endpoint defaults are owned here, like the types. `npm run bindings` writes them next to
-    /// the generated TS types, and `newOutput()` / `newInput()` in the frontend start from
-    /// them, so the two sides can't drift.
+    /// Endpoint defaults are owned here, like the types, and the sequencer's limits in
+    /// `sequencer`. `npm run bindings` writes them next to the generated TS types, and the
+    /// frontend reads them (`newOutput()` / `newInput()`, `LIMITS.seq*`), so the two sides
+    /// can't drift. One test writes the file, so parallel tests never race on it.
     #[test]
     fn export_bindings_network_defaults() {
         let dir =
@@ -157,6 +158,7 @@ mod tests {
         let defaults = serde_json::json!({
             "output": OutputConfig::default(),
             "input": InputConfig::default(),
+            "sequencer": crate::sequencer::LIMITS,
         });
         let text = serde_json::to_string_pretty(&defaults).unwrap() + "\n";
         std::fs::write(std::path::Path::new(&dir).join("defaults.json"), text).unwrap();

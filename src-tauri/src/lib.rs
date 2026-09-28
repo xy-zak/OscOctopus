@@ -6,6 +6,7 @@ pub mod input;
 pub mod net;
 pub mod osc;
 pub mod presets;
+pub mod sequencer;
 pub mod skins;
 pub mod sync;
 
@@ -19,6 +20,7 @@ use tauri::{Emitter, Manager};
 use debug::{DebugBatch, DebugHub};
 use input::InputBatch;
 use net::NetworkManager;
+use sequencer::{SeqBatch, Sequencer};
 use sync::{SyncBatch, SyncManager, SyncOptions};
 
 /// Debug events kept for late subscribers and export.
@@ -31,6 +33,8 @@ const DEBUG_FLUSH: Duration = Duration::from_millis(33);
 const INPUT_FLUSH: Duration = Duration::from_millis(16);
 /// Sync events reach the UI as fast as input does: peers' gestures should look just as live.
 const SYNC_FLUSH: Duration = Duration::from_millis(16);
+/// A sequencer's current step only lights a mark: debug's pace is plenty.
+const SEQ_FLUSH: Duration = Duration::from_millis(33);
 /// Runs the app with its own data (presets, settings, sync identity) under
 /// `profiles/<name>`, so two instances can run side by side on one machine for testing.
 pub const PROFILE_ENV: &str = "OSCOCTOPUS_PROFILE";
@@ -43,9 +47,11 @@ pub struct AppState {
     pub net: Arc<NetworkManager>,
     pub debug: Arc<DebugHub>,
     pub sync: Arc<SyncManager>,
+    pub seq: Arc<Sequencer>,
     pub debug_subscribers: DebugSubscribers,
     pub input_subscribers: Subscribers<InputBatch>,
     pub sync_subscribers: Subscribers<SyncBatch>,
+    pub seq_subscribers: Subscribers<SeqBatch>,
     pub presets_dir: PathBuf,
     /// User-made widget skins, one JSON file each (see [`skins`]).
     pub skins_dir: PathBuf,
@@ -152,14 +158,23 @@ pub fn run() {
                 flush_sync.drain()
             });
 
+            let seq = Arc::new(Sequencer::new(net.clone(), debug.clone()));
+            let seq_subscribers: Subscribers<SeqBatch> = Arc::default();
+            let flush_seq = seq.clone();
+            spawn_flush(SEQ_FLUSH, seq_subscribers.clone(), move || {
+                flush_seq.drain()
+            });
+
             log::info!("presets directory: {}", presets_dir.display());
             app.manage(AppState {
                 net,
                 debug,
                 sync,
+                seq,
                 debug_subscribers,
                 input_subscribers,
                 sync_subscribers,
+                seq_subscribers,
                 presets_dir,
                 skins_dir,
                 profile,
@@ -178,6 +193,12 @@ pub fn run() {
             commands::input_set_enabled,
             commands::input_enabled,
             commands::input_set_listen,
+            commands::seq_subscribe,
+            commands::seq_start,
+            commands::seq_update,
+            commands::seq_pause,
+            commands::seq_resume,
+            commands::seq_stop,
             commands::sync_status,
             commands::sync_subscribe,
             commands::sync_join,

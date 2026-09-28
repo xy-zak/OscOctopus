@@ -5,9 +5,14 @@
 //
 // Preview widgets are never on a desk, so `emitValue` ignores them: nothing is ever sent, and
 // gestures show their pressed/dragging look without changing the value.
+import type { DebugEvent } from '../../lib/ipc/types';
 import type { Widget, WidgetType } from '../../lib/model/preset';
 import type { WidgetValue } from '../../lib/osc/value';
 import { previewWidget } from '../../lib/skins/preview';
+import { debugStore } from '../../lib/state/debug.svelte';
+import { inputStore } from '../../lib/state/input.svelte';
+import { sequencerStore, type SeqRun } from '../../lib/state/sequencer.svelte';
+import { newStep } from '../../lib/widgets/sequencer/def';
 import type { WidgetOf } from '../../lib/widgets/types';
 
 /** A point inside the widget, as fractions of its box (0,0 top-left … 1,1 bottom-right). */
@@ -32,6 +37,8 @@ export interface Scenario {
   gesture?: Gesture;
   /** Pause every animation this many ms after the gesture (default: let them finish). */
   freeze?: number;
+  /** Seeds what the widget shows besides its value (a sequencer's run, a log's rows). */
+  setup?: (w: Widget) => void;
 }
 
 function make<T extends WidgetType>(
@@ -47,6 +54,109 @@ function make<T extends WidgetType>(
 }
 
 const CENTRE: Point = [0.5, 0.5];
+
+/**
+ * Shows a sequencer as if its run were at `step` of `pass`, `waited` of the way through a 1 s
+ * wait (previews never really run). Reported "in the future", so no time counts as passed and
+ * the wait bar sits exactly there once the shot freezes its animation (`freeze: 0`).
+ */
+const running =
+  (state: SeqRun['state'], step: number, pass: number, waited: number) =>
+  (w: Widget): void => {
+    sequencerStore.runs[w.id] = {
+      desk: 'gallery',
+      run: 1,
+      state,
+      step,
+      pass,
+      waitMs: 1000,
+      leftMs: Math.round(1000 * (1 - waited)),
+      atMicros: Number.MAX_SAFE_INTEGER,
+      late: 0,
+    };
+  };
+
+/** The widgets a log scenario follows, and what they sent and received at fixed times. */
+const LOGGED = ['gallery-fader', 'gallery-cue'];
+let logSeeded = false;
+function seedLog(): void {
+  if (logSeeded) return;
+  logSeeded = true;
+  const at = (s: number) => Date.UTC(2026, 8, 28, 12, 0, s) * 1000;
+  const sent = (seq: number, s: number, over: Partial<DebugEvent>): DebugEvent => ({
+    seq,
+    tsMicros: at(s),
+    kind: 'packet',
+    direction: 'out',
+    desk: 'gallery',
+    endpointId: 'out-1',
+    endpointName: 'Lights',
+    transport: 'udp',
+    local: null,
+    remote: '192.168.1.40:9000',
+    bytes: [],
+    wireLen: 20,
+    decoded: {
+      kind: 'message',
+      address: '/fader/1',
+      typetags: ',f',
+      args: [{ type: 'f', value: 0.62 }],
+    },
+    decodeError: null,
+    error: null,
+    message: null,
+    source: LOGGED[0]!,
+    blocked: false,
+    origin: null,
+    ...over,
+  });
+  debugStore.ingest({
+    events: [
+      sent(1, 1, {}),
+      sent(2, 3, {
+        source: LOGGED[1]!,
+        decoded: {
+          kind: 'message',
+          address: '/cue/go',
+          typetags: ',i',
+          args: [{ type: 'i', value: 12 }],
+        },
+      }),
+      sent(3, 5, { blocked: true, remote: null }),
+      sent(4, 6, { source: LOGGED[1]!, error: 'network unreachable' }),
+    ],
+    dropped: 0,
+    totalDropped: 0,
+  });
+  inputStore.record(new Map(), [
+    {
+      widgetId: LOGGED[0]!,
+      result: 'applied',
+      msg: {
+        seq: 5,
+        tsMicros: at(2),
+        desk: 'gallery',
+        endpointId: 'in-1',
+        remote: '192.168.1.22:8000',
+        address: '/fader/1',
+        args: [{ type: 'f', value: 0.4 }],
+      },
+    },
+    {
+      widgetId: LOGGED[1]!,
+      result: 'touched',
+      msg: {
+        seq: 6,
+        tsMicros: at(4),
+        desk: 'gallery',
+        endpointId: 'in-1',
+        remote: '192.168.1.22:8000',
+        address: '/cue/go',
+        args: [{ type: 'i', value: 11 }],
+      },
+    },
+  ]);
+}
 
 export const SCENARIOS: Scenario[] = [
   // Button: rest, pressed, lit from outside, armed, holding, release dissolve, sizes.
@@ -214,4 +324,83 @@ export const SCENARIOS: Scenario[] = [
     gesture: { kind: 'tap', at: [0.5, 0.1] },
     freeze: 100,
   }),
+
+  // Sequencer: stopped, running at a step, paused, a key pressed, many steps in a narrow one.
+  make('seq-stopped', 'sequencer', [240, 120], (w) => (w.color = 6)),
+  make('seq-running', 'sequencer', [240, 120], (w) => (w.color = 6), {
+    setup: running('running', 2, 3, 0.4),
+    freeze: 0,
+  }),
+  make('seq-paused', 'sequencer', [240, 120], (w) => (w.color = 6), {
+    setup: running('paused', 1, 1, 0.7),
+    freeze: 0,
+  }),
+  make('seq-pressed', 'sequencer', [240, 120], (w) => (w.color = 6), {
+    gesture: { kind: 'press', at: [0.28, 0.4] },
+  }),
+  make(
+    'seq-many-steps',
+    'sequencer',
+    [150, 100],
+    (w) => {
+      w.color = 1;
+      w.props.steps = Array.from({ length: 16 }, (_, i) => newStep('/beat', i + 1, 125));
+      w.props.repeat = 'count';
+      w.props.count = 4;
+    },
+    { setup: running('running', 9, 2, 0.25), freeze: 0 },
+  ),
+
+  // Text: each size, the marks in light and dark, alignment, and received text.
+  make('text-sizes', 'text', [360, 220], (w) => {
+    w.color = 3;
+    w.props.size = 's';
+    w.props.source = 'Small, the app’s size\n**Bold** and ==reverse==';
+  }),
+  ...(['m', 'l', 'xl'] as const).map((size) =>
+    make(`text-${size}`, 'text', [360, 140], (w) => {
+      w.color = 3;
+      w.props.size = size;
+      w.props.source = `${size.toUpperCase()} text`;
+    }),
+  ),
+  make('text-marks', 'text', [360, 200], (w) => {
+    w.color = 8;
+    w.props.size = 's';
+    w.props.source =
+      '# Heading line\n- a list item\n- **bold**, ==reverse==, {3:colour} and =={6:both}==\n\nafter a gap';
+  }),
+  make('text-centred', 'text', [300, 160], (w) => {
+    w.color = 0;
+    w.props.align = 'center';
+    w.props.valign = 'middle';
+    w.props.source = '# Act 2\nScene 3';
+  }),
+  make(
+    'text-osc',
+    'text',
+    [300, 120],
+    (w) => {
+      w.color = 5;
+      w.props.mode = 'osc';
+      w.props.size = 'l';
+      w.props.source = 'Now: **{value}**';
+    },
+    { value: 'Chorus' },
+  ),
+
+  // Log: sent, received, held and failed rows at fixed times; no rows yet.
+  make(
+    'log-rows',
+    'log',
+    [520, 200],
+    (w) => {
+      w.color = 7;
+      w.props.follow = 'chosen';
+      w.props.sources = [...LOGGED];
+      w.props.columns = ['time', 'dir', 'widget', 'address', 'value', 'endpoint', 'ip', 'result'];
+    },
+    { setup: seedLog },
+  ),
+  make('log-empty', 'log', [320, 120], (w) => (w.color = 7)),
 ];

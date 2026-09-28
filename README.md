@@ -115,6 +115,17 @@ The screen always shows **where you are**, by containment:
   away.
 - **List**: pick one of up to 64 options, sending `{index, label, value}`. Numeric-looking
   values are sent as numbers.
+- **Sequencer**: a list of up to 64 messages, each followed by a wait, played in a loop
+  (forever or N passes) to its outputs. A bar fills over each wait until the next message;
+  **▶ START / ■ STOP** and **❚❚ PAUSE / ▶ PLAY** keys, and a strip showing the step it is on. The timing runs in the app's core, so it keeps exact
+  time on another tab, in the background or minimised. It plays on the device that started it.
+- **Text**: a block of text in a small markup (`# heading`, `- item`, `**bold**`,
+  `==reverse==`, `{3:colour}`) at S, M, L or XL, aligned as you like. It can show the value of
+  a received message (**OSC in**: `{value}`) or another widget's live value (**Monitor**:
+  `{value}`, or a channel like `{x}`).
+- **Log**: what widgets sent (→) and received (←) on this device, newest first: every widget of
+  the desk or the ones you pick, up to 200 rows, with the columns you choose (time, widget,
+  address, value, where, IP, result, size).
 
 **Messages:**
 - **Both ways:** each message can **OUT** (send to outputs when the widget changes) and **IN**

@@ -2,12 +2,13 @@
   // Edit-mode side panel for the selected widget, in four foldable sections:
   //   VISUAL       what every widget has (label, colour, cell);
   //   INTERACTION  its type's own props (its <Type>Inspector, see widgets/registry.ts);
-  //   MESSAGES     what it sends and receives, and a preview of exactly what it sends now;
+  //   MESSAGES     what it sends and receives, and a preview of exactly what it sends now
+  //                (only what it receives, or no section, per `WidgetDef.messages`);
   //   ACTIVITY     what actually happened on the wire (folded by default).
   // Which sections are open is remembered per device once one is folded or unfolded.
   import type { Widget } from '../lib/model/preset';
   import { appearance } from '../lib/state/appearance.svelte';
-  import { debugStore } from '../lib/state/debug.svelte';
+  import { ACTIVITY_ROWS, debugStore } from '../lib/state/debug.svelte';
   import { persistSetting } from '../lib/state/persist';
   import { presetStore } from '../lib/state/preset.svelte';
   import { showDesk, ui, type InspectorSection } from '../lib/state/ui.svelte';
@@ -18,7 +19,7 @@
   import Field from '../lib/ui/Field.svelte';
   import Icon from '../lib/ui/Icon.svelte';
   import Swatches from '../lib/ui/Swatches.svelte';
-  import { DEFS } from '../lib/widgets/defs';
+  import { DEFS, messagesOf } from '../lib/widgets/defs';
   import { viewsOf } from '../lib/widgets/registry';
   import BindingsEditor from './inspector/BindingsEditor.svelte';
   import WidgetActivity from './widget/WidgetActivity.svelte';
@@ -44,14 +45,18 @@
   const lookSummary = $derived(
     `${widget.label ? `“${widget.label}”` : 'no label'} · x${widget.x} y${widget.y} · ${widget.w}×${widget.h}`,
   );
+  const messages = $derived(messagesOf(widget));
   const messagesSummary = $derived.by(() => {
     const b = widget.bindings;
     if (b.length === 0) return 'none';
-    const out = b.filter((x) => x.send).length;
     const inn = b.filter((x) => x.receive).length;
+    if (messages === 'receive') return `${plural(b.length, 'message')} · ${inn} in`;
+    const out = b.filter((x) => x.send).length;
     return `${plural(b.length, 'message')} · ${out} out · ${inn} in`;
   });
-  const activitySummary = $derived(plural(debugStore.recentFor(widget.id).length, 'recent packet'));
+  const activitySummary = $derived(
+    plural(debugStore.recentFor(widget.id, ACTIVITY_ROWS).length, 'recent packet'),
+  );
 </script>
 
 <div class="inspector">
@@ -125,17 +130,19 @@
     </fieldset>
   </Collapsible>
 
-  <Collapsible
-    title="Messages"
-    open={open('messages')}
-    ontoggle={toggle('messages')}
-    summary={messagesSummary}
-  >
-    <fieldset class="plain" disabled={locked}>
-      <BindingsEditor bind:widget onchange={touch} />
-    </fieldset>
-    <WidgetPreview {widget} />
-  </Collapsible>
+  {#if messages !== 'none'}
+    <Collapsible
+      title="Messages"
+      open={open('messages')}
+      ontoggle={toggle('messages')}
+      summary={messagesSummary}
+    >
+      <fieldset class="plain" disabled={locked}>
+        <BindingsEditor bind:widget onchange={touch} />
+      </fieldset>
+      {#if messages === 'full'}<WidgetPreview {widget} />{/if}
+    </Collapsible>
+  {/if}
 
   <Collapsible
     title="Activity"

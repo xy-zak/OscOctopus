@@ -295,3 +295,11 @@ describe('v8 → v9: knobs become faders', () => {
     ]);
   });
 });
+
+describe('v9 → v10', () => {
+  it('keeps a v9 desk exactly as it was (the new widget types need no change)', () => {
+    const cur = newPreset();
+    const old = { ...JSON.parse(JSON.stringify(cur)), schemaVersion: 9 };
+    expect(migratePreset(old)).toEqual(cur);
+  });
+});

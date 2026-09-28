@@ -2,14 +2,14 @@
   // Live-mode side panel: a read-only view of the widget touched last, in the Inspector's
   // format (the same header and foldable sections):
   //   VALUE     its live value right now;
-  //   MESSAGES  exactly what it sends at that value, and where;
+  //   MESSAGES  exactly what it sends at that value, and where (for widgets whose messages send);
   //   ACTIVITY  what actually happened on the wire.
   // No editing here (the pencil opens it in EDIT). Which sections are open is remembered per
   // device once one is folded or unfolded (`ui.infoSections`).
   import type { Widget } from '../../lib/model/preset';
   import { formatValue } from '../../lib/osc/format';
   import { rearmForward } from '../../lib/osc/receiver.svelte';
-  import { debugStore } from '../../lib/state/debug.svelte';
+  import { ACTIVITY_ROWS, debugStore } from '../../lib/state/debug.svelte';
   import { inputStore } from '../../lib/state/input.svelte';
   import { persistSetting } from '../../lib/state/persist';
   import { presetStore } from '../../lib/state/preset.svelte';
@@ -18,7 +18,7 @@
   import { colorVars } from '../../lib/theme/palettes';
   import Collapsible from '../../lib/ui/Collapsible.svelte';
   import Icon from '../../lib/ui/Icon.svelte';
-  import { DEFS, initialValue } from '../../lib/widgets/defs';
+  import { DEFS, initialValue, messagesOf } from '../../lib/widgets/defs';
   import WidgetActivity from './WidgetActivity.svelte';
   import WidgetHeader from './WidgetHeader.svelte';
   import WidgetPreview from './WidgetPreview.svelte';
@@ -43,7 +43,7 @@
     return out ? `${plural(out, 'message')} sent` : 'nothing sent';
   });
   const activitySummary = $derived(
-    widget ? plural(debugStore.recentFor(widget.id).length, 'recent packet') : '',
+    widget ? plural(debugStore.recentFor(widget.id, ACTIVITY_ROWS).length, 'recent packet') : '',
   );
 </script>
 
@@ -85,14 +85,16 @@
       {/if}
     </Collapsible>
 
-    <Collapsible
-      title="Messages"
-      open={ui.infoSections.messages}
-      ontoggle={toggle('messages')}
-      summary={messagesSummary}
-    >
-      <WidgetPreview {widget} />
-    </Collapsible>
+    {#if messagesOf(widget) === 'full'}
+      <Collapsible
+        title="Messages"
+        open={ui.infoSections.messages}
+        ontoggle={toggle('messages')}
+        summary={messagesSummary}
+      >
+        <WidgetPreview {widget} />
+      </Collapsible>
+    {/if}
 
     <Collapsible
       title="Activity"

@@ -20,6 +20,26 @@ export function formatValue(v: WidgetValue): string {
   return one(v);
 }
 
+/**
+ * A value as people read it on a display (the text widget): whole numbers as they are, others
+ * to `decimals` places, strings as written, lists joined by spaces, records as `k v · k v`.
+ */
+export function displayValue(v: WidgetValue, decimals: number): string {
+  const one = (x: Scalar | ValueList): string =>
+    isList(x)
+      ? x.map(one).join(' ')
+      : typeof x === 'number'
+        ? Number.isInteger(x)
+          ? String(x)
+          : x.toFixed(decimals)
+        : String(x);
+  if (isRecord(v))
+    return Object.entries(v)
+      .map(([k, x]) => `${k} ${one(x)}`)
+      .join(' · ');
+  return one(v);
+}
+
 /** The typetag string a message will carry, e.g. ",fi". Mirrors OscArg::typetag in Rust. */
 export function typetags(args: OscArg[]): string {
   const tag = (a: OscArg): string => (a.type === '[' ? `[${a.value.map(tag).join('')}]` : a.type);

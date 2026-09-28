@@ -2,13 +2,13 @@
   // What actually happened on the wire for this widget, newest first, straight from the debug
   // log (so errors are the OS's own text), plus the throttle's counters.
   import { formatTime, summarize } from '../../lib/osc/format';
-  import { debugStore } from '../../lib/state/debug.svelte';
+  import { ACTIVITY_ROWS, debugStore } from '../../lib/state/debug.svelte';
   import { showDesk } from '../../lib/state/ui.svelte';
 
   /** `heading: false` when the surrounding panel already names it (the Inspector). */
   let { widgetId, heading = true }: { widgetId: string; heading?: boolean } = $props();
 
-  const recent = $derived(debugStore.recentFor(widgetId).slice().reverse());
+  const recent = $derived(debugStore.recentFor(widgetId, ACTIVITY_ROWS).reverse());
   const stats = $derived(debugStore.throttle[widgetId]);
 </script>
 

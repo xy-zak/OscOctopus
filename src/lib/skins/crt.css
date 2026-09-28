@@ -79,9 +79,11 @@
     color: var(--fg);
   }
 
-  /* Pressed buttons, held or latched pads and held list options light ACTIVE green, under the
-     scanlines, so the lines show through. Release: the phosphor decays, slowly. */
+  /* Pressed buttons and sequencer keys, held or latched pads and held list options light ACTIVE
+     green, under the scanlines, so the lines show through. Release: the phosphor decays,
+     slowly. */
   .frame[data-base='crt'] [data-part='button.fill'][data-on],
+  .frame[data-base='crt'] [data-part='sequencer.fill'][data-on],
   .frame[data-base='crt'] [data-part='pads.pad'][data-on] [data-part='pads.fill'],
   .frame[data-base='crt'] [data-part='list.option'][data-held] [data-part='list.fill'] {
     background: var(--crt-scan), var(--act);
@@ -98,12 +100,15 @@
     }
   }
   .frame[data-base='crt'] [data-part='button.fill'][data-flash],
+  .frame[data-base='crt'] [data-part='sequencer.fill'][data-flash],
   .frame[data-base='crt'] [data-part='pads.fill'][data-flash],
   .frame[data-base='crt'] [data-part='list.fill'][data-flash] {
     animation: crt-decay 650ms ease-out forwards;
   }
 
-  /* ---- keys (buttons, pads): small rounded screens of the widget colour ---- */
+  /* ---- keys (buttons, pads, sequencer): small rounded screens of the widget colour; lit (a
+     fired, armed or holding button, a sequencer key while its run is going), they glow
+     green ---- */
   .frame[data-base='crt'] [data-part='keycap.face'] {
     border-radius: 6px;
     background:
@@ -123,7 +128,13 @@
   .frame[data-base='crt'] [data-part='keycap'][data-down] [data-part='keycap.face'] {
     filter: brightness(1.3);
   }
-  .frame[data-base='crt'][data-lit] [data-part='keycap.face'] {
+  .frame[data-base='crt'][data-lit] [data-part='keycap.face'],
+  .frame[data-base='crt'][data-running]
+    [data-part='sequencer.key'][data-role='play']
+    [data-part='keycap.face'],
+  .frame[data-base='crt'][data-paused]
+    [data-part='sequencer.key'][data-role='pause']
+    [data-part='keycap.face'] {
     box-shadow:
       0 0 12px var(--crt-bleed-act),
       inset 0 0 8px rgb(0 0 0 / 0.45);
@@ -207,12 +218,14 @@
   }
 
   /* ---- fader: a dark strip with a glowing green bar up to the value ---- */
-  .frame[data-base='crt'] [data-part='slider.track'] {
+  .frame[data-base='crt'] [data-part='slider.track'],
+  .frame[data-base='crt'] [data-part='sequencer.timer'] {
     border-radius: 4px;
     background: var(--crt-scan), color-mix(in srgb, var(--crt-edge) 70%, transparent);
     box-shadow: inset 0 0 6px rgb(0 0 0 / 0.5);
   }
-  .frame[data-base='crt'] [data-part='slider.fill'] {
+  .frame[data-base='crt'] [data-part='slider.fill'],
+  .frame[data-base='crt'] [data-part='sequencer.elapsed'] {
     border-radius: 4px;
     background: var(--crt-scan), var(--act);
     box-shadow: 0 0 8px var(--crt-bleed-act);
@@ -340,11 +353,74 @@
   .frame[data-base='crt'] [data-part='list.option'][data-held] {
     color: var(--act-ink);
   }
-  .frame[data-base='crt'] [data-part='list.text'] {
+  /* Text glows in its own colour: options, key legends, the text widget's text, the log. */
+  .frame[data-base='crt'] [data-part='list.text'],
+  .frame[data-base='crt'] [data-part='sequencer.legend'],
+  .frame[data-base='crt'] [data-part='text.body'],
+  .frame[data-base='crt'] [data-part='log.head'],
+  .frame[data-base='crt'] [data-part='log.rows'] {
     text-shadow: 0 0 5px color-mix(in srgb, currentColor 45%, transparent);
   }
   .frame[data-base='crt'] [data-part='list.mark'] {
     color: var(--act);
     text-shadow: 0 0 5px var(--crt-bleed-act);
+  }
+
+  /* ---- sequencer: two small screens (keys above) over a row of phosphor bars, one per step:
+     dim in the widget colour, the step sent last glowing green (dim green while paused); a
+     step the beam has left decays slowly. PAUSE is dim while there is no run to pause. ---- */
+  .frame[data-base='crt'] [data-part='sequencer.legend'] {
+    color: var(--c-ink);
+  }
+  .frame[data-base='crt'] [data-part='keycap'][data-down] [data-part='sequencer.legend'] {
+    color: var(--act-ink);
+  }
+  .frame[data-base='crt']:not([data-running]):not([data-paused])
+    [data-part='sequencer.key'][data-role='pause'] {
+    opacity: 0.45;
+  }
+  .frame[data-base='crt'] [data-part='sequencer.step'] {
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--c) 28%, transparent);
+    box-shadow: 0 0 4px color-mix(in srgb, var(--c) 20%, transparent);
+    transition:
+      background-color 650ms ease-out,
+      box-shadow 650ms ease-out;
+  }
+  .frame[data-base='crt'] [data-part='sequencer.step'][data-current] {
+    background: var(--crt-scan), var(--act);
+    box-shadow: 0 0 8px var(--crt-bleed-act);
+    transition-duration: 60ms;
+  }
+  .frame[data-base='crt'][data-paused] [data-part='sequencer.step'][data-current] {
+    background: var(--crt-scan), color-mix(in srgb, var(--act) 45%, transparent);
+    box-shadow: none;
+  }
+
+  /* ---- text: glowing text on the screen (the text itself is base.css's; the glow above) ---- */
+
+  /* ---- log: glowing rows over faint phosphor rules, the headings on a band of the widget
+     colour like the current option, received rows dimmer (errors and held rows are coloured
+     by base.css, so no rule here gives a row a colour of its own) ---- */
+  .frame[data-base='crt'] [data-part='log.head'] {
+    border-radius: 4px;
+    background: var(--crt-scan), color-mix(in srgb, var(--c) 32%, transparent);
+    color: var(--fg);
+  }
+  .frame[data-base='crt'] [data-part='log.row'] {
+    background: linear-gradient(
+        color-mix(in srgb, var(--c) 22%, transparent),
+        color-mix(in srgb, var(--c) 22%, transparent)
+      )
+      0 100% / 100% 1px no-repeat;
+  }
+  .frame[data-base='crt'] [data-part='log.row'][data-in] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='crt'] [data-part='log.cell'][data-col='dir'] {
+    color: var(--c-text);
+  }
+  .frame[data-base='crt'] [data-part='log.empty'] {
+    color: var(--fg-faint);
   }
 }

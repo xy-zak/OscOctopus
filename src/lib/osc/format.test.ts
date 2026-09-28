@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatTime, hexDump, summarize } from './format';
+import { displayValue, formatTime, hexDump, summarize } from './format';
 import { addressError } from './mapping';
 
 describe('hexDump', () => {
@@ -13,6 +13,17 @@ describe('hexDump', () => {
     const lines = hexDump(Array.from({ length: 20 }, (_, i) => i));
     expect(lines).toHaveLength(2);
     expect(lines[1]!.offset).toBe('0010');
+  });
+});
+
+describe('displayValue', () => {
+  it('shows values as people read them, without quotes', () => {
+    expect(displayValue(0.5, 2)).toBe('0.50');
+    expect(displayValue(3, 2)).toBe('3');
+    expect(displayValue('Act 2', 2)).toBe('Act 2');
+    expect(displayValue(true, 2)).toBe('true');
+    expect(displayValue([1, 2.25, 'a'], 1)).toBe('1 2.3 a');
+    expect(displayValue({ x: 0.125, y: 1 }, 1)).toBe('x 0.1 · y 1');
   });
 });
 

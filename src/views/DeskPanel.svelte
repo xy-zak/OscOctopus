@@ -6,9 +6,11 @@
   import { colorVars } from '../lib/theme/palettes';
   import Field from '../lib/ui/Field.svelte';
   import NumberInput from '../lib/ui/NumberInput.svelte';
-  import { DEFS } from '../lib/widgets/defs';
+  import { DEFS, WIDGET_TYPES } from '../lib/widgets/defs';
 
   const preset = $derived(presetStore.current);
+  /** The type column fits the longest type label. */
+  const LABEL_WIDTH = Math.max(...WIDGET_TYPES.map((t) => DEFS[t].label.length));
 </script>
 
 <div class="panel-body">
@@ -56,7 +58,7 @@
       <li>
         <button class="row" onclick={() => (ui.selectedId = w.id)}>
           <span class="sw" style:background={colorVars(w.color ?? preset.color).c}></span>
-          <span class="type faint">{DEFS[w.type].label.padEnd(6)}</span>
+          <span class="type faint">{DEFS[w.type].label.padEnd(LABEL_WIDTH)}</span>
           <span class="name">{w.label}</span>
           <span class="faint">{w.x},{w.y} {w.w}×{w.h}</span>
         </button>

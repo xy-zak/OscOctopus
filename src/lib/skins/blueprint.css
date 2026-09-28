@@ -47,6 +47,10 @@
     --graph-dot: 3px;
     --pads-gap: 5px;
     --list-gap: 3px;
+    --seq-gap: 5px;
+    --seq-steps-h: 8px;
+    --seq-timer-h: 6px;
+    --seq-step-gap: 3px;
     border: 1px solid var(--bp-line);
     background:
       linear-gradient(to right, var(--bp-faint) 1px, transparent 1px) 0 0 / 8px 8px,
@@ -105,7 +109,8 @@
     color: var(--fg);
   }
 
-  /* Release, for buttons, pads and list options: the hatching thins out and is rubbed away. */
+  /* Release, for buttons, sequencer keys, pads and list options: the hatching thins out and
+     is rubbed away. */
   @keyframes blueprint-erase {
     0% {
       background: var(--bp-cross-act);
@@ -121,6 +126,7 @@
     }
   }
   .frame[data-base='blueprint'] [data-part='button.fill'][data-flash],
+  .frame[data-base='blueprint'] [data-part='sequencer.fill'][data-flash],
   .frame[data-base='blueprint'] [data-part='pads.fill'][data-flash],
   .frame[data-base='blueprint'] [data-part='list.fill'][data-flash] {
     animation: blueprint-erase 300ms steps(1, end) forwards;
@@ -131,7 +137,7 @@
     background: var(--bp-hatch-act);
   }
 
-  /* ---- keys (buttons, pads): a hairline box with section hatching ---- */
+  /* ---- keys (buttons, pads, sequencer): a hairline box with section hatching ---- */
   .frame[data-base='blueprint'] [data-part='keycap.face'] {
     border: 1px solid var(--bp-line);
     background: var(--bp-hatch), var(--bp-paper);
@@ -146,7 +152,8 @@
   }
 
   /* ---- button ---- */
-  .frame[data-base='blueprint'] [data-part='button.fill'][data-on] {
+  .frame[data-base='blueprint'] [data-part='button.fill'][data-on],
+  .frame[data-base='blueprint'] [data-part='sequencer.fill'][data-on] {
     background: var(--bp-cross-act);
   }
   .frame[data-base='blueprint'] [data-part='button.armed'] {
@@ -220,14 +227,16 @@
 
   /* ---- fader: a slot with a dash-dot centre line, hatched green up to the value, and a
      cap drawn as a box with a centre mark ---- */
-  .frame[data-base='blueprint'] [data-part='slider.track'] {
+  .frame[data-base='blueprint'] [data-part='slider.track'],
+  .frame[data-base='blueprint'] [data-part='sequencer.timer'] {
     border: 1px solid var(--bp-line);
     background: var(--bp-dashdot-x) 0 50% / 100% 1px no-repeat;
   }
   .frame[data-base='blueprint'][data-dragging] [data-part='slider.track'] {
     border-color: var(--act);
   }
-  .frame[data-base='blueprint'] [data-part='slider.fill'] {
+  .frame[data-base='blueprint'] [data-part='slider.fill'],
+  .frame[data-base='blueprint'] [data-part='sequencer.elapsed'] {
     background: var(--bp-hatch-act), var(--bp-paper);
     transition: clip-path 160ms ease-out;
   }
@@ -368,5 +377,80 @@
   .frame[data-base='blueprint'] [data-part='list.text'][data-current],
   .frame[data-base='blueprint'] [data-part='list.text'][data-held] {
     text-shadow: var(--bp-halo);
+  }
+
+  /* ---- sequencer: two hatched keys (keys above) over a row of hairline boxes, one per step:
+     the step sent last filled solid green, hatched green while paused. With no run to pause,
+     PAUSE is drawn as a hidden part: dashed, unhatched and faint. ---- */
+  /* A key while its run is going: its section hatched in green (a run lights every line of
+     the frame, so a green outline alone wouldn't tell the keys apart). */
+  .frame[data-base='blueprint'][data-running]
+    [data-part='sequencer.key'][data-role='play']
+    [data-part='keycap.face'],
+  .frame[data-base='blueprint'][data-paused]
+    [data-part='sequencer.key'][data-role='pause']
+    [data-part='keycap.face'] {
+    border-color: var(--act);
+    background:
+      repeating-linear-gradient(45deg, var(--act) 0 1px, transparent 1px 6px), var(--bp-paper);
+  }
+  .frame[data-base='blueprint'] [data-part='sequencer.legend'] {
+    color: var(--fg);
+    text-shadow: var(--bp-halo);
+  }
+  .frame[data-base='blueprint']:not([data-running]):not([data-paused])
+    [data-part='sequencer.key'][data-role='pause'] {
+    opacity: 0.55;
+  }
+  .frame[data-base='blueprint']:not([data-running]):not([data-paused])
+    [data-part='sequencer.key'][data-role='pause']
+    [data-part='keycap.face'] {
+    border-style: dashed;
+    background: var(--bp-paper);
+  }
+  .frame[data-base='blueprint'] [data-part='sequencer.step'] {
+    border: 1px solid color-mix(in srgb, var(--bp-ink) 55%, transparent);
+    background: var(--bp-paper);
+    transition:
+      border-color 120ms ease,
+      background 120ms ease;
+  }
+  .frame[data-base='blueprint'] [data-part='sequencer.step'][data-current] {
+    border-color: var(--act);
+    background: var(--act);
+  }
+  .frame[data-base='blueprint'][data-paused] [data-part='sequencer.step'][data-current] {
+    background: var(--bp-hatch-act), var(--bp-paper);
+  }
+
+  /* ---- text: notes written on the squared paper (the text itself is base.css's) ---- */
+
+  /* ---- log: a table ruled in hairline on clean paper, the headings over a full line and the
+     rows over faint ones; received rows dimmer (errors and held rows are coloured by base.css,
+     so no rule here gives a row a colour of its own) ---- */
+  .frame[data-base='blueprint'] [data-part='log.head'] {
+    background:
+      linear-gradient(var(--bp-line), var(--bp-line)) 0 100% / 100% 1px no-repeat,
+      var(--bp-paper);
+    color: var(--fg);
+  }
+  .frame[data-base='blueprint'] [data-part='log.rows'] {
+    background: var(--bp-paper);
+  }
+  .frame[data-base='blueprint'] [data-part='log.row'] {
+    background: linear-gradient(
+        color-mix(in srgb, var(--bp-ink) 25%, transparent),
+        color-mix(in srgb, var(--bp-ink) 25%, transparent)
+      )
+      0 100% / 100% 1px no-repeat;
+  }
+  .frame[data-base='blueprint'] [data-part='log.row'][data-in] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='blueprint'] [data-part='log.cell'][data-col='dir'] {
+    color: var(--c-text);
+  }
+  .frame[data-base='blueprint'] [data-part='log.empty'] {
+    color: var(--fg-faint);
   }
 }

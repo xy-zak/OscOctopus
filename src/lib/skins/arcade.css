@@ -39,6 +39,8 @@
     --pads-gap: 4px;
     --list-gap: 4px;
     --list-row-h: 22px;
+    --seq-steps-h: 9px;
+    --seq-step-gap: 3px;
     border: 2px solid var(--ar-edge);
     border-radius: 10px;
     background: linear-gradient(
@@ -90,9 +92,10 @@
     color: var(--fg);
   }
 
-  /* A pressed button or a held or latched pad: the dome lights up green. Release: the lamp
-     under the dome dims. */
+  /* A pressed button or sequencer key, or a held or latched pad: the dome lights up green.
+     Release: the lamp under the dome dims. */
   .frame[data-base='arcade'] [data-part='button.fill'][data-on],
+  .frame[data-base='arcade'] [data-part='sequencer.fill'][data-on],
   .frame[data-base='arcade'] [data-part='pads.pad'][data-on] [data-part='pads.fill'] {
     background: var(--ar-dome-act);
   }
@@ -107,13 +110,15 @@
     }
   }
   .frame[data-base='arcade'] [data-part='button.fill'][data-flash],
+  .frame[data-base='arcade'] [data-part='sequencer.fill'][data-flash],
   .frame[data-base='arcade'] [data-part='pads.fill'][data-flash] {
     animation: arcade-dim 280ms ease-out forwards;
   }
 
-  /* ---- keys (buttons, pads): a dome in a black bezel with a chrome ring; pressed, it sinks
-     and its highlight flattens ---- */
-  .frame[data-base='arcade'] [data-part='button.key'] {
+  /* ---- keys (buttons, pads, sequencer): a dome in a black bezel with a chrome ring; pressed,
+     it sinks and its highlight flattens ---- */
+  .frame[data-base='arcade'] [data-part='button.key'],
+  .frame[data-base='arcade'] [data-part='sequencer.key'] {
     --ar-ring: 5px;
   }
   .frame[data-base='arcade'] [data-part='pads.pad'] {
@@ -141,7 +146,15 @@
       0 0 0 calc(var(--ar-ring, 4px) / 0.94) var(--ar-chrome),
       inset 0 3px 5px rgb(0 0 0 / 0.4);
   }
-  .frame[data-base='arcade'][data-lit] [data-part='keycap.face'] {
+  /* Lit: a fired, armed or holding button, a sequencer key while its run is going. (`:where`
+     keeps a lit sequencer key no stronger than a lit button, so pressed still wins.) */
+  .frame[data-base='arcade'][data-lit] [data-part='keycap.face'],
+  .frame[data-base='arcade'][data-running]
+    :where([data-part='sequencer.key'][data-role='play'])
+    [data-part='keycap.face'],
+  .frame[data-base='arcade'][data-paused]
+    :where([data-part='sequencer.key'][data-role='pause'])
+    [data-part='keycap.face'] {
     box-shadow:
       0 0 0 calc(var(--ar-ring, 4px) * 0.6) var(--ar-bezel),
       0 0 0 var(--ar-ring, 4px) var(--ar-chrome),
@@ -218,12 +231,14 @@
   }
 
   /* ---- fader: a black slot lit green up to the value, and a ball-top lever ---- */
-  .frame[data-base='arcade'] [data-part='slider.track'] {
+  .frame[data-base='arcade'] [data-part='slider.track'],
+  .frame[data-base='arcade'] [data-part='sequencer.timer'] {
     border-radius: 999px;
     background: var(--ar-slot);
     box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.8);
   }
-  .frame[data-base='arcade'] [data-part='slider.fill'] {
+  .frame[data-base='arcade'] [data-part='slider.fill'],
+  .frame[data-base='arcade'] [data-part='sequencer.elapsed'] {
     border-radius: 999px;
     background: var(--act);
     box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.35);
@@ -323,11 +338,14 @@
   }
 
   /* ---- pads: a grid of small domes; held or latched, lit green ---- */
-  .frame[data-base='arcade'] [data-part='pads.num'] {
+  /* Pad numbers and the sequencer's key legends: white on the dome, dark on a lit one. */
+  .frame[data-base='arcade'] [data-part='pads.num'],
+  .frame[data-base='arcade'] [data-part='sequencer.legend'] {
     color: #fff;
     text-shadow: 0 1px 2px rgb(0 0 0 / 0.7);
   }
-  .frame[data-base='arcade'] [data-part='pads.pad'][data-on] [data-part='pads.num'] {
+  .frame[data-base='arcade'] [data-part='pads.pad'][data-on] [data-part='pads.num'],
+  .frame[data-base='arcade'] [data-part='keycap'][data-down] [data-part='sequencer.legend'] {
     color: var(--act-ink);
     text-shadow: none;
   }
@@ -373,5 +391,66 @@
   }
   .frame[data-base='arcade'] [data-part='list.mark'] {
     color: var(--act);
+  }
+
+  /* ---- sequencer: two domed buttons (keys above) over a row of little lamps in black bezels,
+     one per step: unlit glass of the widget colour, the step sent last lit green (dim green
+     while paused). PAUSE is dim while there is no run to pause. ---- */
+  .frame[data-base='arcade']:not([data-running]):not([data-paused])
+    [data-part='sequencer.key'][data-role='pause'] {
+    opacity: 0.45;
+  }
+  .frame[data-base='arcade'] [data-part='sequencer.step'] {
+    border: 1px solid var(--ar-bezel);
+    border-radius: 999px;
+    background: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--c) 45%, var(--ar-slot)),
+      color-mix(in srgb, var(--c) 25%, var(--ar-slot))
+    );
+    box-shadow: inset 0 1px 1px rgb(0 0 0 / 0.5);
+    transition:
+      background 120ms ease,
+      box-shadow 120ms ease;
+  }
+  .frame[data-base='arcade'] [data-part='sequencer.step'][data-current] {
+    background: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--act) 45%, #fff),
+      var(--act) 60%,
+      color-mix(in srgb, var(--act) 70%, #000)
+    );
+    box-shadow: 0 0 6px color-mix(in srgb, var(--act) 60%, transparent);
+  }
+  .frame[data-base='arcade'][data-paused] [data-part='sequencer.step'][data-current] {
+    background: color-mix(in srgb, var(--act) 50%, var(--ar-slot));
+    box-shadow: inset 0 1px 1px rgb(0 0 0 / 0.5);
+  }
+
+  /* ---- text: printed on the panel (the text itself is base.css's) ---- */
+
+  /* ---- log: a listing on the panel. Headings on a moulded strip of the widget colour, rows
+     over moulded grooves, received ones dimmer (errors and held rows are coloured by
+     base.css, so no rule here gives a row a colour of its own). ---- */
+  .frame[data-base='arcade'] [data-part='log.head'] {
+    border-radius: 5px;
+    background: var(--c-solid);
+    color: var(--c-ink);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.12),
+      inset 0 -1px 0 rgb(0 0 0 / 0.3);
+  }
+  .frame[data-base='arcade'] [data-part='log.row'] {
+    background: linear-gradient(to bottom, rgb(0 0 0 / 0.3) 0 1px, rgb(255 255 255 / 0.07) 1px 2px)
+      0 100% / 100% 2px no-repeat;
+  }
+  .frame[data-base='arcade'] [data-part='log.row'][data-in] {
+    color: var(--fg-dim);
+  }
+  .frame[data-base='arcade'] [data-part='log.cell'][data-col='dir'] {
+    color: var(--c-text);
+  }
+  .frame[data-base='arcade'] [data-part='log.empty'] {
+    color: var(--fg-faint);
   }
 }

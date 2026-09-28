@@ -19,6 +19,7 @@
     else delete values[s.widget.id];
     feedback.padLit[s.widget.id] = Object.fromEntries((s.lit ?? []).map((n) => [n, true]));
     delete feedback.padFlash[s.widget.id];
+    s.setup?.(s.widget);
   }
 </script>
 
