@@ -2,7 +2,7 @@
 // without pulling in any Svelte component (those are in registry.ts).
 import type { Rect } from '../grid/engine';
 import { uid } from '../model/parts';
-import type { Widget, WidgetType } from '../model/preset';
+import type { Parent, Widget, WidgetType } from '../model/preset';
 import type { WidgetValue } from '../osc/value';
 import { buttonDef } from './button/def';
 import { graphDef } from './graph/def';
@@ -11,6 +11,7 @@ import { logDef } from './log/def';
 import { padsDef } from './pads/def';
 import { sequencerDef } from './sequencer/def';
 import { sliderDef } from './slider/def';
+import { subdeskDef } from './subdesk/def';
 import { switchDef } from './switch/def';
 import { textDef } from './text/def';
 import type { ChannelInfo, Gate, InputPatch, Messages, WidgetDef, WidgetOf } from './types';
@@ -26,6 +27,7 @@ export const DEFS: { [T in WidgetType]: WidgetDef<WidgetOf<T>> } = {
   sequencer: sequencerDef,
   text: textDef,
   log: logDef,
+  subdesk: subdeskDef,
 };
 
 export const WIDGET_TYPES = Object.keys(DEFS) as WidgetType[];
@@ -38,20 +40,27 @@ export function defOf<W extends Widget>(w: W): WidgetDef<W> {
   return DEFS[w.type] as unknown as WidgetDef<W>;
 }
 
-/** A new widget of `type` at `rect`, sending to `outputIds`; `n` numbers it among its type. */
+/**
+ * A new widget of `type` at `rect`, sending to `outputIds`; `n` numbers it among its type. It
+ * sits on the desk, or on a sub-desk's page (`parent`, where `rect` is in that page's grid).
+ */
 export function newWidget<T extends WidgetType>(
   type: T,
   rect: Rect,
   outputIds: string[],
   n = 1,
+  parent: Parent | null = null,
 ): WidgetOf<T> {
   const def: WidgetDef<WidgetOf<T>> = DEFS[type];
   return def.create(
-    { id: uid('w'), ...rect, color: null, show: { title: true, value: true } },
+    { id: uid('w'), parent, ...rect, color: null, show: { title: true, value: true } },
     n,
     outputIds,
   );
 }
+
+/** What a widget is called: its label, or its type's when it has none. */
+export const widgetName = (w: Widget): string => w.label || DEFS[w.type].label;
 
 export const initialValue = (w: Widget): WidgetValue => defOf(w).initialValue(w);
 export const channelsFor = (w: Widget): ChannelInfo[] => defOf(w).channels(w);
@@ -65,6 +74,8 @@ export const touchKeyOf = (w: Widget, value: WidgetValue) => defOf(w).touchKey?.
 export const messagesOf = (w: Widget): Messages => defOf(w).messages?.(w) ?? 'full';
 export const outputRefsOf = (w: Widget): readonly string[] => defOf(w).outputRefs?.(w) ?? [];
 export const dropOutputFrom = (w: Widget, id: string) => defOf(w).dropOutput?.(w, id);
+export const remapOutputsOf = (w: Widget, ids: ReadonlyMap<string, string>) =>
+  defOf(w).remapOutputs?.(w, ids);
 export const remapRefsOf = (w: Widget, ids: ReadonlyMap<string, string>) =>
   defOf(w).remapRefs?.(w, ids);
 

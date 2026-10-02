@@ -42,9 +42,10 @@
     --c-text: color-mix(in srgb, var(--c) 50%, #000);
   }
 
-  /* List options and sequencer keys are <button>s: no native look under any skin. */
+  /* List options, sequencer keys and page tabs are <button>s: no native look under any skin. */
   [data-part='frame'] [data-part='list.option'],
-  [data-part='frame'] [data-part='sequencer.key'] {
+  [data-part='frame'] [data-part='sequencer.key'],
+  [data-part='frame'] [data-part='subdesk.tab'] {
     border: 0;
     background: none;
   }
@@ -61,10 +62,12 @@
   [data-part='frame'] [data-part='pads.num'],
   [data-part='frame'] [data-part='sequencer.legend'],
   [data-part='frame'] [data-part='log.head'],
-  [data-part='frame'] [data-part='list.option'][data-current] {
+  [data-part='frame'] [data-part='list.option'][data-current],
+  [data-part='frame'] [data-part='subdesk.text'][data-current] {
     font-weight: 700;
   }
-  [data-part='frame'] [data-part='list.option'] {
+  [data-part='frame'] [data-part='list.option'],
+  [data-part='frame'] [data-part='subdesk.tab'] {
     text-transform: uppercase;
   }
 

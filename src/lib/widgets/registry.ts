@@ -16,6 +16,8 @@ import Sequencer from './sequencer/Sequencer.svelte';
 import SequencerInspector from './sequencer/SequencerInspector.svelte';
 import Slider from './slider/Slider.svelte';
 import SliderInspector from './slider/SliderInspector.svelte';
+import Subdesk from './subdesk/Subdesk.svelte';
+import SubdeskInspector from './subdesk/SubdeskInspector.svelte';
 import Switch from './switch/Switch.svelte';
 import SwitchInspector from './switch/SwitchInspector.svelte';
 import Text from './text/Text.svelte';
@@ -40,6 +42,7 @@ export const VIEWS: { [T in WidgetType]: WidgetViews<WidgetOf<T>> } = {
   sequencer: { component: Sequencer, inspector: SequencerInspector },
   text: { component: Text, inspector: TextInspector },
   log: { component: Log, inspector: LogInspector },
+  subdesk: { component: Subdesk, inspector: SubdeskInspector },
 };
 
 /** The components of a widget (see `defOf` in defs.ts for why this needs a cast). */

@@ -6,7 +6,7 @@ import { SEQUENCER_LIMITS } from '../ipc/defaults';
 import type { InputConfig, NetworkConfig, OutputConfig } from '../ipc/types';
 import { PALETTE_SIZE } from '../theme/palettes';
 
-export const CURRENT_SCHEMA_VERSION = 11;
+export const CURRENT_SCHEMA_VERSION = 12;
 
 /**
  * Every numeric range the schema enforces. The zod schemas below and the editor fields
@@ -37,6 +37,11 @@ export const LIMITS = {
   textDecimals: { min: 0, max: 6 },
   /** Rows a log widget keeps. */
   logRows: { min: 1, max: 200 },
+  /** A sub-desk's pages (tabs), the length of their names, and how deep sub-desks nest (a
+   *  sub-desk on a desk is depth 1). */
+  subdeskPages: { min: 1, max: 16 },
+  pageName: { min: 1, max: 24 },
+  subdeskDepth: { min: 0, max: 3 },
 } as const;
 
 /**
@@ -163,12 +168,26 @@ export const ColorIndex = z
   .min(0)
   .max(PALETTE_SIZE - 1);
 
+export const GridSchema = z.object({
+  cols: inRange(z.number().int(), LIMITS.gridSide),
+  rows: inRange(z.number().int(), LIMITS.gridSide),
+  /** Gap between cells in CSS px. */
+  gap: inRange(z.number(), LIMITS.gridGap),
+});
+export type Grid = z.infer<typeof GridSchema>;
+
 /** What a widget shows in its frame's border: its title (label) and its value readout. */
 export const WidgetShowSchema = z.object({ title: z.boolean(), value: z.boolean() });
 export type WidgetShow = z.infer<typeof WidgetShowSchema>;
 
+/** A page of a sub-desk widget: where a widget on it sits (docs/ARCHITECTURE.md › Sub-desks). */
+export const ParentSchema = z.object({ widget: IdSchema, page: IdSchema });
+export type Parent = z.infer<typeof ParentSchema>;
+
 const WidgetBase = z.object({
   id: IdSchema,
+  /** The sub-desk page it sits on, or null: the desk itself. Its x/y/w/h are in that grid. */
+  parent: ParentSchema.nullable(),
   x: z.number().int().min(0),
   y: z.number().int().min(0),
   w: z.number().int().min(1),
@@ -327,6 +346,31 @@ export const LogPropsSchema = z.object({
 });
 export type LogProps = z.infer<typeof LogPropsSchema>;
 
+/**
+ * A desk inside the desk: one or more pages (tabs), each a grid of its own. The widgets on a
+ * page are ordinary widgets of the desk whose `parent` names it, so they send, receive and sync
+ * like any other. A page copied from a saved desk remembers it (`source`, `copiedAt`), to be
+ * copied again on request (Update from LIBRARY).
+ */
+export const SubdeskPageSchema = z.object({
+  id: IdSchema,
+  name: z.string().min(LIMITS.pageName.min).max(LIMITS.pageName.max),
+  source: IdSchema.nullable(),
+  /** When it was copied from `source` (that desk's `updatedAt` then), null if never. */
+  copiedAt: z.string().nullable(),
+  grid: GridSchema,
+});
+export type SubdeskPage = z.infer<typeof SubdeskPageSchema>;
+
+export const SubdeskPropsSchema = z.object({
+  pages: z
+    .array(SubdeskPageSchema)
+    .min(LIMITS.subdeskPages.min)
+    .max(LIMITS.subdeskPages.max)
+    .refine((pages) => new Set(pages.map((p) => p.id)).size === pages.length, 'page ids repeat'),
+});
+export type SubdeskProps = z.infer<typeof SubdeskPropsSchema>;
+
 export const ButtonWidgetSchema = WidgetBase.extend({
   type: z.literal('button'),
   props: ButtonPropsSchema,
@@ -363,6 +407,10 @@ export const LogWidgetSchema = WidgetBase.extend({
   type: z.literal('log'),
   props: LogPropsSchema,
 });
+export const SubdeskWidgetSchema = WidgetBase.extend({
+  type: z.literal('subdesk'),
+  props: SubdeskPropsSchema,
+});
 export const WidgetSchema = z.discriminatedUnion('type', [
   ButtonWidgetSchema,
   SwitchWidgetSchema,
@@ -373,6 +421,7 @@ export const WidgetSchema = z.discriminatedUnion('type', [
   SequencerWidgetSchema,
   TextWidgetSchema,
   LogWidgetSchema,
+  SubdeskWidgetSchema,
 ]);
 
 export type ButtonWidget = z.infer<typeof ButtonWidgetSchema>;
@@ -384,18 +433,11 @@ export type ListWidget = z.infer<typeof ListWidgetSchema>;
 export type SequencerWidget = z.infer<typeof SequencerWidgetSchema>;
 export type TextWidget = z.infer<typeof TextWidgetSchema>;
 export type LogWidget = z.infer<typeof LogWidgetSchema>;
+export type SubdeskWidget = z.infer<typeof SubdeskWidgetSchema>;
 export type Widget = z.infer<typeof WidgetSchema>;
 export type WidgetType = Widget['type'];
 
 // ---- Preset ---------------------------------------------------------------------------------
-
-export const GridSchema = z.object({
-  cols: inRange(z.number().int(), LIMITS.gridSide),
-  rows: inRange(z.number().int(), LIMITS.gridSide),
-  /** Gap between cells in CSS px. */
-  gap: inRange(z.number(), LIMITS.gridGap),
-});
-export type Grid = z.infer<typeof GridSchema>;
 
 export const HexColor = z.string().regex(/^#[0-9a-f]{6}$/);
 

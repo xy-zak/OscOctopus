@@ -435,4 +435,23 @@ export const SCENARIOS: Scenario[] = [
     { setup: seedLog },
   ),
   make('log-empty', 'log', [320, 120], (w) => (w.color = 7)),
+
+  // Sub-desk: one page, and three as tabs with the second shown. Previews are on no desk, so
+  // their pages are empty.
+  make('subdesk', 'subdesk', [360, 200], (w) => (w.color = 2)),
+  make(
+    'subdesk-tabs',
+    'subdesk',
+    [360, 200],
+    (w) => {
+      w.color = 6;
+      w.label = 'Mixer';
+      w.props.pages = [
+        { ...w.props.pages[0]!, id: 'pg-main', name: 'Main' },
+        { ...w.props.pages[0]!, id: 'pg-fx', name: 'Effects' },
+        { ...w.props.pages[0]!, id: 'pg-cues', name: 'Cues' },
+      ];
+    },
+    { value: 'pg-fx' },
+  ),
 ];

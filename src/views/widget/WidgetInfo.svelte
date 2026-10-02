@@ -7,6 +7,7 @@
   // No editing here (the pencil opens it in EDIT). Which sections are open is remembered per
   // device once one is folded or unfolded (`ui.infoSections`).
   import type { Widget } from '../../lib/model/preset';
+  import { colorOf } from '../../lib/model/subdesks';
   import { formatValue } from '../../lib/osc/format';
   import { rearmForward } from '../../lib/osc/receiver.svelte';
   import { ACTIVITY_ROWS, debugStore } from '../../lib/state/debug.svelte';
@@ -18,7 +19,8 @@
   import { colorVars } from '../../lib/theme/palettes';
   import Collapsible from '../../lib/ui/Collapsible.svelte';
   import Icon from '../../lib/ui/Icon.svelte';
-  import { DEFS, initialValue, messagesOf } from '../../lib/widgets/defs';
+  import { plural } from '../../lib/util';
+  import { DEFS, defOf, initialValue, messagesOf } from '../../lib/widgets/defs';
   import WidgetActivity from './WidgetActivity.svelte';
   import WidgetHeader from './WidgetHeader.svelte';
   import WidgetPreview from './WidgetPreview.svelte';
@@ -27,7 +29,7 @@
 
   function edit(w: Widget) {
     ui.mode = 'edit';
-    ui.selectedId = w.id;
+    presetStore.reveal(w.id);
   }
 
   const toggle = (s: InfoSection) => (on: boolean) => {
@@ -35,8 +37,11 @@
     void persistSetting('infoSections', { ...ui.infoSections });
   };
 
-  const value = $derived(widget ? formatValue(values[widget.id] ?? initialValue(widget)) : '');
-  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+  const value = $derived.by(() => {
+    if (!widget) return '';
+    const v = values[widget.id] ?? initialValue(widget);
+    return defOf(widget).valueText?.(widget, v) ?? formatValue(v);
+  });
   const messagesSummary = $derived.by(() => {
     if (!widget) return '';
     const out = widget.bindings.filter((b) => b.send && b.outputIds.length > 0).length;
@@ -66,7 +71,8 @@
   </WidgetHeader>
 
   {#if widget}
-    {@const c = colorVars(widget.color ?? presetStore.findWidget(widget.id)?.desk.color ?? null)}
+    {@const found = presetStore.findWidget(widget.id)}
+    {@const c = colorVars(found ? colorOf(found.desk, widget) : widget.color)}
     <Collapsible
       title="Value"
       open={ui.infoSections.value}

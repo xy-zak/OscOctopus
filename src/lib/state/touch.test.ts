@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { begin, endPointer, HOLD_OFF_MS, isTouched, pulse, resetTouch } from './touch';
+import { begin, endPointer, HOLD_OFF_MS, holdsAny, isTouched, pulse, resetTouch } from './touch';
 
 let now = 0;
 beforeEach(() => {
@@ -35,5 +35,16 @@ describe('touch', () => {
     expect(isTouched('w#4')).toBe(false);
     now += HOLD_OFF_MS;
     expect(isTouched('w#3')).toBe(false);
+  });
+
+  it('knows whether any of a set of widgets is held, a pad counting for its widget', () => {
+    const page = new Set(['a', 'b']);
+    expect(holdsAny(page)).toBe(false);
+    begin('b#3', 1);
+    pulse('c');
+    expect(holdsAny(page)).toBe(true);
+    expect(holdsAny(new Set(['c']))).toBe(false);
+    endPointer(1);
+    expect(holdsAny(page)).toBe(false);
   });
 });

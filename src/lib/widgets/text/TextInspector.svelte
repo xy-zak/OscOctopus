@@ -7,7 +7,7 @@
   import Field from '../../ui/Field.svelte';
   import NumberInput from '../../ui/NumberInput.svelte';
   import Segmented from '../../ui/Segmented.svelte';
-  import { channelsFor, DEFS } from '../defs';
+  import { channelsFor, DEFS, widgetName } from '../defs';
   import { MIN_TEXT_PX, TEXT_PX } from './fit';
   import { parseMarkup, placeholdersOf } from './markup';
 
@@ -52,7 +52,7 @@
         >
           <option value="">(choose)</option>
           {#each others as w (w.id)}
-            <option value={w.id}>{w.label || DEFS[w.type].label} · {DEFS[w.type].label}</option>
+            <option value={w.id}>{widgetName(w)} · {DEFS[w.type].label}</option>
           {/each}
         </select>
       </Field>

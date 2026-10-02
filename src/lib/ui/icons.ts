@@ -17,6 +17,10 @@ export const ICONS = {
   network: '\u{f0e8}',
   pulse: '\u{f21e}',
   panel: '\u{f0db}',
+  /** Up one level: from a sub-desk page back to where its sub-desk is. */
+  up: '\u{f062}',
+  /** Open a sub-desk's page on the canvas. */
+  open: '\u{f065}',
   sliders: '\u{f1de}',
   bolt: '\u{f0e7}',
   toggle: '\u{f205}',

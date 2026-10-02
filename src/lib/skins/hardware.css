@@ -423,7 +423,30 @@
   .frame[data-base='hardware'] [data-part='log.cell'][data-col='dir'] {
     color: var(--c-text);
   }
-  .frame[data-base='hardware'] [data-part='log.empty'] {
+  .frame[data-base='hardware'] [data-part='log.empty'],
+  .frame[data-base='hardware'] [data-part='subdesk.empty'] {
     color: var(--fg-faint);
+  }
+
+  /* ---- sub-desk: page tabs drawn like the list's options, the page shown like its current
+     option; an empty page says so like an empty log (above). ---- */
+  .frame[data-base='hardware'] [data-part='subdesk.tab'] {
+    border-radius: 3px;
+    background: linear-gradient(to bottom, var(--hw-panel-hi), var(--hw-panel-lo));
+    color: var(--fg-dim);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.08),
+      0 1px 2px rgb(0 0 0 / 0.5);
+    transition: color 120ms ease;
+  }
+  .frame[data-base='hardware'][data-live] [data-part='subdesk.tab']:not([data-current]):hover {
+    color: var(--fg);
+  }
+  .frame[data-base='hardware'] [data-part='subdesk.tab'][data-current] {
+    color: var(--fg);
+    box-shadow:
+      inset 3px 0 0 var(--c),
+      inset 0 1px 0 rgb(255 255 255 / 0.08),
+      0 1px 2px rgb(0 0 0 / 0.5);
   }
 }

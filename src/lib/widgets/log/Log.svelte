@@ -8,6 +8,7 @@
   import { debugStore } from '../../state/debug.svelte';
   import { inputStore } from '../../state/input.svelte';
   import { presetStore } from '../../state/preset.svelte';
+  import { widgetName } from '../defs';
   import WidgetFrame from '../WidgetFrame.svelte';
   import { COLUMNS, newestRows, receivedRow, sentRow, type LogRow } from './rows';
 
@@ -56,7 +57,7 @@
   {live}
   status="{rows.length}/{p.rows}"
   role="log"
-  aria-label={widget.label || 'Log'}
+  aria-label={widgetName(widget)}
 >
   {#snippet children()}
     <div class="log" style:--cols={template}>

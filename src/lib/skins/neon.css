@@ -450,7 +450,32 @@
     color: var(--c-text);
     text-shadow: 0 0 4px var(--n-glow);
   }
-  .frame[data-base='neon'] [data-part='log.empty'] {
+  .frame[data-base='neon'] [data-part='log.empty'],
+  .frame[data-base='neon'] [data-part='subdesk.empty'] {
     color: var(--fg-faint);
+  }
+
+  /* ---- sub-desk: page tabs drawn like the list's options, the page shown like its current
+     option; an empty page says so like an empty log (above). ---- */
+  .frame[data-base='neon'] [data-part='subdesk.tab'] {
+    border: 1px solid color-mix(in srgb, var(--c) 40%, transparent);
+    border-radius: 5px;
+    color: var(--fg-dim);
+    transition:
+      border-color 140ms ease,
+      box-shadow 140ms ease,
+      color 140ms ease;
+  }
+  .frame[data-base='neon'][data-live] [data-part='subdesk.tab']:not([data-current]):hover {
+    color: var(--fg);
+    border-color: color-mix(in srgb, var(--c) 70%, transparent);
+  }
+  .frame[data-base='neon'] [data-part='subdesk.tab'][data-current] {
+    border-color: var(--c);
+    color: var(--fg);
+    box-shadow:
+      inset 0 0 0 1px var(--c),
+      0 0 calc(0.6 * var(--n-bloom)) var(--n-glow),
+      inset 0 0 calc(0.6 * var(--n-bloom)) var(--n-glow);
   }
 }

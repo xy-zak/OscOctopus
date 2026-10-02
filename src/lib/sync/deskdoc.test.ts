@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { canonical } from '../canonical';
 import { newPreset } from '../model/factory';
+import { newWidget } from '../widgets/defs';
 import { baseOf, DeskDoc, localChanges, type Entry } from './deskdoc';
 import { flatten, isNetworkKey, materialize, ownerKey, parseKey, validEntry } from './paths';
 import type { Stamp } from './protocol';
@@ -66,6 +67,30 @@ describe('desk record paths', () => {
     const { changed, missing } = localChanges(flatten(out), baseOf(flatten(desk)));
     expect(changed).toEqual([]);
     expect(missing).toEqual([]);
+  });
+
+  it('keeps which sub-desk page a widget is on, moved together with its cells', () => {
+    const desk = newPreset('Desk');
+    const sub = newWidget('subdesk', { x: 0, y: 6, w: 4, h: 2 }, []);
+    const page = { widget: sub.id, page: sub.props.pages[0]!.id };
+    const fader = newWidget('slider', { x: 0, y: 0, w: 1, h: 2 }, [], 1, page);
+    desk.widgets.push(sub, fader);
+    const flat = flatten(desk);
+    expect(flat.get(`w/${fader.id}/rect`)).toEqual({ x: 0, y: 0, w: 1, h: 2, parent: page });
+    const { desk: out, invalid } = materialize(recordOf(desk).doc, desk);
+    expect(invalid).toEqual([]);
+    expect(canonical(out)).toBe(canonical(desk));
+  });
+
+  it('builds widgets from a record made before sub-desks onto the desk', () => {
+    const { desk, doc } = recordOf();
+    const w = desk.widgets[0]!;
+    const old = { x: w.x, y: w.y, w: w.w, h: w.h };
+    expect(validEntry(`w/${w.id}/rect`, old, () => undefined)).toBe(true);
+    doc.merge([set(`w/${w.id}/rect`, [9999, 0, B], old)]);
+    const { desk: out, invalid } = materialize(doc, desk);
+    expect(invalid).toEqual([]);
+    expect(out.widgets.find((x) => x.id === w.id)?.parent).toBeNull();
   });
 
   it('keeps this machine’s bind addresses when building from a record', () => {

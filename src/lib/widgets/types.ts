@@ -10,7 +10,7 @@ import type { Scalar, ValueList, WidgetValue } from '../osc/value';
 export type WidgetOf<T extends WidgetType> = Extract<Widget, { type: T }>;
 
 /** The fields every widget shares, as handed to `WidgetDef.create`. */
-export type WidgetBase = Pick<Widget, 'id' | 'x' | 'y' | 'w' | 'h' | 'color' | 'show'>;
+export type WidgetBase = Pick<Widget, 'id' | 'parent' | 'x' | 'y' | 'w' | 'h' | 'color' | 'show'>;
 
 /** A named part of a widget's value that message arguments and `{placeholders}` can pick. */
 export interface ChannelInfo {
@@ -86,6 +86,11 @@ export interface WidgetDef<W extends Widget> {
    * Flashes are for events happening now (`input`, `peer`), never for a snapshot (`init`).
    */
   show?(w: W, value: WidgetValue, fx: FeedbackApi): void;
+  /**
+   * How its value reads (the info panel's VALUE) when the value itself means little to a person:
+   * a sub-desk's page by its name, not its id. Left out, the value is shown as it is.
+   */
+  valueText?(w: W, value: WidgetValue): string;
   /** The touch key a value belongs to, when finer than the widget (one pad of a grid). */
   touchKey?(w: W, value: WidgetValue): string;
   /**
@@ -98,6 +103,11 @@ export interface WidgetDef<W extends Widget> {
   outputRefs?(w: W): readonly string[];
   /** Forgets an output that was removed from its desk (see `outputRefs`). */
   dropOutput?(w: W, id: string): void;
+  /**
+   * Points its `outputRefs` at other outputs, when a desk is copied into another (a sub-desk:
+   * model/embed.ts). An output missing from `ids` is dropped. Every def with `outputRefs` has it.
+   */
+  remapOutputs?(w: W, ids: ReadonlyMap<string, string>): void;
   /**
    * Points its references to other widgets of its desk at their new ids, when a whole desk is
    * copied with fresh ids (duplicated or imported). A widget missing from `ids` is dropped.

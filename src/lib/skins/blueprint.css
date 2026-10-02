@@ -450,7 +450,29 @@
   .frame[data-base='blueprint'] [data-part='log.cell'][data-col='dir'] {
     color: var(--c-text);
   }
-  .frame[data-base='blueprint'] [data-part='log.empty'] {
+  .frame[data-base='blueprint'] [data-part='log.empty'],
+  .frame[data-base='blueprint'] [data-part='subdesk.empty'] {
     color: var(--fg-faint);
+  }
+
+  /* ---- sub-desk: page tabs drawn like the list's options, the page shown like its current
+     option; an empty page says so like an empty log (above). ---- */
+  .frame[data-base='blueprint'] [data-part='subdesk.tab'] {
+    border: 1px solid color-mix(in srgb, var(--bp-ink) 30%, transparent);
+    color: var(--fg-dim);
+    transition:
+      border-color 120ms ease,
+      color 120ms ease;
+  }
+  .frame[data-base='blueprint'][data-live] [data-part='subdesk.tab']:not([data-current]):hover {
+    color: var(--fg);
+  }
+  .frame[data-base='blueprint'] [data-part='subdesk.tab'][data-current] {
+    border-color: var(--bp-line);
+    background: var(--bp-hatch);
+    color: var(--fg);
+  }
+  .frame[data-base='blueprint'] [data-part='subdesk.text'][data-current] {
+    text-shadow: var(--bp-halo);
   }
 }

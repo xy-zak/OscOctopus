@@ -91,6 +91,7 @@ truth. Components mark each part with `data-part="<name>"` and each state with a
 | Sequencer | `sequencer.timer` (the wait bar), `sequencer.elapsed` (its fill: base.css times it, a skin paints it), `sequencer.keys`, `sequencer.key` (`data-role` play/pause; each holds a `keycap`), `sequencer.fill` (on, flash), `sequencer.legend`, `sequencer.steps`, `sequencer.step` (current). States on the frame: running, paused |
 | Text | `text.body` (`data-align`, `data-valign`; its size is fitted to the box, not a skin's), `text.block` (`data-kind` line/heading/item/gap), `text.run` (strong, reverse, tinted) |
 | Log | `log.head`, `log.rows`, `log.row` (in, out, error, blocked), `log.cell` (`data-col` time, dir, widget, …), `log.empty` |
+| Sub-desk | `subdesk.tabs`, `subdesk.tab` (current), `subdesk.text` (current), `subdesk.page` (the slot its page is drawn over: the page's widgets are not inside its frame), `subdesk.empty` |
 
 † `lifted` is set on an ancestor while the widget is dragged in EDIT: style it as
 `[data-lifted] .frame[data-base='<id>']`.
@@ -133,7 +134,8 @@ Geometry a skin may change, set on the frame (defaults in `TOKENS` in anatomy.ts
 - sequencer: `--seq-timer-h` (the wait bar's height), `--seq-gap` (between its keys),
   `--seq-steps-h`, `--seq-step-gap`;
 - text: `--text-c` (its text colour: base.css draws reverse video and tints from it);
-- log: `--log-row-h`.
+- log: `--log-row-h`;
+- sub-desk: `--subdesk-tabs-h` (the tab strip's height), `--subdesk-tab-gap`.
 
 Components use these in their own layout, so changing a token moves the part *and* keeps
 pointer maths right. For example, the switch measures its thumb to work out the drag travel.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { newWidget, WIDGET_TYPES } from '../widgets/defs';
-import { newPreset, withFreshWidgetIds } from './factory';
+import { freshCopies, newPreset, withFreshWidgetIds } from './factory';
 import { PresetSchema } from './preset';
 
 describe('newPreset', () => {
@@ -41,6 +41,49 @@ describe('withFreshWidgetIds', () => {
     const qLog = q.widgets.find((w) => w.type === 'log');
     expect(qText?.type === 'text' && qText.props.target).toBe(qa!.id);
     expect(qLog?.type === 'log' && qLog.props.sources).toEqual([qa!.id, qb!.id]);
+  });
+});
+
+describe('freshCopies', () => {
+  /** A desk with a sub-desk holding a fader and a monitor of a widget outside it. */
+  function nested() {
+    const p = newPreset();
+    const outsider = p.widgets[0]!;
+    const sub = newWidget('subdesk', { x: 0, y: 6, w: 4, h: 2 }, []);
+    const page = { widget: sub.id, page: sub.props.pages[0]!.id };
+    const fader = newWidget('slider', { x: 0, y: 0, w: 1, h: 3 }, ['out'], 9, page);
+    const monitor = newWidget('text', { x: 1, y: 0, w: 2, h: 1 }, [], 1, page);
+    monitor.props = { ...monitor.props, mode: 'monitor', target: outsider.id };
+    const log = newWidget('log', { x: 3, y: 0, w: 2, h: 1 }, [], 1, page);
+    log.props = { ...log.props, follow: 'chosen', sources: [fader.id, outsider.id] };
+    p.widgets.push(sub, fader, monitor, log);
+    return { p, outsider, sub, fader, monitor, log };
+  }
+
+  it('keeps a whole desk’s nesting when its ids are renewed', () => {
+    const { p } = nested();
+    const q = withFreshWidgetIds(p);
+    const qSub = q.widgets.find((w) => w.type === 'subdesk')!;
+    const onPage = q.widgets.filter((w) => w.parent);
+    expect(onPage).toHaveLength(3);
+    expect(onPage.every((w) => w.parent?.widget === qSub.id)).toBe(true);
+    expect(PresetSchema.safeParse(q).success).toBe(true);
+  });
+
+  it('copies part of a desk: refs inside follow, refs to `outside` stay, others go', () => {
+    const { outsider, sub, fader, monitor, log } = nested();
+    const { widgets, ids } = freshCopies([sub, fader, monitor, log], [outsider.id]);
+    const [cSub, cFader, cMonitor, cLog] = widgets;
+    expect(ids.get(sub.id)).toBe(cSub!.id);
+    expect(cSub!.parent).toBeNull(); // where the copy goes is the caller's to say
+    expect(cFader!.parent).toEqual({ widget: cSub!.id, page: sub.props.pages[0]!.id });
+    expect(cMonitor?.type === 'text' && cMonitor.props.target).toBe(outsider.id);
+    expect(cLog?.type === 'log' && cLog.props.sources).toEqual([cFader!.id, outsider.id]);
+    // Without saying who stays, a ref to a widget not copied is dropped.
+    const alone = freshCopies([monitor]).widgets[0]!;
+    expect(alone.type === 'text' && alone.props.target).toBeNull();
+    // The originals are untouched.
+    expect(fader.parent?.widget).toBe(sub.id);
   });
 });
 

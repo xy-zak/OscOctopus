@@ -6,6 +6,7 @@
   import { tapHaptic, tickHaptic } from '../platform/haptics';
   import { flag } from '../skins/anatomy';
   import * as touch from '../state/touch';
+  import { doubleTap } from '../widgets/interaction';
   import {
     isFree,
     moveRect,
@@ -35,6 +36,8 @@
     /** Live mode: a pointer went down on this widget. */
     onfocus?: (id: string) => void;
     oncommit: (id: string, rect: Rect) => void;
+    /** Edit mode: tapped twice in a row without moving (opens a sub-desk). */
+    ondoubletap?: (id: string) => void;
     children: Snippet;
   }
   let {
@@ -50,6 +53,7 @@
     onselect,
     onfocus,
     oncommit,
+    ondoubletap,
     children,
   }: Props = $props();
 
@@ -64,6 +68,7 @@
     moved: boolean;
   }
   let gesture = $state<Gesture | null>(null);
+  const tappedTwice = doubleTap();
   let offset = $state({ x: 0, y: 0 });
   let candidate = $state<Rect | null>(null);
 
@@ -113,8 +118,10 @@
   function end(e: PointerEvent) {
     if (!gesture || e.pointerId !== gesture.pointerId) return;
     const { moved } = gesture;
-    if (!moved) onselect(id);
-    else if (candidate && valid) oncommit(id, candidate);
+    if (!moved) {
+      onselect(id);
+      if (tappedTwice() && ondoubletap) ondoubletap(id);
+    } else if (candidate && valid) oncommit(id, candidate);
     gesture = null;
     candidate = null;
     offset = { x: 0, y: 0 };

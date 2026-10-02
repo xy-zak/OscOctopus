@@ -54,6 +54,31 @@ describe('conflicts', () => {
     expect(kinds).toContain('missingEndpoint');
   });
 
+  it('checks each sub-desk page as a grid of its own, and reports widgets that lost theirs', () => {
+    const desk = newPreset('Desk');
+    const sub = newWidget('subdesk', { x: 0, y: 6, w: 4, h: 2 }, []);
+    const page = { widget: sub.id, page: sub.props.pages[0]!.id };
+    sub.props.pages[0]!.name = 'Mixer';
+    // Same cells as a desk widget, but on the page: no overlap.
+    const onPage = newWidget('button', { x: 0, y: 0, w: 2, h: 2 }, ['gone'], 1, page);
+    onPage.bindings = [];
+    desk.widgets.push(sub, onPage);
+    expect(findConflicts(desk)).toEqual([]);
+    // Past the page's 6×4 grid, though well inside the desk's.
+    onPage.x = 5;
+    expect(findConflicts(desk)).toEqual([
+      expect.objectContaining({
+        kind: 'outside',
+        widgetIds: [onPage.id],
+        text: expect.stringContaining('6×4 grid of “Mixer”'),
+      }),
+    ]);
+    onPage.x = 0;
+    // Its page deleted (by someone else): it shows on the desk, and says so.
+    sub.props.pages = [{ ...sub.props.pages[0]!, id: 'pg-other' }];
+    expect(findConflicts(desk).map((c) => c.kind)).toContain('orphan');
+  });
+
   it('counts a sequence’s outputs as its messages', () => {
     const desk = newPreset('Desk');
     const seq = newWidget('sequencer', { x: 0, y: 7, w: 3, h: 1 }, ['gone']);

@@ -3,6 +3,7 @@ import {
   clampRect,
   collisions,
   findFreeSpot,
+  findRoom,
   isFree,
   metrics,
   moveRect,
@@ -69,6 +70,18 @@ describe('findFreeSpot', () => {
   it('returns null when full', () => {
     expect(
       findFreeSpot({ w: 1, h: 1 }, { cols: 1, rows: 1 }, [{ id: 'x', x: 0, y: 0, w: 1, h: 1 }]),
+    ).toBeNull();
+  });
+});
+
+describe('findRoom', () => {
+  it('takes the size asked for when it fits, else the largest that does', () => {
+    expect(findRoom({ w: 2, h: 2 }, grid, items)).toEqual({ x: 2, y: 0, w: 2, h: 2 });
+    const tight = { cols: 4, rows: 3 };
+    const taken = [{ id: 'a', x: 0, y: 0, w: 4, h: 1 }];
+    expect(findRoom({ w: 6, h: 4 }, tight, taken)).toEqual({ x: 0, y: 1, w: 4, h: 2 });
+    expect(
+      findRoom({ w: 1, h: 1 }, { cols: 1, rows: 1 }, [{ id: 'x', x: 0, y: 0, w: 1, h: 1 }]),
     ).toBeNull();
   });
 });

@@ -58,6 +58,7 @@ describe('widget anatomy', () => {
       'Pads.svelte',
       'Sequencer.svelte',
       'Slider.svelte',
+      'Subdesk.svelte',
       'Switch.svelte',
       'Text.svelte',
       'WidgetFrame.svelte',

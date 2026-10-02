@@ -16,6 +16,7 @@ import { seq as seqIpc } from '../ipc/commands';
 import type { SeqProgress } from '../ipc/types';
 import type { Preset, SequencerWidget } from '../model/preset';
 import { errorText } from '../util';
+import { widgetName } from '../widgets/defs';
 import { STOPPED } from '../widgets/sequencer/def';
 import { startProblem, toPlan } from '../widgets/sequencer/plan';
 import { deskChanges } from './changes';
@@ -79,7 +80,7 @@ class SequencerStore {
     const { desk, widget } = found;
     const problem = startProblem(widget);
     if (problem) {
-      toast(`${widget.label || 'Sequencer'} can’t start: ${problem}`, 'error');
+      toast(`${widgetName(widget)} can’t start: ${problem}`, 'error');
       return;
     }
     const plan = toPlan(widget);

@@ -111,6 +111,27 @@ export function findFreeSpot(
   return null;
 }
 
+/**
+ * Room for a new item of up to w × h: that size if it fits anywhere, else the largest smaller
+ * one that does (most cells first, then the wider). Null if the grid is full.
+ */
+export function findRoom(
+  size: { w: number; h: number },
+  grid: GridSize,
+  items: readonly Placed[],
+): Rect | null {
+  const sizes: { w: number; h: number }[] = [];
+  for (let w = Math.min(size.w, grid.cols); w >= 1; w--) {
+    for (let h = Math.min(size.h, grid.rows); h >= 1; h--) sizes.push({ w, h });
+  }
+  sizes.sort((a, b) => b.w * b.h - a.w * a.h || b.w - a.w);
+  for (const s of sizes) {
+    const spot = findFreeSpot(s, grid, items);
+    if (spot) return spot;
+  }
+  return null;
+}
+
 /** Items that no longer fit after the grid shrinks. */
 export function outOfBounds(items: readonly Placed[], grid: GridSize): string[] {
   return items.filter((it) => !inBounds(it, grid)).map((it) => it.id);

@@ -315,3 +315,15 @@ describe('v10 → v11: widgets can hide their title and value', () => {
     expect(migrated.widgets.every((w) => w.show.title && w.show.value)).toBe(true);
   });
 });
+
+describe('v11 → v12: sub-desks', () => {
+  it('puts every widget on the desk itself', () => {
+    const cur = newPreset();
+    const old = JSON.parse(JSON.stringify(cur)) as { schemaVersion: number; widgets: object[] };
+    old.schemaVersion = 11;
+    for (const w of old.widgets) delete (w as { parent?: unknown }).parent;
+    const migrated = migratePreset(old);
+    expect(migrated).toEqual(cur);
+    expect(migrated.widgets.every((w) => w.parent === null)).toBe(true);
+  });
+});

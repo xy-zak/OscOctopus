@@ -4,7 +4,8 @@
 //
 //   name · color · grid                            the desk
 //   w/<id>                {type}                   a widget exists (its stamp orders widgets)
-//   w/<id>/rect           {x,y,w,h}                moved or resized together, never half
+//   w/<id>/rect           {x,y,w,h,parent}         moved, resized or put on another sub-desk
+//                                                  page together, never half
 //   w/<id>/label · w/<id>/color · w/<id>/show
 //   w/<id>/bindings                                (all bindings are one unit)
 //   w/<id>/props/<key>                             each prop on its own
@@ -20,6 +21,7 @@ import {
   GridSchema,
   InputConfigSchema,
   OutputConfigSchema,
+  ParentSchema,
   WidgetSchema,
   WidgetShowSchema,
   type Preset,
@@ -45,6 +47,8 @@ const RectSchema = z.object({
   y: z.number().int().min(0),
   w: z.number().int().min(1),
   h: z.number().int().min(1),
+  /** Records from before sub-desks (schema v12) have none: those widgets are on the desk. */
+  parent: ParentSchema.nullable().optional(),
 });
 const WIDGET_TYPES = WidgetSchema.options.map((o) => o.shape.type.value) as [
   WidgetType,
@@ -161,7 +165,13 @@ export function flatten(desk: Preset): Flat {
   out.set('grid', { ...desk.grid });
   for (const w of desk.widgets) {
     out.set(`w/${w.id}`, { type: w.type });
-    out.set(`w/${w.id}/rect`, { x: w.x, y: w.y, w: w.w, h: w.h });
+    out.set(`w/${w.id}/rect`, {
+      x: w.x,
+      y: w.y,
+      w: w.w,
+      h: w.h,
+      parent: w.parent && { ...w.parent },
+    });
     out.set(`w/${w.id}/label`, w.label);
     out.set(`w/${w.id}/color`, w.color);
     out.set(`w/${w.id}/show`, { ...w.show });
@@ -225,11 +235,12 @@ export function materialize(record: RecordView, local: Preset): Materialized {
         if (v !== undefined) props[key.slice(prefix.length)] = v;
       }
     }
-    const rect = record.live(`w/${id}/rect`) as object | undefined;
+    const rect = record.live(`w/${id}/rect`) as { parent?: unknown } | undefined;
     const candidate = {
       id,
       type: create.type,
       ...rect,
+      parent: rect?.parent ?? null,
       label: record.live(`w/${id}/label`),
       color: record.live(`w/${id}/color`),
       show: record.live(`w/${id}/show`),

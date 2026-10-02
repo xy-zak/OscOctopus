@@ -128,6 +128,14 @@ The screen always shows **where you are**, by containment:
 - **Log**: what widgets sent (→) and received (←) on this device, newest first: every widget of
   the desk or the ones you pick, up to 200 rows, with the columns you choose (time, widget,
   address, value, where, IP, result, size).
+- **Sub-desk**: a desk inside the desk. Build small desks on their own, then copy them into a
+  bigger one: **+ Desk from LIBRARY** in EDIT, or *Add a page* in a sub-desk's Inspector. Several
+  copied desks in one sub-desk become tabs (each person picks their own tab; it works while
+  LOCKED too). The copy is the big desk's own: its messages use the big desk's outputs and
+  inputs (the same one where it exists, else the first), and its NETWORK never changes; a page's
+  *Send to* points everything on it at one output. Double-tap a sub-desk in EDIT (or *Open*) to
+  edit its page in place, with a breadcrumb back out (Esc goes up). *Update from LIBRARY* copies
+  the saved desk again over its page. Sub-desks nest up to three deep.
 
 **Messages:**
 - **Both ways:** each message can **OUT** (send to outputs when the widget changes) and **IN**

@@ -55,6 +55,12 @@ export function isTouched(key: string, holdOffMs = HOLD_OFF_MS): boolean {
   return last !== undefined && now() - last < holdOffMs;
 }
 
+/** Whether a pointer is down on any of these widgets (or on one of their pads). */
+export function holdsAny(widgetIds: ReadonlySet<string>): boolean {
+  for (const key of held.keys()) if (widgetIds.has(key.split('#')[0]!)) return true;
+  return false;
+}
+
 /** Tests only: a fake clock, and a clean slate. */
 export function resetTouch(clock: () => number = () => performance.now()) {
   held.clear();

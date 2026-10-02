@@ -220,6 +220,7 @@ function sample(type: Widget['type']): { widget: Widget; value: WidgetValue } {
     case 'sequencer':
     case 'text':
     case 'log':
+    case 'subdesk':
       return { widget, value: initialValue(widget) };
   }
 }

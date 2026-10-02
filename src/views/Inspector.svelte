@@ -8,6 +8,7 @@
   //   ACTIVITY     what actually happened on the wire (folded by default).
   // Which sections are open is remembered per device once one is folded or unfolded.
   import type { Widget } from '../lib/model/preset';
+  import { autoColorOn, pageKey, placesFor } from '../lib/model/subdesks';
   import { ACTIVITY_ROWS, debugStore } from '../lib/state/debug.svelte';
   import { lookStore } from '../lib/state/look.svelte';
   import { persistSetting } from '../lib/state/persist';
@@ -21,8 +22,10 @@
   import Icon from '../lib/ui/Icon.svelte';
   import Swatches from '../lib/ui/Swatches.svelte';
   import Toggle from '../lib/ui/Toggle.svelte';
+  import { plural } from '../lib/util';
   import { DEFS, messagesOf } from '../lib/widgets/defs';
   import { viewsOf } from '../lib/widgets/registry';
+  import { removeWidget } from '../lib/widgets/subdesk/actions';
   import BindingsEditor from './inspector/BindingsEditor.svelte';
   import WidgetActivity from './widget/WidgetActivity.svelte';
   import WidgetHeader from './widget/WidgetHeader.svelte';
@@ -43,7 +46,6 @@
     void persistSetting('inspectorSections', { ...ui.inspectorOpen });
   };
 
-  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
   const readout = $derived(DEFS[widget.type].readout);
   const hidden = $derived(
     [!widget.show.title && 'title', readout && !widget.show.value && 'value'].filter(Boolean),
@@ -60,6 +62,12 @@
     const out = b.filter((x) => x.send).length;
     return `${plural(b.length, 'message')} · ${out} out · ${inn} in`;
   });
+  // Where it can go: the desk, or any sub-desk page it fits on.
+  const places = $derived(
+    placesFor(presetStore.current, widget.id).map((p) => ({ ...p, key: pageKey(p.ref) })),
+  );
+  const placedOn = $derived(pageKey(presetStore.pageOf(widget.id)));
+
   const activitySummary = $derived(
     plural(debugStore.recentFor(widget.id, ACTIVITY_ROWS).length, 'recent packet'),
   );
@@ -74,10 +82,8 @@
           title="Duplicate"
           onclick={() => presetStore.duplicateWidget(widget.id)}><Icon name="copy" /></button
         >
-        <button
-          class="btn icon danger"
-          title="Delete"
-          onclick={() => presetStore.removeWidget(widget.id)}><Icon name="trash" /></button
+        <button class="btn icon danger" title="Delete" onclick={() => removeWidget(widget.id)}
+          ><Icon name="trash" /></button
         >
       </fieldset>
     {/snippet}
@@ -106,7 +112,7 @@
         </Field>
         <Field
           label="Colour · {lookStore.forDesk(deskId).palette.name}"
-          hint="From this desk’s palette (DESK › LOOK). AUTO follows the desk’s colour"
+          hint="From this desk’s palette (DESK › LOOK). AUTO follows the desk’s colour (on a sub-desk page, the sub-desk’s if it has one)"
           group
           wide
         >
@@ -116,8 +122,8 @@
               {
                 value: null,
                 label: 'AUTO',
-                title: 'AUTO: the desk’s colour',
-                color: colorVars(presetStore.current.color).c,
+                title: 'AUTO: the desk’s colour, or its sub-desk’s',
+                color: colorVars(autoColorOn(presetStore.current, presetStore.pageOf(widget.id))).c,
               },
             ]}
             onchange={(c) => {
@@ -142,6 +148,24 @@
         <Field label="Cell" wide>
           <span class="readout">x{widget.x} y{widget.y} · {widget.w}×{widget.h}</span>
         </Field>
+        {#if places.length > 1 || placedOn}
+          <Field
+            label="Place"
+            hint="The desk, or a sub-desk page: it goes where it fits there (smaller if it must)"
+            wide
+          >
+            <select
+              class="input"
+              value={placedOn}
+              onchange={(e) => {
+                const to = places.find((p) => p.key === e.currentTarget.value);
+                if (to) presetStore.place(widget.id, to.ref);
+              }}
+            >
+              {#each places as p (p.key)}<option value={p.key}>{p.name}</option>{/each}
+            </select>
+          </Field>
+        {/if}
       </section>
     </fieldset>
   </Collapsible>

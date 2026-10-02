@@ -6,6 +6,7 @@ import type { Preset } from '../lib/model/preset';
 import { presetStore } from '../lib/state/preset.svelte';
 import { confirmAction, toast } from '../lib/state/ui.svelte';
 import { sharedDesks } from '../lib/sync/app.svelte';
+import { plural } from '../lib/util';
 import { exportJson, ifConfirmed, jsonFiles, runAction } from './actions';
 
 const PRESET_FILES = jsonFiles('preset');
@@ -14,7 +15,6 @@ const PORT_CLASH =
   'Inputs on the same ports as the original will fail to bind; its NETWORK section will say so.';
 const REOPEN = 'The preset stays saved: reopen it from + or GLOBAL SETTINGS › LIBRARY.';
 
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const endpointsOf = (d: Preset) =>
   `${plural(d.network.outputs.length, 'output')} and ${plural(d.network.inputs.length, 'input')}`;
 const fileName = (path: string) => path.split(/[\\/]/).pop() ?? path;

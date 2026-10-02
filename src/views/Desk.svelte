@@ -1,6 +1,7 @@
 <script lang="ts">
   import { isFree } from '../lib/grid/engine';
   import GridCanvas from '../lib/grid/GridCanvas.svelte';
+  import { canHoldSubdesk, gridOn, samePage, widgetsOn } from '../lib/model/subdesks';
   import { presetStore } from '../lib/state/preset.svelte';
   import { toast, toggleEditMode, ui } from '../lib/state/ui.svelte';
   import { lockedBy, sharedDesks } from '../lib/sync/app.svelte';
@@ -9,8 +10,12 @@
   import Icon from '../lib/ui/Icon.svelte';
   import ToggleSwitch from '../lib/ui/ToggleSwitch.svelte';
   import { DEFS, WIDGET_TYPES } from '../lib/widgets/defs';
+  import SavedDeskField from '../lib/widgets/fields/SavedDeskField.svelte';
+  import { embedDesk, removeWidget } from '../lib/widgets/subdesk/actions';
+  import { TOO_DEEP } from '../lib/widgets/subdesk/def';
   import DeskPanel from './DeskPanel.svelte';
   import Inspector from './Inspector.svelte';
+  import PageCrumbs from './PageCrumbs.svelte';
   import WidgetInfo from './widget/WidgetInfo.svelte';
 
   const editing = $derived(ui.mode === 'edit');
@@ -18,6 +23,10 @@
   const selectedIndex = $derived(preset.widgets.findIndex((w) => w.id === ui.selectedId));
   const selected = $derived(preset.widgets[selectedIndex]);
   const focused = $derived(presetStore.widget(ui.focusedId));
+  // EDIT: the sub-desk page open on the canvas (null: the desk itself).
+  const page = $derived(presetStore.page);
+  /** Why no sub-desk can be added here, if it can't. */
+  const noSubdesk = $derived(canHoldSubdesk(preset, page) ? null : TOO_DEEP);
   // Edit mode always has the panel; live mode has it when the info panel is switched on, but
   // never while presenting (always live): then the widgets fill the screen.
   const info = $derived(ui.infoOpen && !ui.presenting);
@@ -40,21 +49,30 @@
     if (!editing) return;
     const t = e.target as HTMLElement;
     if (t.closest('input, textarea, select, [contenteditable]')) return;
+    // Esc: deselect first, then up one level out of an open sub-desk page.
     if (e.key === 'Escape') {
-      ui.selectedId = null;
+      if (ui.selectedId) ui.selectedId = null;
+      else presetStore.closePage();
       return;
     }
     if (!selected) return;
+    if (e.key === 'Enter' && selected.type === 'subdesk') {
+      presetStore.openSubdesk(selected.id);
+      e.preventDefault();
+      return;
+    }
     const holder = holderOf(selected.id);
     if (holder) {
       toast(`${holder.name} is editing this widget: take it over in the Inspector first`);
       return;
     }
     if (e.key === 'Delete' || e.key === 'Backspace') {
-      presetStore.removeWidget(selected.id);
+      void removeWidget(selected.id);
       e.preventDefault();
       return;
     }
+    // Nudged on the page it is on, which must be the one open.
+    if (!samePage(presetStore.pageOf(selected.id), page)) return;
     const d: Record<string, [number, number]> = {
       ArrowLeft: [-1, 0],
       ArrowRight: [1, 0],
@@ -70,7 +88,7 @@
       w: selected.w,
       h: selected.h,
     };
-    if (isFree(next, preset.grid, preset.widgets, selected.id))
+    if (isFree(next, gridOn(preset, page), widgetsOn(preset, page), selected.id))
       presetStore.setRect(selected.id, next);
   }
 </script>
@@ -87,12 +105,22 @@
         {#if editing}
           <span class="faint">ADD</span>
           {#each WIDGET_TYPES as t (t)}
-            <button class="btn" onclick={() => presetStore.addWidget(t)}
-              ><Icon name="plus" /> {DEFS[t].label}</button
+            {@const refused = t === 'subdesk' ? noSubdesk : null}
+            <button
+              class="btn"
+              disabled={!!refused}
+              title={refused}
+              onclick={() => presetStore.addWidget(t)}><Icon name="plus" /> {DEFS[t].label}</button
             >
           {/each}
+          <SavedDeskField
+            placeholder="+ Desk from LIBRARY…"
+            refused={noSubdesk}
+            onpick={(id) => embedDesk(id, { kind: 'new' })}
+          />
           <span class="hint faint"
-            >drag: move · handles: resize · arrows: nudge · del: remove · esc: deselect</span
+            >drag: move · handles: resize · arrows: nudge · del: remove · double-tap a sub-desk:
+            open · esc: deselect, up</span
           >
         {:else}
           <!-- A switch like the master bar's, for the side panel. -->
@@ -137,10 +165,12 @@
       </span>
     </div>
   {/if}
+  {#if editing}<PageCrumbs />{/if}
   <div class="body">
     <div class="canvas-wrap">
       <GridCanvas
         {preset}
+        {page}
         {editing}
         {holderOf}
         selectedId={ui.selectedId}
@@ -148,6 +178,7 @@
         onselect={(id) => (ui.selectedId = id)}
         onfocus={(id) => (ui.focusedId = id)}
         oncommit={(id, rect) => presetStore.setRect(id, rect)}
+        onopen={(id) => presetStore.openSubdesk(id)}
         locked={ui.locked}
         onlockedpress={() => ui.lockNudge++}
       />

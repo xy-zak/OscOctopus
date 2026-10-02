@@ -7,7 +7,7 @@
   import Field from '../../ui/Field.svelte';
   import NumberInput from '../../ui/NumberInput.svelte';
   import Segmented from '../../ui/Segmented.svelte';
-  import { DEFS } from '../defs';
+  import { DEFS, widgetName } from '../defs';
   import { COLUMNS } from './rows';
 
   let { widget = $bindable(), onchange }: { widget: LogWidget; onchange: () => void } = $props();
@@ -15,7 +15,7 @@
   const widgets = $derived(
     presetStore.current.widgets
       .filter((w) => w.id !== widget.id)
-      .map((w) => ({ id: w.id, name: w.label || DEFS[w.type].label, title: DEFS[w.type].label })),
+      .map((w) => ({ id: w.id, name: widgetName(w), title: DEFS[w.type].label })),
   );
   const columns = LOG_COLUMNS.map((c) => ({ id: c, name: COLUMNS[c].label || 'DIRECTION' }));
 </script>

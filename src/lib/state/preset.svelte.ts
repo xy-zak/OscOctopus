@@ -5,8 +5,9 @@
 // sync (state/changes.ts). `touch()` is `changed()` for the active desk.
 import { presets as presetIpc, sync as syncIpc } from '../ipc/commands';
 import type { PresetSummary } from '../ipc/types';
-import { findFreeSpot, outOfBounds, type Rect } from '../grid/engine';
-import { newInput, newOutput, newPreset, withFreshWidgetIds } from '../model/factory';
+import { findFreeSpot, findRoom, outOfBounds, type Rect } from '../grid/engine';
+import { EmbedError, planEmbed, routeTo, type EmbedPlan, type EmbedTarget } from '../model/embed';
+import { freshCopies, newInput, newOutput, newPreset, withFreshWidgetIds } from '../model/factory';
 import { migratePreset } from '../model/migrations';
 import { uid } from '../model/parts';
 import {
@@ -16,11 +17,33 @@ import {
   type Widget,
   type WidgetType,
 } from '../model/preset';
+import {
+  canHoldSubdesk,
+  canPlace,
+  depthOf,
+  descendantsOf,
+  gridOn,
+  isSubdesk,
+  pageAt,
+  placements,
+  resolvePage,
+  widgetsOn,
+  widgetsUnder,
+  type PageRef,
+} from '../model/subdesks';
 import { getSetting } from '../platform/settings';
 import { patchInPlace } from '../sync/reconcile';
 import { PALETTE_SIZE } from '../theme/palettes';
 import { errorText } from '../util';
 import { DEFS, dropOutputFrom, initialValue, newWidget, outputRefsOf } from '../widgets/defs';
+import {
+  blankPage,
+  copiedPage,
+  pagesFull,
+  shownPage,
+  TOO_DEEP,
+  TOO_MANY_PAGES,
+} from '../widgets/subdesk/def';
 import { appearance } from './appearance.svelte';
 import { Autosave } from './autosave.svelte';
 import { deskChanges, syncKey, syncRecords } from './changes';
@@ -34,6 +57,7 @@ import { toast, ui } from './ui.svelte';
 import { values } from './values.svelte';
 
 const AUTOSAVE_MS = 600;
+const NO_ROOM = 'No free space on the grid: resize the grid or remove a widget';
 
 class PresetStore {
   /** Open desks, in tab order. Always at least one once initialised. */
@@ -159,7 +183,7 @@ class PresetStore {
   activate(id: string) {
     if (!this.isOpen(id) || id === this.activeId) return;
     this.activeId = id;
-    ui.selectedId = ui.focusedId = null;
+    ui.selectedId = ui.focusedId = ui.page = null;
     void this.persistOpen();
   }
 
@@ -211,7 +235,7 @@ class PresetStore {
     this.autosave.forget(id);
     if (this.activeId === id) {
       this.activeId = this.desks[Math.min(i, this.desks.length - 1)]!.id;
-      ui.selectedId = ui.focusedId = null;
+      ui.selectedId = ui.focusedId = ui.page = null;
     }
     await this.persistOpen();
     return true;
@@ -323,6 +347,10 @@ class PresetStore {
         toast('The widget you were editing was deleted on another device');
       }
     }
+    if (deskId === this.activeId && ui.page && !resolvePage(desk, ui.page)) {
+      ui.page = null;
+      toast('The sub-desk page you were editing was deleted on another device');
+    }
     this.changed(deskId, { origin: 'remote', network });
   }
 
@@ -370,7 +398,7 @@ class PresetStore {
     };
     this.desks[i] = replaced;
     for (const w of replaced.widgets) values[w.id] = initialValue(w);
-    if (this.activeId === deskId) ui.selectedId = ui.focusedId = null;
+    if (this.activeId === deskId) ui.selectedId = ui.focusedId = ui.page = null;
     await networkStore.apply(deskId, this.snapshot(deskId).network);
     this.changed(deskId, { deleted: removedKeys(old, replaced) });
     await this.autosave.save(deskId);
@@ -454,47 +482,263 @@ class PresetStore {
     return undefined;
   }
 
+  // ---- sub-desk pages (model/subdesks.ts) --------------------------------------------------
+
+  /**
+   * The sub-desk page open on the canvas (EDIT only; `ui.page`), while it still exists; null
+   * is the desk itself. What the desk's editing does (add, grid, nudge) happens there.
+   */
+  get page(): PageRef | null {
+    return ui.mode === 'edit' ? resolvePage(this.current, ui.page) : null;
+  }
+
+  /** Where a widget of the active desk shows: a sub-desk page, or the desk (null). */
+  pageOf(id: string): PageRef | null {
+    return placements(this.current).get(id)?.page ?? null;
+  }
+
+  /** Opens a sub-desk page on the canvas (null: back to the desk). */
+  openPage(ref: PageRef | null) {
+    ui.page = resolvePage(this.current, ref);
+    ui.selectedId = null;
+  }
+
+  /** Goes up from the open page to where its sub-desk is, the sub-desk selected. */
+  closePage() {
+    const page = this.page;
+    if (!page) return;
+    ui.page = this.pageOf(page.widget);
+    ui.selectedId = page.widget;
+  }
+
+  /** Opens the page a sub-desk is showing. */
+  openSubdesk(id: string) {
+    const w = this.widget(id);
+    if (isSubdesk(w)) this.openPage({ widget: id, page: shownPage(w, values[id]).id });
+  }
+
+  /** Selects a widget wherever it is: the page it is on opens with it. */
+  reveal(id: string) {
+    ui.page = this.pageOf(id);
+    ui.selectedId = id;
+  }
+
+  /** Shows a page of a sub-desk on this device (never sent or shared). */
+  showPage(widgetId: string, pageId: string) {
+    values[widgetId] = pageId;
+  }
+
+  /** Adds a blank page to a sub-desk; refused past the page limit. */
+  addBlankPage(widgetId: string): boolean {
+    const w = this.widget(widgetId);
+    if (!isSubdesk(w)) return false;
+    if (pagesFull(w)) {
+      toast(TOO_MANY_PAGES, 'error');
+      return false;
+    }
+    const page = blankPage(`Page ${w.props.pages.length + 1}`);
+    w.props.pages.push(page);
+    this.showPage(widgetId, page.id);
+    this.touch();
+    return true;
+  }
+
+  /** Moves a page one place earlier (-1) or later (+1) among the tabs. */
+  movePage(widgetId: string, pageId: string, by: -1 | 1) {
+    const w = this.widget(widgetId);
+    if (!isSubdesk(w)) return;
+    const pages = w.props.pages;
+    const i = pages.findIndex((p) => p.id === pageId);
+    const j = i + by;
+    if (i < 0 || j < 0 || j >= pages.length) return;
+    [pages[i], pages[j]] = [pages[j]!, pages[i]!];
+    this.touch();
+  }
+
+  /**
+   * Copies a saved desk onto a sub-desk page of the active desk (model/embed.ts). `ask` sees
+   * what it would do first and may say no; the copy is then planned again, since the desk may
+   * have changed meanwhile. Throws an EmbedError when it can't go there.
+   */
+  async embed(
+    sourceId: string,
+    target: EmbedTarget,
+    ask: (plan: EmbedPlan, source: Preset) => Promise<boolean> = async () => true,
+  ): Promise<boolean> {
+    // An open desk as it is now, else as last saved.
+    const source = this.isOpen(sourceId)
+      ? this.snapshot(sourceId)
+      : await this.loadPreset(sourceId);
+    if (!(await ask(this.prepareEmbed(source, target).plan, source))) return false;
+    this.prepareEmbed(source, target).apply();
+    return true;
+  }
+
+  /** What copying `source` to `target` would add, and how to make it so. */
+  private prepareEmbed(source: Preset, target: EmbedTarget): { plan: EmbedPlan; apply(): void } {
+    const desk = this.current;
+    const page = copiedPage(source);
+
+    if (target.kind === 'new') {
+      const on = this.page;
+      if (!canHoldSubdesk(desk, on)) throw new EmbedError(TOO_DEEP);
+      const spot = this.roomHere(DEFS.subdesk.defaultSize);
+      if (!spot) throw new EmbedError(NO_ROOM);
+      const n = desk.widgets.filter((w) => w.type === 'subdesk').length + 1;
+      const sub = newWidget('subdesk', spot, [], n, on);
+      sub.label = source.name;
+      sub.props.pages = [page];
+      const plan = planEmbed(
+        desk,
+        source,
+        { widget: sub.id, page: page.id },
+        depthOf(desk, on) + 1,
+      );
+      return {
+        plan,
+        apply: () => {
+          desk.widgets.push(sub);
+          this.showPage(sub.id, page.id);
+          this.addCopies(plan);
+          ui.selectedId = sub.id;
+          this.touch();
+        },
+      };
+    }
+
+    const sub = this.widget(target.widget);
+    if (!isSubdesk(sub)) throw new EmbedError('That sub-desk is gone');
+    if (target.kind === 'page') {
+      if (pagesFull(sub)) throw new EmbedError(TOO_MANY_PAGES);
+      const slot = { widget: sub.id, page: page.id };
+      const plan = planEmbed(desk, source, slot, depthOf(desk, slot));
+      return {
+        plan,
+        apply: () => {
+          sub.props.pages.push(page);
+          this.addCopies(plan);
+          this.showPage(sub.id, page.id);
+          this.touch();
+        },
+      };
+    }
+
+    const old = sub.props.pages.find((p) => p.id === target.page);
+    if (!old) throw new EmbedError('That page is gone');
+    const slot = { widget: sub.id, page: old.id };
+    const plan = planEmbed(desk, source, slot, depthOf(desk, slot));
+    return {
+      plan,
+      apply: () => {
+        const gone = widgetsUnder(desk, slot).map((w) => w.id);
+        this.dropWidgets(gone);
+        Object.assign(old, { source: page.source, copiedAt: page.copiedAt, grid: page.grid });
+        this.addCopies(plan);
+        this.touch({ deleted: gone.map(syncKey.widget) });
+      },
+    };
+  }
+
+  /** Adds a desk's copied widgets (`planEmbed`) to the active desk. */
+  private addCopies(plan: EmbedPlan) {
+    this.current.widgets.push(...plan.widgets);
+    for (const w of plan.widgets) values[w.id] = initialValue(w);
+  }
+
+  /** Sends everything on a page (its sub-desks' pages too) to one output of the desk. */
+  routePage(widgetId: string, pageId: string, outputId: string) {
+    if (!this.current.network.outputs.some((o) => o.id === outputId)) return;
+    routeTo(widgetsUnder(this.current, { widget: widgetId, page: pageId }), outputId);
+    this.touch();
+  }
+
+  /** Removes a page and everything on it; a sub-desk keeps at least one. */
+  removePage(widgetId: string, pageId: string) {
+    const w = this.widget(widgetId);
+    if (!isSubdesk(w) || w.props.pages.length <= 1) return;
+    const gone = widgetsUnder(this.current, { widget: widgetId, page: pageId }).map((x) => x.id);
+    this.dropWidgets(gone);
+    w.props.pages = w.props.pages.filter((p) => p.id !== pageId);
+    if (values[widgetId] === pageId) this.showPage(widgetId, w.props.pages[0]!.id);
+    this.touch({ deleted: gone.map(syncKey.widget) });
+  }
+
+  // ---- widgets --------------------------------------------------------------------------
+
+  /** Room for a new widget on the open page (or the desk): its usual size, or the largest
+   *  smaller one that fits there. */
+  private roomHere(size: { w: number; h: number }): Rect | null {
+    return findRoom(size, gridOn(this.current, this.page), widgetsOn(this.current, this.page));
+  }
+
   addWidget(type: WidgetType) {
-    const { grid, widgets } = this.current;
-    const spot = findFreeSpot(DEFS[type].defaultSize, grid, widgets);
+    const page = this.page;
+    if (type === 'subdesk' && !canHoldSubdesk(this.current, page)) {
+      toast(TOO_DEEP, 'error');
+      return;
+    }
+    const spot = this.roomHere(DEFS[type].defaultSize);
     if (!spot) {
-      toast('No free space on the grid: resize the grid or remove a widget', 'error');
+      toast(NO_ROOM, 'error');
       return;
     }
     const firstOutput = this.current.network.outputs[0]?.id;
     const n = this.current.widgets.filter((w) => w.type === type).length + 1;
-    const w = newWidget(type, spot, firstOutput ? [firstOutput] : [], n);
+    const w = newWidget(type, spot, firstOutput ? [firstOutput] : [], n, page);
     this.current.widgets.push(w);
     values[w.id] = initialValue(w);
     ui.selectedId = w.id;
     this.touch();
   }
 
+  /**
+   * A copy next to the original, on the same page. A sub-desk is copied with everything on its
+   * pages; references to widgets outside it stay as they were.
+   */
   duplicateWidget(id: string) {
     const src = this.widget(id);
     if (!src) return;
-    const { grid, widgets } = this.current;
-    const spot = findFreeSpot({ w: src.w, h: src.h }, grid, widgets);
+    const page = this.pageOf(id);
+    const spot = findFreeSpot(
+      { w: src.w, h: src.h },
+      gridOn(this.current, page),
+      widgetsOn(this.current, page),
+    );
     if (!spot) {
       toast('No free space for a copy of this size', 'error');
       return;
     }
-    const copy = $state.snapshot(src) as Widget;
-    copy.id = uid('w');
-    Object.assign(copy, spot);
-    copy.bindings.forEach((b) => (b.id = uid('b')));
-    this.current.widgets.push(copy);
-    values[copy.id] = initialValue(copy);
+    const inside = new Set(descendantsOf(this.current, id).map((w) => w.id));
+    const subtree = this.current.widgets.filter((w) => w.id === id || inside.has(w.id));
+    const outside = this.current.widgets.filter((w) => w.id !== id && !inside.has(w.id));
+    const { widgets, ids } = freshCopies(
+      $state.snapshot(subtree) as Widget[],
+      outside.map((w) => w.id),
+    );
+    const copy = widgets.find((w) => w.id === ids.get(id))!;
+    Object.assign(copy, spot, { parent: page });
+    this.current.widgets.push(...widgets);
+    for (const w of widgets) values[w.id] = initialValue(w);
     ui.selectedId = copy.id;
     this.touch();
   }
 
+  /** Removes a widget; a sub-desk goes with everything on its pages. */
   removeWidget(id: string) {
-    this.current.widgets = this.current.widgets.filter((w) => w.id !== id);
-    forgetWidget(id);
-    if (ui.selectedId === id) ui.selectedId = null;
-    if (ui.focusedId === id) ui.focusedId = null;
-    this.touch({ deleted: [syncKey.widget(id)] });
+    const gone = [id, ...descendantsOf(this.current, id).map((w) => w.id)];
+    if (ui.page && gone.includes(ui.page.widget)) ui.page = this.pageOf(id);
+    this.dropWidgets(gone);
+    this.touch({ deleted: gone.map(syncKey.widget) });
+  }
+
+  /** Takes widgets off the active desk and forgets what they left behind. */
+  private dropWidgets(ids: readonly string[]) {
+    if (ids.length === 0) return;
+    const gone = new Set(ids);
+    this.current.widgets = this.current.widgets.filter((w) => !gone.has(w.id));
+    for (const id of ids) forgetWidget(id);
+    if (ui.selectedId && gone.has(ui.selectedId)) ui.selectedId = null;
+    if (ui.focusedId && gone.has(ui.focusedId)) ui.focusedId = null;
   }
 
   setRect(id: string, rect: Rect) {
@@ -504,10 +748,43 @@ class PresetStore {
     this.touch();
   }
 
-  /** Refuses to shrink the grid under existing widgets instead of silently moving them. */
+  /**
+   * Puts a widget on another page (or the desk), at the first spot where it fits (smaller if a
+   * smaller page has no room for its size), and opens that
+   * page. Never into itself, a sub-desk inside it, or past the depth limit (`canPlace`).
+   */
+  place(id: string, ref: PageRef | null): boolean {
+    const w = this.widget(id);
+    if (!w) return false;
+    if (!canPlace(this.current, id, ref)) {
+      toast('It can’t go there: not into itself, nor deeper than sub-desks nest', 'error');
+      return false;
+    }
+    const spot = findRoom(
+      { w: w.w, h: w.h },
+      gridOn(this.current, ref),
+      widgetsOn(this.current, ref).filter((x) => x.id !== id),
+    );
+    if (!spot) {
+      toast('No free space there: make room first', 'error');
+      return false;
+    }
+    Object.assign(w, spot, { parent: ref });
+    ui.page = ref;
+    ui.selectedId = id;
+    this.touch();
+    return true;
+  }
+
+  /**
+   * Resizes the grid of the open page (or the desk). Refuses to shrink it under existing
+   * widgets instead of silently moving them.
+   */
   setGrid(patch: Partial<Grid>): boolean {
-    const next = { ...this.current.grid, ...patch };
-    const clipped = outOfBounds(this.current.widgets, next);
+    const page = this.page;
+    const found = page ? pageAt(this.current, page) : undefined;
+    const next = { ...(found?.page.grid ?? this.current.grid), ...patch };
+    const clipped = outOfBounds(widgetsOn(this.current, page), next);
     if (clipped.length) {
       toast(
         `${clipped.length} widget(s) would fall outside a ${next.cols}×${next.rows} grid; move them first`,
@@ -515,7 +792,8 @@ class PresetStore {
       );
       return false;
     }
-    this.current.grid = next;
+    if (found) found.page.grid = next;
+    else this.current.grid = next;
     this.touch();
     return true;
   }

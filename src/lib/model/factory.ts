@@ -54,20 +54,43 @@ export function newPreset(
 }
 
 /**
- * A copy of a preset with new widget and binding ids. Live values and throttles are keyed by
- * widget id, so two open desks must never share one (e.g. a duplicated or re-imported desk).
- * Widgets that refer to others of the desk (a text monitor, a log) follow them to their new
- * ids. Endpoint ids are kept: they are namespaced per desk by the network core.
+ * Copies of widgets (plain objects, not state) with new widget and binding ids. What refers to
+ * one of them follows it to its new id: a widget on a copied sub-desk's page (`parent`), a text
+ * monitor's target, a log's sources. A reference to one of `outside` (widgets that stay where
+ * they are) is kept; one to any other widget is dropped. A `parent` outside the copies is left
+ * as it is, for the caller to place.
  */
-export function withFreshWidgetIds(preset: Preset): Preset {
-  const copy = structuredClone(preset);
+export function freshCopies(
+  widgets: readonly Widget[],
+  outside: Iterable<string> = [],
+): { widgets: Widget[]; ids: Map<string, string> } {
+  const copies = structuredClone(widgets) as Widget[];
   const ids = new Map<string, string>();
-  for (const w of copy.widgets) {
+  for (const w of copies) {
     const id = uid('w');
     ids.set(w.id, id);
     w.id = id;
     for (const b of w.bindings) b.id = uid('b');
   }
-  for (const w of copy.widgets) remapRefsOf(w, ids);
+  const refs = new Map(ids);
+  for (const id of outside) if (!refs.has(id)) refs.set(id, id);
+  for (const w of copies) {
+    const host = w.parent && ids.get(w.parent.widget);
+    if (w.parent && host) w.parent = { ...w.parent, widget: host };
+    remapRefsOf(w, refs);
+  }
+  return { widgets: copies, ids };
+}
+
+/**
+ * A copy of a preset with new widget and binding ids. Live values and throttles are keyed by
+ * widget id, so two open desks must never share one (e.g. a duplicated or re-imported desk).
+ * Widgets that refer to others of the desk (a sub-desk's widgets, a text monitor, a log)
+ * follow them to their new ids. Endpoint ids are kept: they are namespaced per desk by the
+ * network core.
+ */
+export function withFreshWidgetIds(preset: Preset): Preset {
+  const copy = structuredClone(preset);
+  copy.widgets = freshCopies(copy.widgets).widgets;
   return copy;
 }

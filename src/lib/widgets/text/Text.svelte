@@ -12,7 +12,7 @@
   import { presetStore } from '../../state/preset.svelte';
   import { values } from '../../state/values.svelte';
   import { trackFonts } from '../../ui/textfit';
-  import { initialValue } from '../defs';
+  import { initialValue, widgetName } from '../defs';
   import WidgetFrame from '../WidgetFrame.svelte';
   import { placeholderValue } from './def';
   import { fitText, TEXT_PX } from './fit';
@@ -56,7 +56,7 @@
   });
 </script>
 
-<WidgetFrame {widget} {live} role="region" aria-label={widget.label || 'Text'}>
+<WidgetFrame {widget} {live} role="region" aria-label={widgetName(widget)}>
   {#snippet children()}
     <div
       bind:this={box}

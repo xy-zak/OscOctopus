@@ -1,14 +1,25 @@
 <script lang="ts">
-  import type { Preset } from '../model/preset';
+  // A desk's grid of widgets, or one page of a sub-desk on it (`page`). The desk's own canvas
+  // shares the desk with the sub-desks drawn on it (context.ts), which draw their pages with
+  // this same canvas, nested: shown and played, never edited there. The nesting ends where the
+  // pages do: `placements` (model/subdesks.ts) puts nothing deeper than the limit or in a loop.
+  import type { Preset, Widget } from '../model/preset';
+  import { autoColorOn, childrenIndex, gridOn, pageKey, type PageRef } from '../model/subdesks';
   import { provideSkin } from '../skins/context';
   import { lookStore } from '../state/look.svelte';
-  import { viewsOf } from '../widgets/registry';
-  import GridItem from './GridItem.svelte';
   import { colorVars } from '../theme/palettes';
+  import { viewsOf } from '../widgets/registry';
+  import { provideCanvas } from './context';
   import { metrics as computeMetrics, toPx, type Rect } from './engine';
+  import GridItem from './GridItem.svelte';
+  import PageCanvas from './PageCanvas.svelte';
 
   interface Props {
     preset: Preset;
+    /** The sub-desk page shown (null: the desk itself). */
+    page?: PageRef | null;
+    /** Where the desk's widgets show, from the canvas around (worked out here if none). */
+    index?: Map<string, Widget[]>;
     editing: boolean;
     selectedId: string | null;
     focusedId?: string | null;
@@ -21,9 +32,13 @@
     onlockedpress?: () => void;
     /** Who else is editing a widget, if anyone (shared desks). */
     holderOf?: (id: string) => { name: string; color: string } | null;
+    /** EDIT: a sub-desk was double-tapped (to open its page). */
+    onopen?: (id: string) => void;
   }
   let {
     preset,
+    page = null,
+    index: around,
     editing,
     locked = false,
     onlockedpress,
@@ -33,17 +48,29 @@
     onselect,
     onfocus,
     oncommit,
+    onopen,
   }: Props = $props();
 
   let width = $state(0);
   let height = $state(0);
 
-  const grid = $derived(preset.grid);
-  // Widgets whose colour is AUTO take the desk's own colour (see colorVars).
-  const auto = $derived(colorVars(preset.color));
+  const index = $derived(around ?? childrenIndex(preset));
+  const widgets = $derived(index.get(pageKey(page)) ?? []);
+  const grid = $derived(gridOn(preset, page));
+  // Widgets whose colour is AUTO take the desk's own colour, or their sub-desk's (colorVars).
+  const auto = $derived(colorVars(autoColorOn(preset, page)));
   // This desk's widgets wear its look's skin (its colours are around it, App.svelte).
   const skin = $derived(lookStore.forDesk(preset.id).skin);
   provideSkin(() => skin);
+  provideCanvas(() => ({
+    preset,
+    index,
+    editing,
+    locked,
+    focusedId,
+    onfocus,
+    Page: PageCanvas,
+  }));
   const m = $derived(computeMetrics(width, height, grid, grid.gap));
   // The grid is drawn in edit mode only: live, the desk is just its widgets.
   const cells = $derived(
@@ -81,14 +108,14 @@
   {/each}
 
   {#if width > 0}
-    {#each preset.widgets as w (w.id)}
+    {#each widgets as w (w.id)}
       {@const Widget = viewsOf(w).component}
       <GridItem
         id={w.id}
         rect={{ x: w.x, y: w.y, w: w.w, h: w.h }}
         {grid}
         metrics={m}
-        others={preset.widgets}
+        others={widgets}
         {editing}
         selected={selectedId === w.id}
         focused={focusedId === w.id}
@@ -96,6 +123,7 @@
         onselect={(id) => onselect(id)}
         {onfocus}
         {oncommit}
+        ondoubletap={w.type === 'subdesk' ? onopen : undefined}
       >
         <!-- Not live while editing or LOCKED: widgets then ignore pointer and keyboard. -->
         <Widget widget={w} live={!editing && !locked} />
