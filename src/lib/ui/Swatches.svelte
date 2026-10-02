@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  /** A choice before the ten colours, e.g. AUTO (a widget takes its desk's colour). */
+  /** A choice before the palette's colours, e.g. AUTO (a widget takes its desk's colour). */
   export interface SwatchExtra<E> {
     value: E;
     label: string;
@@ -10,10 +10,10 @@
 </script>
 
 <script lang="ts" generics="V extends number | string | null">
-  // Pick one of the palette's ten colours, or one of the `extras` before them. The palette is
-  // read from CSS variables, so this always shows the colours of the look it sits in (a desk's
-  // own palette inside the desk).
-  import { PALETTE_SIZE } from '../theme/palettes';
+  // Pick one of the palette's ten colours (its nine, then its accent, set apart), or one of the
+  // `extras` before them. The palette is read from CSS variables, so this always shows the
+  // colours of the look it sits in (a desk's own palette inside the desk).
+  import { ACCENT_INDEX, PALETTE_SIZE } from '../theme/palettes';
 
   interface Props {
     /** A palette index, or one of the extras' values. */
@@ -23,6 +23,7 @@
   }
   let { value, extras = [], onchange }: Props = $props();
   const indices = Array.from({ length: PALETTE_SIZE }, (_, i) => i);
+  const nameOf = (i: number) => (i === ACCENT_INDEX ? 'Accent' : `Colour ${i}`);
 </script>
 
 <div class="swatches" role="radiogroup">
@@ -43,9 +44,10 @@
       type="button"
       role="radio"
       aria-checked={value === i}
-      aria-label="Colour {i}"
-      title="Colour {i}"
+      aria-label={nameOf(i)}
+      title={nameOf(i)}
       class="sw"
+      class:accent={i === ACCENT_INDEX}
       class:on={value === i}
       style:--sw="var(--p{i})"
       onclick={() => onchange(i as V)}
@@ -69,6 +71,9 @@
     transition:
       translate var(--t-release) var(--ease-spring),
       box-shadow var(--t-release) var(--ease-spring);
+  }
+  .sw.accent {
+    margin-left: 6px;
   }
   .sw:hover {
     translate: -1px -1px;

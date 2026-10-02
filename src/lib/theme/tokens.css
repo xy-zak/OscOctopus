@@ -1,8 +1,8 @@
 /* Design tokens: a terminal. Near-black background, near-white text (or the inverse in light
    mode, `data-mode="light"` on <html>), one font at one size.
-   Colour comes only from the look (theme/look.ts: --p0…--p9, --accent and --active, set by
-   App.svelte on :root for every desk and on a desk's contents for its own) and the fixed
-   status colours below. */
+   Colour comes only from the look (theme/look.ts: --p0…--p9, --accent, the palette's last, and
+   --active, set by App.svelte on :root for every desk and on a desk's contents for its own) and
+   the fixed status colours below. */
 
 @font-face {
   font-family: 'JetBrainsMono NFM';
@@ -23,7 +23,7 @@
 @property --accent {
   syntax: '<color>';
   inherits: true;
-  initial-value: #2ee6d6;
+  initial-value: #ff6bd6;
 }
 @property --p0 {
   syntax: '<color>';
@@ -139,8 +139,8 @@
   --danger: #ff5f5f;
   --info: #87afff;
   /* The one ACTIVE colour of every widget (pressed, switched on, filled, held). Widgets rest in
-     their own palette colour; whatever is active turns this. The look chooses it: green (this
-     default) or one of the palette's colours. */
+     their own palette colour; whatever is active turns this. The look chooses it: any colour,
+     green by default (this, until the look is applied). */
   --active: var(--ok);
   --active-ink: var(--bg);
 

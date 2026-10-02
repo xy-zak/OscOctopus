@@ -39,14 +39,15 @@ export interface Settings {
   paused: boolean;
   /** A restart mid-show comes back presenting. */
   presenting: boolean;
-  /** Accent, background and the custom palettes (shared by every desk). */
+  /** Background and the custom palettes (shared by every desk). */
   theme: Theme;
   /** Palette, ACTIVE colour and skin for every desk, and any desk's own (theme/look.ts). */
   look: LookSetting;
   /** Before `look`: the skin for every desk and each desk's. Used once to migrate to `look`. */
   skins: unknown;
-  /** How this device is named to sync peers (its colour is the theme's accent). */
+  /** How this device is named to sync peers, and its colour there (a palette index). */
   syncName: string;
+  syncColor: number;
   syncConfig: SyncConfig;
   /** Peer ids refused on this device. */
   syncBlocked: string[];

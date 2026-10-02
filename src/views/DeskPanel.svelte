@@ -50,7 +50,7 @@
   <p class="faint">
     Palette, active colour and skin: this desk's own (<button
       class="link"
-      onclick={() => showDesk('preset')}>DESK › PRESET</button
+      onclick={() => showDesk('look')}>DESK › LOOK</button
     >) or all desks' (<button class="link" onclick={() => showGlobal('look')}
       >GLOBAL SETTINGS › LOOK</button
     >).

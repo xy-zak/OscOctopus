@@ -1,6 +1,7 @@
 <script lang="ts">
-  // GLOBAL SETTINGS › LOOK: make or edit a custom palette. Pick a source colour and ten colours
-  // are generated from it (theme/generate.ts); any of them can then be picked by hand, and
+  // GLOBAL SETTINGS › LOOK: make or edit a custom palette: nine colours and an accent, like
+  // every palette. Pick a source colour and the nine are generated from it, with an accent that
+  // stands apart from them (theme/generate.ts); any of the ten can then be picked by hand, and
   // stays that way when the source changes, until reset. Nothing changes until SAVE; a new
   // palette then becomes every desk's (lookActions.savePalette).
   import { untrack } from 'svelte';
@@ -8,8 +9,9 @@
   import { uid } from '../lib/model/parts';
   import { appearance } from '../lib/state/appearance.svelte';
   import { lookStore } from '../lib/state/look.svelte';
-  import { generatePalette, normalizeHex, regenerate } from '../lib/theme/generate';
-  import { DEFAULT_ACCENT, inkFor, PALETTE_SIZE } from '../lib/theme/palettes';
+  import { generatePalette, normalizeHex, regenerate, SOURCE_INDEX } from '../lib/theme/generate';
+  import { ACCENT_INDEX, inkFor, PALETTE_SIZE } from '../lib/theme/palettes';
+  import ColorField from '../lib/ui/ColorField.svelte';
   import Field from '../lib/ui/Field.svelte';
   import Icon from '../lib/ui/Icon.svelte';
   import Panel from '../lib/ui/Panel.svelte';
@@ -22,13 +24,12 @@
   }
   let { palette, onclose }: Props = $props();
 
-  /** A new palette starts from the colour the accent has now, in every desk's palette. */
+  /** A new palette starts from the middle colour of every desk's palette. */
   function fresh(): CustomPalette {
     const taken = new Set(appearance.theme.custom.map((p) => p.name));
     let n = 1;
     while (taken.has(`CUSTOM ${n}`)) n++;
-    const source =
-      normalizeHex(lookStore.global.palette.colors[appearance.theme.accent] ?? '') ?? '#3cb4ff';
+    const source = normalizeHex(lookStore.global.palette.colors[SOURCE_INDEX] ?? '') ?? '#3cb4ff';
     return {
       id: uid('custom'),
       name: `CUSTOM ${n}`,
@@ -43,7 +44,6 @@
   const isNew = untrack(() => palette === null);
   let name = $state(start.name);
   let source = $state(start.source);
-  let hexText = $state(start.source);
   let colors = $state([...start.colors]);
   let overridden = $state([...start.overridden]);
 
@@ -51,22 +51,16 @@
   const nameOk = $derived(
     trimmed.length >= LIMITS.paletteName.min && trimmed.length <= LIMITS.paletteName.max,
   );
-  const hexOk = $derived(normalizeHex(hexText) !== null);
   const manual = $derived(overridden.filter(Boolean).length);
-  // Where the generator put the source (colour 5 unless it is nearly white or black).
+  // Where the generator put the source (colour 4 unless it is nearly white or black).
   const sourceAt = $derived(generatePalette(source).indexOf(source));
+  /** How a colour is named: by its number, or the accent. */
+  const nameOf = (i: number) => (i === ACCENT_INDEX ? 'Accent' : `Colour ${i}`);
   const full = $derived(isNew && appearance.customFull);
 
   function setSource(hex: string) {
     source = hex;
-    hexText = hex;
     colors = regenerate(hex, colors, overridden);
-  }
-
-  function onHex(text: string) {
-    hexText = text;
-    const hex = normalizeHex(text);
-    if (hex) setSource(hex);
   }
 
   function override(i: number, hex: string) {
@@ -117,61 +111,51 @@
           bind:value={name}
         />
       </Field>
-      <Field label="Source colour" hint="The ten colours are made from this one">
-        <span class="source">
-          <span class="pick" style:--c={source}>
-            <input
-              type="color"
-              aria-label="Source colour"
-              value={source}
-              oninput={(e) => setSource(e.currentTarget.value)}
-            />
-          </span>
-          <input
-            class="input hex"
-            class:invalid={!hexOk}
-            aria-label="Source colour as hex"
-            spellcheck="false"
-            value={hexText}
-            oninput={(e) => onHex(e.currentTarget.value)}
-            onblur={() => (hexText = source)}
-          />
-        </span>
+      <Field label="Source colour" hint="The nine colours and the accent are made from this one">
+        <ColorField value={source} label="Source colour" onchange={setSource} />
       </Field>
     </div>
 
     <div class="colours">
       {#each colors as c, i (i)}
-        <div class="slot">
-          <span class="pick big" class:manual={overridden[i]} style:--c={c} style:--ink={inkFor(c)}>
+        {@const accent = i === ACCENT_INDEX}
+        <div class="slot" class:accent>
+          <span
+            class="color-well big"
+            class:manual={overridden[i]}
+            style:--c={c}
+            style:--ink={inkFor(c)}
+          >
             <input
               type="color"
-              aria-label="Palette colour {i}{overridden[i] ? ' (picked by hand)' : ''}"
+              aria-label="{nameOf(i)}{overridden[i] ? ' (picked by hand)' : ''}"
               title={overridden[i]
-                ? `Colour ${i}: picked by hand`
-                : `Colour ${i}: click to pick your own`}
+                ? `${nameOf(i)}: picked by hand`
+                : `${nameOf(i)}: click to pick your own`}
               value={c}
               oninput={(e) => override(i, e.currentTarget.value)}
             />
-            <span class="n" aria-hidden="true">{i}</span>
+            <span class="n" aria-hidden="true">{accent ? 'A' : i}</span>
           </span>
           {#if overridden[i]}
             <button
               type="button"
               class="btn ghost reset"
-              title="Colour {i}: back to the generated colour"
+              title="{nameOf(i)}: back to the generated colour"
               onclick={() => reset(i)}><Icon name="refresh" /></button
             >
           {:else}
-            <span class="tag faint">{i === sourceAt ? 'SRC' : ''}</span>
+            <span class="tag faint">{i === sourceAt ? 'SRC' : accent ? 'ACC' : ''}</span>
           {/if}
         </div>
       {/each}
     </div>
     <p class="faint">
-      Lightest to darkest, drifting towards yellow in the lights and violet in the darks. SRC is the
-      source itself{sourceAt === DEFAULT_ACCENT ? ' (colour 5, the default accent)' : ''}. Click any
-      colour to pick your own; <Icon name="refresh" /> puts it back.
+      Colours 0–8 run lightest to darkest, drifting towards yellow in the lights and violet in the
+      darks; SRC is the source itself. A is the accent: it marks highlights and selection wherever
+      the palette is worn, and widgets can use it as a tenth colour. It is made from the source's
+      opposite hue, to stand apart. Click any colour to pick your own; <Icon name="refresh" /> puts it
+      back.
     </p>
 
     <div class="actions">
@@ -203,47 +187,15 @@
   .name {
     text-transform: uppercase;
   }
-  .source {
-    display: flex;
-    gap: 1ch;
-  }
-  .hex {
-    width: 11ch;
-    text-transform: lowercase;
-  }
-  /* A colour swatch with the native colour picker laid invisibly over it, so a click (or
-     Enter/Space when focused) opens the system's RGB picker. */
-  .pick {
-    position: relative;
-    flex: none;
-    width: var(--control-h);
-    height: var(--control-h);
-    background: var(--c);
-    box-shadow: 2px 2px 0 0 var(--shadow-px);
-  }
-  .pick:hover {
-    translate: -1px -1px;
-    box-shadow: 3px 3px 0 0 var(--shadow-px);
-  }
-  .pick:has(:focus-visible) {
-    outline: 1px solid var(--fg);
-    outline-offset: 2px;
-  }
-  .pick input {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    padding: 0;
-    border: 0;
-    opacity: 0;
-    cursor: pointer;
-  }
+  /* The nine, then the accent set apart. */
   .colours {
     display: grid;
-    grid-template-columns: repeat(10, minmax(0, 1fr));
+    grid-template-columns: repeat(9, minmax(0, 1fr)) 4px minmax(0, 1fr);
     gap: 6px;
-    max-width: 64ch;
+    max-width: 66ch;
+  }
+  .slot.accent {
+    grid-column: -2;
   }
   .slot {
     display: flex;
@@ -251,7 +203,7 @@
     align-items: stretch;
     gap: 4px;
   }
-  .pick.big {
+  .color-well.big {
     width: auto;
     height: 40px;
   }
@@ -264,7 +216,7 @@
     pointer-events: none;
   }
   /* Picked by hand: a corner notch in the colour's ink. */
-  .pick.manual::after {
+  .color-well.manual::after {
     content: '';
     position: absolute;
     top: 0;

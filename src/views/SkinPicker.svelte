@@ -1,6 +1,6 @@
 <script lang="ts">
   // One row per skin: ( ) NAME and a few widgets drawn in it, in the colours of the look around
-  // the picker. The skin of every desk (`desk` null, LOOK) or of one desk (DESK › PRESET), whose
+  // the picker. The skin of every desk (`desk` null, LOOK) or of one desk (DESK › LOOK), whose
   // list starts with ALL DESKS: it takes every desk's. The skins made on this device follow the
   // built-in ones, each with its actions.
   import type { Snippet } from 'svelte';

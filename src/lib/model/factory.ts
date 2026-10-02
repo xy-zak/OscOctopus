@@ -2,7 +2,7 @@
 // created by their defs: `newWidget` in widgets/defs.ts.)
 import { INPUT_DEFAULTS, OUTPUT_DEFAULTS } from '../ipc/defaults';
 import type { InputConfig, OutputConfig } from '../ipc/types';
-import { DEFAULT_ACCENT } from '../theme/palettes';
+import { DEFAULT_COLOR } from '../theme/palettes';
 import { newWidget, remapRefsOf } from '../widgets/defs';
 import { uid } from './parts';
 import { CURRENT_SCHEMA_VERSION, type Preset, type Widget } from './preset';
@@ -42,7 +42,7 @@ export function newPreset(
   const widgets = layout.map(([w, color]) => ({ ...w, color }));
   return {
     schemaVersion: CURRENT_SCHEMA_VERSION,
-    color: opts.color ?? DEFAULT_ACCENT,
+    color: opts.color ?? DEFAULT_COLOR,
     id: uid('p'),
     name,
     createdAt: now,

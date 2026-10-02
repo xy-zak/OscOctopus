@@ -24,9 +24,10 @@ Scripts.
 - **Looks: one way to colour and skin every desk.** A look is three choices: the palette, the
   **ACTIVE colour** (what is pressed, on, filled or held, until now always green) and the widget
   skin. GLOBAL SETTINGS › LOOK sets them for every desk, and adds or deletes palettes and skins;
-  DESK › PRESET can give a desk its own palette, active colour or skin (each starts at
+  DESK › LOOK can give a desk its own palette, active colour or skin (each starts at
   _ALL DESKS_), with the same pickers. A widget's colour (EDIT › VISUAL) is one of its desk's
-  palette colours. GREEN stays the default active colour; any palette colour can take its place.
+  palette colours. GREEN stays the default active colour; any colour can take its place, picked
+  on the system's colour picker or typed as a hex code.
   Per device, like the rest of LOOK: a shared desk shows in each person's own look.
 - **Hide a widget's title or value** (EDIT › VISUAL › _Show_): the title and the value readout
   set into its frame can each be switched off.
@@ -46,7 +47,7 @@ Scripts.
   BLUEPRINT (a technical drawing), BRUTALIST (thick borders, hard offset shadows), LED MATRIX
   (a grid of round LEDs), CRT (scanlines, vignette, phosphor glow) and ARCADE (domed buttons in
   chrome rings, ball-top levers). The text, the markers (fader scale, ON/OFF, pad numbers) and
-  the desk's background are the same in every skin. A desk can have its own skin (DESK › PRESET).
+  the desk's background are the same in every skin. A desk can have its own skin (DESK › LOOK).
   Per device, like the palette: a shared desk shows in each person's own skin. How to make one:
   docs/SKINS.md.
 - **User skins:** skin files (JSON, with their images embedded) build on a built-in skin and
@@ -54,11 +55,12 @@ Scripts.
   _Export…_ saves one as a file for another device; _Delete_ removes it, and desks wearing it go
   back to TERMINAL. A file that isn't a valid skin is listed with the reason, so it can be
   deleted.
-- **Custom palettes** (GLOBAL SETTINGS › LOOK › _New palette_). Pick a source colour and ten
-  colours are generated from it, lightest to darkest, with the source as colour 5 (the default
-  accent). Lighter colours drift towards yellow and darker ones towards violet, like the built-in
-  themed palettes, so neighbours stay distinct. Any colour can then be picked by hand, and it
-  stays when the source changes, until reset. Saved palettes are listed with the built-in ones
+- **Custom palettes** (GLOBAL SETTINGS › LOOK › _New palette_). Pick a source colour and nine
+  colours are generated from it, lightest to darkest, with the source as colour 4 (the middle),
+  and an accent from its opposite hue. Lighter colours drift towards yellow and darker ones
+  towards violet, like the built-in themed palettes, so neighbours stay distinct. Any colour, the
+  accent included, can then be picked by hand, and it stays when the source changes, until
+  reset. Saved palettes are listed with the built-in ones
   (_Edit_ to change or delete one) and kept per device, like the rest of LOOK. A new palette
   becomes every desk's; saving changes to one recolours wherever it is used.
 - **OSC input drives widgets.** A widget's message can now also _receive_: from one of the
@@ -75,7 +77,7 @@ Scripts.
   - TRAFFIC shows what happened to every received message.
 - **Sync: share desks live between OscOctopus apps**, peer to peer, with no server.
   - Join a session (GLOBAL SETTINGS › SYNC, F5) with a generated key or a passphrase. Others
-    see this device under its name, in its LOOK accent colour.
+    see this device under its name, in the colour it picks there (in their own palette).
     Connections are authenticated and encrypted (Noise XXpsk3), and apps on the LAN find each
     other (mDNS) or are added by address.
   - Share a desk (DESK › SYNC, F5), and everyone in the session can play it and edit it at the
@@ -92,6 +94,13 @@ Scripts.
 
 ### Changed
 
+- **Each palette brings its own accent:** nine colours and an accent, last and set apart in
+  every picker. The accent marks highlights and selection wherever the palette is worn, and
+  widgets and desks can still use it as a tenth colour. The separate _Accent_ choice in LOOK is
+  gone. The built-in palettes' accents are their last colours (RAINBOW, NEON and PASTEL now
+  highlight in pink); GREYSCALE's is white, after its nine greys.
+- **DESK › PRESET is now DESK › LOOK** (still F4): the desk's name, colour, preset file and look.
+- **A desk tab always opens on the desk's CONTROLS**, whichever section was open before.
 - **PAUSE is now OSC-OUT**, next to **OSC-IN**: both are on by default, and turning OSC-OUT
   off pauses all output as before (red, with the OUTPUT PAUSED banner; still Alt+P).
 - **OSC-IN, OSC-OUT and LOCK change only after a 1 s press-and-hold**, on and off alike (LOCK

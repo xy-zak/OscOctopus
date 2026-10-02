@@ -4,12 +4,11 @@
 import { sync } from '../ipc/commands';
 import { onSyncStatus } from '../ipc/events';
 import type { AppKind, PeerInfo, SyncConfig, SyncStatus } from '../ipc/types';
-import { untrack } from 'svelte';
-import { CURRENT_SCHEMA_VERSION } from '../model/preset';
+import { ColorIndex, CURRENT_SCHEMA_VERSION } from '../model/preset';
 import { getSetting } from '../platform/settings';
-import { appearance } from '../state/appearance.svelte';
 import { debugStore } from '../state/debug.svelte';
 import { persistSetting } from '../state/persist';
+import { DEFAULT_COLOR } from '../theme/palettes';
 import { errorText } from '../util';
 import { SyncBus } from './bus';
 import type { Presence } from './protocol';
@@ -77,18 +76,8 @@ class SyncSession {
     const status = await sync.status();
     this.status = status;
     const name = (await getSetting('syncName')) ?? `OscOctopus ${status.local.peerId.slice(0, 4)}`;
-    this.status = await sync.setProfile(name, appearance.theme.accent);
-    // Others see this device in its accent colour (GLOBAL SETTINGS › LOOK), kept in step.
-    $effect.root(() => {
-      $effect(() => {
-        const accent = appearance.theme.accent;
-        untrack(() => {
-          const profile = this.status?.local.profile;
-          if (profile && profile.color !== accent)
-            void sync.setProfile(profile.name, accent).then((s) => (this.status = s));
-        });
-      });
-    });
+    const color = ColorIndex.catch(DEFAULT_COLOR).parse(await getSetting('syncColor'));
+    this.status = await sync.setProfile(name, color);
     const config = await getSetting('syncConfig');
     if (config) await this.setConfig(config, false);
     const blocked = await getSetting('syncBlocked');
@@ -160,10 +149,22 @@ class SyncSession {
     return sync.newKey();
   }
 
-  /** How this device is named to others (its colour is the LOOK accent). */
+  /** How this device is named to others. */
   async setName(name: string) {
-    this.status = await sync.setProfile(name, appearance.theme.accent);
+    this.status = await sync.setProfile(name, this.color);
     await persistSetting('syncName', this.status.local.profile.name);
+  }
+
+  /** The colour others see this device in: a palette index, in each one's own palette. */
+  get color(): number {
+    return this.status?.local.profile.color ?? DEFAULT_COLOR;
+  }
+
+  async setColor(color: number) {
+    const name = this.status?.local.profile.name;
+    if (name === undefined) return;
+    this.status = await sync.setProfile(name, color);
+    await persistSetting('syncColor', color);
   }
 
   /** Applies connection settings; resolves false (with `error` set) if they were refused. */

@@ -15,6 +15,7 @@
   import Lockable from '../lib/ui/Lockable.svelte';
   import NumberInput from '../lib/ui/NumberInput.svelte';
   import Panel from '../lib/ui/Panel.svelte';
+  import Swatches from '../lib/ui/Swatches.svelte';
   import Toggle from '../lib/ui/Toggle.svelte';
   import { toast } from '../lib/state/ui.svelte';
   import { errorText } from '../lib/util';
@@ -129,10 +130,7 @@
   <Panel title="This device">
     {#if s}
       <div class="grid">
-        <Field
-          label="Name (shown to others)"
-          hint="Shown in your accent colour (GLOBAL SETTINGS › LOOK)"
-        >
+        <Field label="Name (shown to others)">
           <input
             class="input"
             maxlength="40"
@@ -144,6 +142,14 @@
         </Field>
         <Field label="Fingerprint" hint="Compare it by eye to know a device is really this one">
           <span class="readout">{s.local.fingerprint}</span>
+        </Field>
+        <Field
+          label="Colour (shown to others)"
+          hint="Each of them sees it in their own palette"
+          group
+          wide
+        >
+          <Swatches value={syncSession.color} onchange={(c) => syncSession.setColor(c)} />
         </Field>
       </div>
       {#if s.local.identityError}

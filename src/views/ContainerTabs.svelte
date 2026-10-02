@@ -36,9 +36,10 @@
     return list.every((s) => s.state === 'ready') ? 'ok' : 'warn';
   }
 
+  /** A desk tab always opens on the desk's CONTROLS. */
   function pick(id: string) {
     presetStore.activate(id);
-    showDesk();
+    showDesk('controls');
   }
 
   /** Closes the menu, runs a menu action, and shows the resulting desk's controls. */

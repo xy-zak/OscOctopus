@@ -8,7 +8,7 @@
 import { getSetting } from '../platform/settings';
 import { hasPalette } from '../theme/palettes';
 import {
-  ACTIVE_GREEN,
+  DEFAULT_ACTIVE,
   DEFAULT_LOOK,
   LookSettingSchema,
   resolveLook,
@@ -70,8 +70,16 @@ class LookStore {
     return own !== undefined && this.exists(field, own) ? own : null;
   }
 
-  /** Chooses for every desk (`desk` null) or one; null makes a desk follow every desk again. */
-  async choose<K extends LookField>(desk: string | null, field: K, value: Look[K] | null) {
+  /**
+   * Chooses for every desk (`desk` null) or one; null makes a desk follow every desk again.
+   * `save` false only shows it (a colour still being picked), until a choice that saves.
+   */
+  async choose<K extends LookField>(
+    desk: string | null,
+    field: K,
+    value: Look[K] | null,
+    save = true,
+  ) {
     if (desk === null) {
       if (value === null) return;
       this.setting.global[field] = value;
@@ -81,7 +89,7 @@ class LookStore {
       else own[field] = value;
       this.setDesk(desk, own);
     }
-    await this.save();
+    if (save) await this.save();
   }
 
   /** The desk takes every desk's look again. */
@@ -131,7 +139,7 @@ class LookStore {
   /**
    * Loads the saved look. Before there was one, the palette was part of the theme (before
    * that, of the first desk's preset: `legacyTheme`) and the skins had a setting of their own;
-   * they are carried over once, with the standard ACTIVE green.
+   * they are carried over once, with the default ACTIVE green.
    */
   async load(legacyTheme?: unknown) {
     const saved = await getSetting('look');
@@ -150,7 +158,7 @@ class LookStore {
       | undefined;
     const desks = skins?.desks && typeof skins.desks === 'object' ? skins.desks : {};
     const parsed = LookSettingSchema.safeParse({
-      global: { palette, active: ACTIVE_GREEN, skin: skins?.global },
+      global: { palette, active: DEFAULT_ACTIVE, skin: skins?.global },
       desks: Object.fromEntries(Object.entries(desks).map(([id, skin]) => [id, { skin }])),
     });
     this.setting = parsed.success ? parsed.data : fresh();

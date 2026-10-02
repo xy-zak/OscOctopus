@@ -1,13 +1,15 @@
-// Custom palette generator: one picked colour → ten colours, light to dark. Pure; tested in
+// Custom palette generator: one picked colour → nine colours, light to dark, and an accent
+// that stands apart from them (palettes.ts: the accent is the tenth). Pure; tested in
 // generate.test.ts.
 //
 // Worked in OKLCH, where equal steps in lightness look equal. The picked colour is kept exactly
-// and becomes colour 5 (the default accent). The lighter colours above it drift towards yellow
-// and the darker ones below towards violet, each by the shortest way round the colour wheel.
-// That is the rule the built-in themed palettes follow (SUNSET: yellow → orange → pink →
+// and becomes colour 4, the middle of the nine. The lighter colours above it drift towards
+// yellow and the darker ones below towards violet, each by the shortest way round the colour
+// wheel. That is the rule the built-in themed palettes follow (SUNSET: yellow → orange → pink →
 // purple; COBALT: ice → cobalt → indigo), so neighbouring colours stay distinct, not just
-// lighter or darker. A grey source gives a plain grey ramp.
-import { DEFAULT_ACCENT, PALETTE_SIZE } from './palettes';
+// lighter or darker. A grey source gives a plain grey ramp. The accent is the source's
+// opposite hue, bright and clear; a grey source's is gold.
+import { ACCENT_INDEX } from './palettes';
 
 type Lab = { L: number; a: number; b: number };
 type Lch = { L: number; C: number; h: number };
@@ -31,6 +33,16 @@ const WARM_SHIFT = 45;
 const COOL_SHIFT = 55;
 /** Below this chroma a colour counts as grey: its hue means nothing. */
 const GREY = 0.02;
+/** The accent's lightness and least chroma, so it shows on the dark background and stands out
+ *  from the nine; and its hue for a grey source (gold). */
+const ACCENT_L = 0.8;
+const ACCENT_MIN_C = 0.12;
+const ACCENT_GREY_HUE = 85;
+
+/** How many colours the ramp has: every one but the accent. */
+const RAMP = ACCENT_INDEX;
+/** Where the source goes in the ramp: the middle of the nine. */
+export const SOURCE_INDEX = 4;
 
 const HEX = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
@@ -116,30 +128,42 @@ function drift(h: number, target: number, max: number): number {
 }
 
 /**
- * Where the source goes in the ramp: colour 5 (the default accent) whenever there is room for
- * distinct lighter and darker colours around it. A near-white source moves towards colour 0 and
- * a near-black one towards colour 9, so the other nine still differ.
+ * Where the source goes in the ramp: SOURCE_INDEX whenever there is room for distinct lighter
+ * and darker colours around it. A near-white source moves towards colour 0 and a near-black one
+ * towards colour 8, so the others still differ.
  */
 function sourceIndex(L: number, top: number, bottom: number): number {
-  const last = PALETTE_SIZE - 1;
+  const last = RAMP - 1;
   const above = Math.floor((top - L) / MIN_STEP + 1e-9);
   const below = Math.floor((L - bottom) / MIN_STEP + 1e-9);
-  if (above < DEFAULT_ACCENT) return Math.max(0, above);
-  if (below < last - DEFAULT_ACCENT) return Math.min(last, last - Math.max(0, below));
-  return DEFAULT_ACCENT;
+  if (above < SOURCE_INDEX) return Math.max(0, above);
+  if (below < last - SOURCE_INDEX) return Math.min(last, last - Math.max(0, below));
+  return SOURCE_INDEX;
 }
 
-/** Ten colours from one: lightest first, the source itself included exactly. */
+/** The accent for a source: its opposite hue (gold for a grey), bright and clear. */
+function accentOf(src: Lch, grey: boolean): string {
+  return lchToHex({
+    L: ACCENT_L,
+    C: Math.max(src.C, ACCENT_MIN_C),
+    h: grey ? ACCENT_GREY_HUE : (src.h + 180) % 360,
+  });
+}
+
+/**
+ * Ten colours from one: nine lightest first, the source itself included exactly, then the
+ * accent.
+ */
 export function generatePalette(source: string): string[] {
   const hex = normalizeHex(source) ?? '#808080';
   const src = hexToLch(hex);
-  const last = PALETTE_SIZE - 1;
+  const last = RAMP - 1;
   const top = Math.max(TOP, src.L);
   const bottom = Math.min(BOTTOM, Math.max(FLOOR, src.L - DARK_SPAN));
   const at = sourceIndex(src.L, top, bottom);
   const grey = src.C < GREY;
 
-  return Array.from({ length: PALETTE_SIZE }, (_, i) => {
+  const ramp = Array.from({ length: RAMP }, (_, i) => {
     if (i === at) return hex;
     if (i < at) {
       // 0 next to the source … 1 at the lightest.
@@ -157,6 +181,7 @@ export function generatePalette(source: string): string[] {
       h: grey ? src.h : drift(src.h, COOL_HUE, COOL_SHIFT * t),
     });
   });
+  return [...ramp, accentOf(src, grey)];
 }
 
 /**

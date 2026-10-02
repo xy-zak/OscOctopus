@@ -16,7 +16,7 @@ motion. The app ships twelve skins:
 - CRT: an old monitor, with scanlines and phosphor glow;
 - ARCADE: a cabinet panel of domed buttons and ball-top levers.
 
-A skin is chosen in GLOBAL SETTINGS › LOOK, and a desk can have its own in DESK › PRESET.
+A skin is chosen in GLOBAL SETTINGS › LOOK, and a desk can have its own in DESK › LOOK.
 
 This guide is written so that a person, or an LLM pointed at this file, can make a new
 built-in skin that fits in. Read the whole of *The contract* before writing any CSS.
@@ -114,7 +114,7 @@ colours, or the palette, the widget's own colour and light mode stop working.
 | `--c-ink` | text on `--c-solid` |
 | `--c-text` | `--c` as text (darkened in light mode) |
 | `--w-bg` | the widget's neutral background |
-| `--act`, `--act-ink` | the ACTIVE colour (pressed, on, held) and text on it: green, or the palette colour a desk's look picks, so never assume green |
+| `--act`, `--act-ink` | the ACTIVE colour (pressed, on, held) and text on it: green by default, but any colour a desk's look picks, so never assume green |
 | `--dither-50-act`, `--dither-25-act`, `--dither-25-c` | ready-made dither fills |
 | `--bg`, `--bg-2`, `--fg`, `--fg-dim`, `--fg-faint`, `--line`, `--shadow-px` | the app's base colours (they flip with light/dark) |
 
@@ -363,8 +363,8 @@ Prettier will spread this over more lines; that's fine.
    lit, flashing, vertical and horizontal. Compare with `?skin=terminal`. In each shot, check:
    - the title and value are in the same place;
    - the fader scale, ON/OFF, pad numbers, `▸` and the graph's quarter lines are all there;
-   - ACTIVE is the ACTIVE colour: green, and a palette colour with `&active=6` (a colour next
-     to a widget's own, to be sure the two still tell apart).
+   - ACTIVE is the ACTIVE colour: green, and another with `&active=3cb4ff` (a hex code without
+     `#`; this one is next to a widget's own, to be sure the two still tell apart).
 2. `npm test`. `anatomy.test.ts` checks the contract and that you only used known part names.
 3. `npm run shots -- compare`. It shoots every skin and compares against `.shots/baseline`:
    - the other skins must show **no differences**;

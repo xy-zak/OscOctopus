@@ -6,7 +6,7 @@
   //   │ logo  [DESK A][DESK B][+]     [GLOBAL SETTINGS] │ out · OSC-IN · OSC-OUT · LOCK · PRESENT │
   //   └──────╥──────────────────────────────────────────────────────────────────────────┘
   //   ╔══════╝ frame in the active container's colour ═════════════════════════════════╗
-  //   ║ F1 CONTROLS  F2 NETWORK  F3 TRAFFIC  F4 PRESET  F5 SYNC                           ║
+  //   ║ F1 CONTROLS  F2 NETWORK  F3 TRAFFIC  F4 LOOK  F5 SYNC                             ║
   //   ║ …section…                                                                        ║
   //   ╚══════════════════════════════════════════════════════════════════════════════════╝
   //
@@ -54,7 +54,7 @@
   import ContainerTabs from './views/ContainerTabs.svelte';
   import Desk from './views/Desk.svelte';
   import DeskNetwork from './views/DeskNetwork.svelte';
-  import DeskPreset from './views/DeskPreset.svelte';
+  import DeskLook from './views/DeskLook.svelte';
   import DeskSync from './views/DeskSync.svelte';
   import GlobalNetwork from './views/GlobalNetwork.svelte';
   import GlobalSync from './views/GlobalSync.svelte';
@@ -138,8 +138,8 @@
   // around its contents (`deskLook`, on <main>).
   $effect(() => {
     const root = document.documentElement.style;
-    const { accent, mode } = appearance.theme;
-    for (const [k, v] of Object.entries(lookVars(lookStore.global, accent))) {
+    const { mode } = appearance.theme;
+    for (const [k, v] of Object.entries(lookVars(lookStore.global))) {
       root.setProperty(k, v);
     }
     // Light/dark background: tokens.css switches the base colours on data-mode.
@@ -171,7 +171,7 @@
   // What the frame holds is drawn in the look of its container: the desk's own, or every desk's
   // for GLOBAL SETTINGS.
   const frameLook = $derived(ui.view === 'desk' ? lookStore.forDesk(desk.id) : lookStore.global);
-  const frameVars = $derived(cssText(lookVars(frameLook, appearance.theme.accent)));
+  const frameVars = $derived(cssText(lookVars(frameLook)));
   // The frame takes the active container's colour: the desk's identity colour (in its own
   // palette), or neutral white for GLOBAL SETTINGS.
   const scope = $derived(
@@ -397,8 +397,8 @@
           {#key desk.id}
             <Traffic scope={desk.id} />
           {/key}
-        {:else if ui.deskView === 'preset'}
-          <DeskPreset />
+        {:else if ui.deskView === 'look'}
+          <DeskLook />
         {:else}
           <DeskSync />
         {/if}

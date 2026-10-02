@@ -22,7 +22,7 @@ ART = [
     '#..#.#..#',
     '.#.....#.',
 ]
-ACCENT = '#2ee6d6'  # RAINBOW[DEFAULT_ACCENT], the accent the UI starts with
+ACCENT = '#2ee6d6'  # RAINBOW colour 5 (teal), the accent the UI first shipped with
 
 
 def render(size: int) -> Image.Image:

@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { ThemeSchema, type CustomPalette, type Theme } from '../model/preset';
 import {
+  ACCENT_INDEX,
   hasPalette,
+  INK_DARK,
   inkFor,
+  luminance,
   nearestIndex,
   PALETTE_IDS,
   PALETTE_SIZE,
@@ -39,20 +42,27 @@ describe('palettes', () => {
       for (const c of colors) expect(c).toMatch(/^#[0-9a-f]{6}$/);
     }
   });
+  it('ends each with an accent that shows on the dark background', () => {
+    expect(ACCENT_INDEX).toBe(PALETTE_SIZE - 1);
+    const contrast = (hex: string) => (luminance(hex) + 0.05) / (luminance(INK_DARK) + 0.05);
+    for (const id of PALETTE_IDS) {
+      expect(contrast(PALETTES[id].colors[ACCENT_INDEX]!), id).toBeGreaterThan(4.5);
+    }
+  });
   it('picks readable ink for reverse video', () => {
     expect(inkFor('#fafafa')).toBe('#0b0b0c');
     expect(inkFor('#4a4a4a')).toBe('#f2f0eb');
   });
   it('finds the nearest colour', () => {
     expect(nearestIndex('#ff0000', 'rainbow')).toBe(0);
-    expect(nearestIndex('#fff', 'greyscale')).toBe(0);
+    expect(nearestIndex('#fff', 'greyscale')).toBe(ACCENT_INDEX);
     expect(nearestIndex('not a colour', 'neon')).toBe(0);
   });
-  it('emits CSS variables for every colour and the accent', () => {
-    const v = paletteVars(PALETTES.neon.colors, 3);
-    expect(v['--p9']).toBe(PALETTES.neon.colors[9]);
-    expect(v['--accent']).toBe(PALETTES.neon.colors[3]);
-    expect(v['--accent-ink']).toBeDefined();
+  it('emits CSS variables for every colour and the accent, its last', () => {
+    const v = paletteVars(PALETTES.neon.colors);
+    expect(v['--p3']).toBe(PALETTES.neon.colors[3]);
+    expect(v['--accent']).toBe(PALETTES.neon.colors[ACCENT_INDEX]);
+    expect(v['--accent-ink']).toBe(inkFor(PALETTES.neon.colors[ACCENT_INDEX]!));
   });
   it('gives a palette colour as plain colours, for outside its look', () => {
     expect(swatchOf(PALETTES.neon, 2)).toEqual({
@@ -64,13 +74,12 @@ describe('palettes', () => {
 
 describe('theme mode', () => {
   it('defaults to dark, including for themes saved before light mode existed', () => {
-    expect(ThemeSchema.parse({ accent: 2 }).mode).toBe('dark');
-    expect(ThemeSchema.parse({ accent: 2, mode: 'light' }).mode).toBe('light');
-    expect(ThemeSchema.safeParse({ accent: 2, mode: 'sepia' }).success).toBe(false);
+    expect(ThemeSchema.parse({}).mode).toBe('dark');
+    expect(ThemeSchema.parse({ mode: 'light' }).mode).toBe('light');
+    expect(ThemeSchema.safeParse({ mode: 'sepia' }).success).toBe(false);
   });
-  it('still loads a theme saved when it named the palette (now part of the look)', () => {
+  it('still loads a theme saved when it named the palette and an accent (now the palette’s)', () => {
     expect(ThemeSchema.parse({ palette: 'neon', accent: 2 })).toEqual({
-      accent: 2,
       mode: 'dark',
       custom: [],
     });
@@ -86,7 +95,7 @@ const mine: CustomPalette = {
 };
 
 describe('custom palettes', () => {
-  const theme: Theme = { accent: 5, mode: 'dark', custom: [] };
+  const theme: Theme = { mode: 'dark', custom: [] };
 
   it('are found by id; a missing one shows as RAINBOW', () => {
     expect(resolvePalette('sunset', [mine])).toBe(PALETTES.sunset);
@@ -106,7 +115,7 @@ describe('custom palettes', () => {
   });
 
   it('are validated when a saved theme loads; themes saved before them have none', () => {
-    expect(ThemeSchema.parse({ accent: 2 }).custom).toEqual([]);
+    expect(ThemeSchema.parse({ mode: 'dark' }).custom).toEqual([]);
     expect(ThemeSchema.safeParse({ ...theme, custom: [mine] }).success).toBe(true);
     const valid = (patch: Partial<CustomPalette>) =>
       ThemeSchema.safeParse({ ...theme, custom: [{ ...mine, ...patch }] }).success;

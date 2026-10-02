@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CustomPalette } from '../model/preset';
+import { DEFAULT_ACTIVE } from '../theme/look';
 import { PALETTE_SIZE, PALETTES } from '../theme/palettes';
 
 let saved: Record<string, unknown> = {};
@@ -30,21 +31,21 @@ const mySkin = 'skin-mine';
 beforeEach(() => {
   saved = {};
   lookStore.setting = {
-    global: { palette: 'rainbow', active: 'green', skin: 'terminal' },
+    global: { palette: 'rainbow', active: DEFAULT_ACTIVE, skin: 'terminal' },
     desks: {},
   };
-  appearance.theme = { accent: 5, mode: 'dark', custom: [] };
+  appearance.theme = { mode: 'dark', custom: [] };
   skinStore.user = [];
 });
 
 describe('look', () => {
   it('starts as RAINBOW, GREEN and TERMINAL everywhere, and saves that', async () => {
     await lookStore.load();
-    expect(lookStore.global).toMatchObject({ paletteId: 'rainbow', active: 'green' });
+    expect(lookStore.global).toMatchObject({ paletteId: 'rainbow', active: DEFAULT_ACTIVE });
     expect(lookStore.global.skin.id).toBe('terminal');
     expect(lookStore.forDesk('p-1')).toEqual(lookStore.global);
     expect(saved.look).toEqual({
-      global: { palette: 'rainbow', active: 'green', skin: 'terminal' },
+      global: { palette: 'rainbow', active: DEFAULT_ACTIVE, skin: 'terminal' },
       desks: {},
     });
   });
@@ -54,7 +55,7 @@ describe('look', () => {
     saved.skins = { global: 'glass', desks: { 'p-1': 'sketch', 'p-2': 42 } };
     await lookStore.load();
     expect(lookStore.setting).toEqual({
-      global: { palette: 'sunset', active: 'green', skin: 'glass' },
+      global: { palette: 'sunset', active: DEFAULT_ACTIVE, skin: 'glass' },
       desks: { 'p-1': { skin: 'sketch' } },
     });
     // From then on the look is what loads.
@@ -70,12 +71,12 @@ describe('look', () => {
 
   it('lets a desk make each choice its own, and follow every desk again on null', async () => {
     await lookStore.choose('p-1', 'palette', 'neon');
-    await lookStore.choose('p-1', 'active', 3);
-    expect(lookStore.forDesk('p-1')).toMatchObject({ paletteId: 'neon', active: 3 });
+    await lookStore.choose('p-1', 'active', '#ff0000');
+    expect(lookStore.forDesk('p-1')).toMatchObject({ paletteId: 'neon', active: '#ff0000' });
     expect(lookStore.forDesk('p-1').skin.id).toBe('terminal');
     expect(lookStore.forDesk('p-2').paletteId).toBe('rainbow');
     expect(lookStore.chosen('p-1', 'skin')).toBeNull();
-    expect(saved.look).toMatchObject({ desks: { 'p-1': { palette: 'neon', active: 3 } } });
+    expect(saved.look).toMatchObject({ desks: { 'p-1': { palette: 'neon', active: '#ff0000' } } });
 
     await lookStore.choose(null, 'skin', 'glass');
     expect(lookStore.forDesk('p-1').skin.id).toBe('glass');
@@ -86,10 +87,12 @@ describe('look', () => {
     expect(saved.look).toMatchObject({ desks: {} });
   });
 
-  it('counts palette index 0 as a choice', async () => {
-    await lookStore.choose('p-1', 'active', 0);
-    expect(lookStore.chosen('p-1', 'active')).toBe(0);
-    expect(lookStore.forDesk('p-1').active).toBe(0);
+  it('shows a colour still being picked, and saves it once it settles', async () => {
+    await lookStore.choose(null, 'active', '#3cb4ff', false);
+    expect(lookStore.global.active).toBe('#3cb4ff');
+    expect(saved.look).toBeUndefined();
+    await lookStore.choose(null, 'active', '#3cb4ff');
+    expect(saved.look).toMatchObject({ global: { active: '#3cb4ff' } });
   });
 
   it('shows every desk’s choice for a desk’s palette or skin that is gone', async () => {
@@ -112,7 +115,7 @@ describe('look', () => {
 
     await lookStore.forget('palette', mine.id);
     expect(lookStore.setting).toEqual({
-      global: { palette: 'rainbow', active: 'green', skin: 'terminal' },
+      global: { palette: 'rainbow', active: DEFAULT_ACTIVE, skin: 'terminal' },
       desks: { 'p-2': { palette: 'neon', skin: mySkin } },
     });
     await lookStore.forget('skin', mySkin);

@@ -1,7 +1,8 @@
 // A look: what a desk looks like. Three choices: its colour palette, its ACTIVE colour (what
-// pressed, on, filled and held widgets turn) and its widgets' skin. There is one look for every
-// desk (GLOBAL SETTINGS › LOOK), and a desk can make any of the three its own (DESK › PRESET).
-// A widget then picks one colour of its desk's palette (EDIT › VISUAL).
+// pressed, on, filled and held widgets turn: any colour, green by default) and its widgets'
+// skin. There is one look for every desk (GLOBAL SETTINGS › LOOK), and a desk can make any of
+// the three its own (DESK › LOOK). A widget then picks one colour of its desk's palette
+// (EDIT › VISUAL).
 //
 // All of it is per device, like the custom palettes and user skins it may point at: nothing here
 // is in a preset or synced, so everyone sees a shared desk in their own look.
@@ -9,24 +10,20 @@
 // Pure; the store is state/look.svelte.ts. App.svelte applies a look as CSS variables
 // (`lookVars`): the one for every desk on :root, the desk's own around the desk.
 import { z } from 'zod';
-import { ColorIndex, CustomPaletteId, type CustomPalette } from '../model/preset';
+import { CustomPaletteId, HexColor, type CustomPalette } from '../model/preset';
 import { BUILTIN_SKINS, DEFAULT_SKIN, type SkinInfo } from '../skins/builtin';
 import {
-  colorVars,
   DEFAULT_PALETTE,
   hasPalette,
+  inkFor,
   PALETTE_IDS,
   paletteVars,
   resolvePalette,
   type Palette,
 } from './palettes';
 
-/** The ACTIVE colour that is in no palette: the status green (`--ok`), the default. */
-export const ACTIVE_GREEN = 'green';
-
-/** A palette index, or the standard green. */
-export const ActiveColor = z.union([ColorIndex, z.literal(ACTIVE_GREEN)]);
-export type ActiveColor = z.infer<typeof ActiveColor>;
+/** The default ACTIVE colour: the status green of the dark background (`--ok`). */
+export const DEFAULT_ACTIVE = '#5fd787';
 
 const PaletteRef = z.union([z.enum(PALETTE_IDS), CustomPaletteId]);
 const SkinRef = z.string().min(1).max(64);
@@ -34,7 +31,8 @@ const SkinRef = z.string().min(1).max(64);
 export interface Look {
   /** A built-in palette's id, or a custom one's. */
   palette: z.infer<typeof PaletteRef>;
-  active: ActiveColor;
+  /** The ACTIVE colour, as #rrggbb. */
+  active: string;
   /** A built-in skin's id, or a user skin's. */
   skin: string;
 }
@@ -42,7 +40,7 @@ export type LookField = keyof Look;
 
 export const DEFAULT_LOOK: Look = {
   palette: DEFAULT_PALETTE,
-  active: ACTIVE_GREEN,
+  active: DEFAULT_ACTIVE,
   skin: DEFAULT_SKIN,
 };
 
@@ -58,7 +56,7 @@ export const LookSettingSchema = z.object({
   global: z
     .object({
       palette: PaletteRef.catch(DEFAULT_LOOK.palette),
-      active: ActiveColor.catch(DEFAULT_LOOK.active),
+      active: HexColor.catch(DEFAULT_LOOK.active),
       skin: SkinRef.catch(DEFAULT_LOOK.skin),
     })
     .catch({ ...DEFAULT_LOOK }),
@@ -68,7 +66,7 @@ export const LookSettingSchema = z.object({
       z
         .object({
           palette: PaletteRef.optional().catch(undefined),
-          active: ActiveColor.optional().catch(undefined),
+          active: HexColor.optional().catch(undefined),
           skin: SkinRef.optional().catch(undefined),
         })
         .catch({})
@@ -96,7 +94,7 @@ export interface ResolvedLook {
   /** The palette's id: the one chosen, or the one that stands in for a palette that is gone. */
   paletteId: string;
   palette: Palette;
-  active: ActiveColor;
+  active: string;
   skin: SkinInfo;
 }
 
@@ -126,23 +124,12 @@ export function resolveLook(
   };
 }
 
-/** CSS colours of an ACTIVE colour, relative to the palette of wherever they are declared. */
-export function activeVars(active: ActiveColor): { c: string; ink: string } {
-  return active === ACTIVE_GREEN ? { c: 'var(--ok)', ink: 'var(--bg)' } : colorVars(active);
-}
-
-/** The ACTIVE colour of a look as a plain colour, for showing it outside the look. */
-export function activeSwatch(look: ResolvedLook): string {
-  return look.active === ACTIVE_GREEN ? 'var(--ok)' : look.palette.colors[look.active]!;
-}
-
 /** A look's CSS custom properties: its palette (`paletteVars`), `--active` and `--active-ink`. */
-export function lookVars(look: ResolvedLook, accent: number): Record<string, string> {
-  const active = activeVars(look.active);
+export function lookVars(look: ResolvedLook): Record<string, string> {
   return {
-    ...paletteVars(look.palette.colors, accent),
-    '--active': active.c,
-    '--active-ink': active.ink,
+    ...paletteVars(look.palette.colors),
+    '--active': look.active,
+    '--active-ink': inkFor(look.active),
   };
 }
 

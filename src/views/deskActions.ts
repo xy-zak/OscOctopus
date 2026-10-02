@@ -1,4 +1,4 @@
-// Workspace actions shared by the tab bar, a desk's PRESET section and GLOBAL SETTINGS ›
+// Workspace actions shared by the tab bar, a desk's LOOK section and GLOBAL SETTINGS ›
 // LIBRARY. Each asks first (the confirmation texts live here, once), runs, and reports a
 // failure as an error toast (actions.ts). They resolve true when the action went through.
 import { open } from '@tauri-apps/plugin-dialog';
@@ -27,7 +27,7 @@ export const addDesk = (name: string) =>
       message: `Create a new blank desk "${name}"?`,
       details: [
         'It gets one UDP output to 127.0.0.1:9000 and starts immediately, alongside the open desks.',
-        'It is saved as a new preset; rename it in the desk’s PRESET section.',
+        'It is saved as a new preset; rename it in the desk’s LOOK section.',
       ],
       confirmLabel: 'Add desk',
     },

@@ -7,7 +7,7 @@
  */
 export type View = 'desk' | 'global';
 /** Sections of a desk. */
-export type DeskView = 'controls' | 'network' | 'traffic' | 'preset' | 'sync';
+export type DeskView = 'controls' | 'network' | 'traffic' | 'look' | 'sync';
 /** Sections of GLOBAL SETTINGS. */
 export type GlobalView = 'network' | 'traffic' | 'library' | 'look' | 'sync';
 export type Mode = 'live' | 'edit';
@@ -27,7 +27,11 @@ export const DESK_SECTIONS: readonly Section<DeskView>[] = [
   { id: 'controls', label: 'CONTROLS', hint: 'This desk’s widgets: play them, or EDIT them' },
   { id: 'network', label: 'NETWORK', hint: 'This desk’s OSC outputs and inputs' },
   { id: 'traffic', label: 'TRAFFIC', hint: 'Traffic of this desk only' },
-  { id: 'preset', label: 'PRESET', hint: 'This desk’s name, colour and preset file' },
+  {
+    id: 'look',
+    label: 'LOOK',
+    hint: 'This desk’s name, colour, palette and skin, and its preset file',
+  },
   { id: 'sync', label: 'SYNC', hint: 'Share this desk live with the sync session' },
 ];
 
@@ -36,7 +40,11 @@ export const GLOBAL_SECTIONS: readonly Section<GlobalView>[] = [
   { id: 'network', label: 'NETWORK', hint: 'This device’s interfaces, and every desk’s endpoints' },
   { id: 'traffic', label: 'TRAFFIC', hint: 'Traffic of all desks together' },
   { id: 'library', label: 'LIBRARY', hint: 'All saved desk presets on this device' },
-  { id: 'look', label: 'LOOK', hint: 'Background, palette and widget skin, for every desk' },
+  {
+    id: 'look',
+    label: 'LOOK',
+    hint: 'Background, palettes, active colour and widget skin, for every desk',
+  },
   { id: 'sync', label: 'SYNC', hint: 'Share desks live with other OscOctopus devices' },
 ];
 

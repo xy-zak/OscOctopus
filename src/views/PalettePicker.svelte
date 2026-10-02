@@ -1,12 +1,13 @@
 <script lang="ts">
-  // One row per palette: ( ) NAME ██████████. The palette of every desk (`desk` null, LOOK) or
-  // of one desk (DESK › PRESET), whose list starts with ALL DESKS: it takes every desk's.
+  // One row per palette: ( ) NAME █████████ █, its nine colours and its accent. The palette of
+  // every desk (`desk` null, LOOK) or of one desk (DESK › LOOK), whose list starts with ALL
+  // DESKS: it takes every desk's.
   // Picking one recolours what wears it (the CSS variables are registered, so it crossfades).
   // Custom palettes follow the built-in ones; in LOOK each has an EDIT button (`onedit`).
   import { appearance } from '../lib/state/appearance.svelte';
   import { lookStore } from '../lib/state/look.svelte';
   import type { Look } from '../lib/theme/look';
-  import { PALETTE_IDS, PALETTES, type Palette } from '../lib/theme/palettes';
+  import { ACCENT_INDEX, PALETTE_IDS, PALETTES, type Palette } from '../lib/theme/palettes';
   import Choice from '../lib/ui/Choice.svelte';
   import Icon from '../lib/ui/Icon.svelte';
 
@@ -34,7 +35,8 @@
 
 {#snippet strip(palette: Palette, on: boolean)}
   <span class="strip" class:dim={!on}>
-    {#each palette.colors as c, i (i)}<span style:background={c}></span>{/each}
+    {#each palette.colors as c, i (i)}<span class:accent={i === ACCENT_INDEX} style:background={c}
+      ></span>{/each}
   </span>
 {/snippet}
 
@@ -88,10 +90,14 @@
     margin: 8px 0 2px;
     padding-left: 0.5ch;
   }
+  /* The nine, then the accent set apart. */
   .strip {
     display: grid;
-    grid-template-columns: repeat(10, 1fr);
+    grid-template-columns: repeat(9, 1fr) 3px 1fr;
     height: 12px;
+  }
+  .strip .accent {
+    grid-column: -2;
   }
   .strip.dim {
     /* Unselected palettes read as dimmer, dithered previews. */

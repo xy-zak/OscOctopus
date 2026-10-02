@@ -1,15 +1,16 @@
 // Colour palettes. The UI itself is always near-black on near-white; palettes only colour
-// active things (fills, lit buttons, switches, cursors). Each palette has exactly ten colours,
-// so a widget's colour is just an index 0–9 and switching palette recolours the whole desk
-// (which palette a desk uses is its look, look.ts).
-// Two kinds. RAINBOW, NEON and PASTEL run through every hue. The themed ones are heavily
-// inspired by one colour but travel across its neighbouring hues (SUNSET goes yellow → orange →
-// pink → purple), so their colours stay distinct; most end with two contrasting accents
-// (indices 8 and 9, like UNDERWATER's pink and peach). GREYSCALE is pure grey. The picker lists
-// the themed ones around the colour wheel. Index 5, the default accent, is a clear mid colour in
-// each. Some follow the look of other software (a green-screen terminal, VS Code themes); hover
-// one in the picker to see which. Custom palettes, made in LOOK from one colour (generate.ts),
-// are listed after these; `resolvePalette` finds either kind.
+// active things (fills, lit buttons, switches, cursors). Each palette has exactly ten colours:
+// nine, and its accent last (colour 9). A widget's colour is just an index 0–9, so switching
+// palette recolours the whole desk (which palette a desk uses is its look, look.ts). The
+// accent also marks highlights and selection wherever the palette is worn.
+// Two kinds. RAINBOW, NEON and PASTEL run through every hue, and end in pink. The themed ones
+// are heavily inspired by one colour but travel across its neighbouring hues (SUNSET goes
+// yellow → orange → pink → purple), so their colours stay distinct; most end with two
+// contrasting colours (8, and the accent: UNDERWATER's pink and peach). GREYSCALE is pure
+// grey, with white as its accent. The picker lists the themed ones around the colour wheel.
+// Some follow the look of other software (a green-screen terminal, VS Code themes); hover one
+// in the picker to see which. Custom palettes, made in LOOK from one colour (generate.ts), are
+// listed after these; `resolvePalette` finds either kind.
 import type { CustomPalette, Theme } from '../model/preset';
 
 export const PALETTE_IDS = [
@@ -32,11 +33,14 @@ export type PaletteId = (typeof PALETTE_IDS)[number];
 
 export const PALETTE_SIZE = 10;
 
+/** Palette index of the accent: the last colour, after the nine. */
+export const ACCENT_INDEX = PALETTE_SIZE - 1;
+
 /** The palette of a fresh install, and the one shown in place of a deleted custom palette. */
 export const DEFAULT_PALETTE: PaletteId = 'rainbow';
 
-/** Palette index of the default accent, also the first desk's identity colour. */
-export const DEFAULT_ACCENT = 5;
+/** Palette index of a new desk's identity colour: a clear mid colour in each palette. */
+export const DEFAULT_COLOR = 5;
 
 export interface Palette {
   name: string;
@@ -109,7 +113,6 @@ export const PALETTES: Record<PaletteId, Palette> = {
   greyscale: {
     name: 'GREYSCALE',
     colors: [
-      '#fafafa',
       '#e4e4e4',
       '#cfcfcf',
       '#bababa',
@@ -119,6 +122,7 @@ export const PALETTES: Record<PaletteId, Palette> = {
       '#686868',
       '#585858',
       '#4a4a4a',
+      '#fafafa',
     ],
   },
   underwater: {
@@ -337,14 +341,15 @@ export function withoutCustomPalette(theme: Theme, id: string): Theme {
 }
 
 /** CSS custom properties for a palette's colours: --p0…--p9, their inks, and the accent. */
-export function paletteVars(colors: readonly string[], accent: number): Record<string, string> {
+export function paletteVars(colors: readonly string[]): Record<string, string> {
   const vars: Record<string, string> = {};
   colors.forEach((c, i) => {
     vars[`--p${i}`] = c;
     vars[`--p${i}-ink`] = inkFor(c);
   });
-  vars['--accent'] = colors[accent] ?? colors[0]!;
-  vars['--accent-ink'] = inkFor(colors[accent] ?? colors[0]!);
+  const accent = colors[ACCENT_INDEX] ?? colors[0]!;
+  vars['--accent'] = accent;
+  vars['--accent-ink'] = inkFor(accent);
   return vars;
 }
 

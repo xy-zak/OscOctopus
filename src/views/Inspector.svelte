@@ -106,7 +106,7 @@
         </Field>
         <Field
           label="Colour · {lookStore.forDesk(deskId).palette.name}"
-          hint="From this desk’s palette (DESK › PRESET). AUTO follows the desk’s colour"
+          hint="From this desk’s palette (DESK › LOOK). AUTO follows the desk’s colour"
           group
           wide
         >

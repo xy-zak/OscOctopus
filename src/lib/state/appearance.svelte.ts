@@ -1,13 +1,11 @@
 // The device's colours beyond the look (which palette each desk uses: state/look.svelte.ts):
-// the accent, dark or light, and the custom palettes made on this device. None of it is part of
-// any preset.
+// dark or light, and the custom palettes made on this device. None of it is part of any preset.
 import { LIMITS, ThemeSchema, type CustomPalette, type Theme } from '../model/preset';
 import { getSetting } from '../platform/settings';
-import { DEFAULT_ACCENT, withCustomPalette, withoutCustomPalette } from '../theme/palettes';
+import { withCustomPalette, withoutCustomPalette } from '../theme/palettes';
 import { persistSetting } from './persist';
 
 export const DEFAULT_THEME: Theme = {
-  accent: DEFAULT_ACCENT,
   mode: 'dark',
   custom: [],
 };
@@ -23,7 +21,7 @@ class AppearanceStore {
 
   /**
    * Loads the saved theme. `fallback` (e.g. a v3 preset's old per-desk theme) is used only
-   * when nothing has been saved yet, so upgrading keeps the desk's accent.
+   * when nothing has been saved yet.
    */
   async load(fallback?: unknown) {
     if (this.loaded) return;

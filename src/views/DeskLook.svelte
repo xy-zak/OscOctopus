@@ -1,6 +1,6 @@
 <script lang="ts">
-  // DESK › PRESET: this desk's own preset. Name, save, export, import into this desk
-  // (replacing its contents), duplicate as a new desk, remove the desk. And its look on this
+  // DESK › LOOK: this desk's own preset and look. Name, colour, save, export, import into this
+  // desk (replacing its contents), duplicate as a new desk, remove the desk. And its look on this
   // device: the pickers of GLOBAL SETTINGS › LOOK, for this desk (theme/look.ts).
   import { lookStore } from '../lib/state/look.svelte';
   import { presetStore } from '../lib/state/preset.svelte';
@@ -35,7 +35,7 @@
   });
 </script>
 
-<div class="preset scroll">
+<div class="desk-look scroll">
   <Lockable>
     <Panel title="Desk preset" active tone="var(--scope)">
       {#snippet actions()}<span class="pill {saveState.cls}">{saveState.text}</span>{/snippet}
@@ -121,7 +121,7 @@
 </div>
 
 <style>
-  .preset {
+  .desk-look {
     height: 100%;
     padding: 16px 2ch 32px;
     display: flex;

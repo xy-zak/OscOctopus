@@ -10,8 +10,8 @@
                 sits close to the background in either mode
      --c-text   --c used as text (darkened in light mode, see tokens.css --accent-text)
      --w-bg     the widget's background: a neutral grey, whatever its colour
-     --act      the ACTIVE colour: pressed, on, filled, held (the look's: green, or one of
-                the palette's; "ACTIVE" in the skins' comments)
+     --act      the ACTIVE colour: pressed, on, filled, held (the look's: green by default, or
+                any colour; "ACTIVE" in the skins' comments)
      --act-ink  text on an --act fill
    Dither fills (the pixel "tints"), resolved per widget: a var() inside a custom property
    resolves where the property is declared, so these must sit on the widget, not :root.

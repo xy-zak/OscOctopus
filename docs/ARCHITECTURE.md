@@ -2,7 +2,7 @@
 
 ```
 ┌──────────────────────────── Svelte 5 frontend (system webview) ────────────────────────────┐
-│ views/        App shell · Desk · Inspector · DeskNetwork · Traffic · DeskPreset · Library … │
+│ views/        App shell · Desk · Inspector · DeskNetwork · Traffic · DeskLook · Library …   │
 │ lib/widgets/  one folder per type: def.ts · <Type>.svelte · <Type>Inspector.svelte          │
 │               defs.ts (behaviour map) · registry.ts (component map) ──► lib/osc/sender.ts   │
 │ lib/osc/      value.ts · curves.ts · mapping.ts (value → OscMessage) · format.ts ·          │
@@ -336,8 +336,9 @@ transport that never reads app payloads (Rust) with desk semantics owned by the 
 ## Navigation (scope by containment)
 
 - `ui.view` picks the **container**: `desk` (the active desk) or `global` (GLOBAL SETTINGS).
-- The container's **sections** are `ui.deskView`: `controls | network | traffic | preset |
-  sync`, or `ui.globalView`: `network | traffic | library | look | sync` (F1–F5 in both). Ids are the lower-case labels, and
+- The container's **sections** are `ui.deskView`: `controls | network | traffic | look |
+  sync`, or `ui.globalView`: `network | traffic | library | look | sync` (F1–F5 in both). A desk
+  tab always opens on its `controls`. Ids are the lower-case labels, and
   `DESK_SECTIONS` / `GLOBAL_SECTIONS` (`state/ui.svelte.ts`) define their labels, hints and
   F-key order once. NETWORK, TRAFFIC and SYNC exist at both levels, so the frame colour (the desk's
   own, or white for GLOBAL SETTINGS) carries the scope.
@@ -362,7 +363,7 @@ transport that never reads app payloads (Rust) with desk semantics owned by the 
 - `Traffic.svelte` is one component: `scope = deskId` for a desk's TRAFFIC, unscoped for
   GLOBAL SETTINGS › TRAFFIC.
 - Desk actions with a confirmation (add, duplicate, open, remove, import, export, delete) live
-  once in `views/deskActions.ts`, shared by the tab bar, PRESET and LIBRARY. LOOK's (save and
+  once in `views/deskActions.ts`, shared by the tab bar, DESK › LOOK and LIBRARY. LOOK's (save and
   delete a palette; import, export and delete a skin) are in `views/lookActions.ts`. Both
   build on `views/actions.ts`: run with an error toast, ask first, export a JSON file.
 
@@ -428,43 +429,46 @@ write-locked while sockets are bound, never during a DNS lookup (see *Safety gua
   darkened mixes of the hue, so bright colours stay readable on paper. Fills and borders keep
   the raw colour.
 - **Colour.** The UI is near-black/near-white. Only active things are coloured, from a palette
-  (`lib/theme/palettes.ts`: fourteen palettes × ten colours: RAINBOW, NEON and PASTEL through
-  every hue, the themed ones across one colour's neighbouring hues, most ending with two
-  contrasting accents), or a custom palette made in LOOK. A widget's colour is an index into its
-  desk's palette; `null` (AUTO) takes its desk's colour (`--auto-c`, set by `GridCanvas`). A
-  desk's identity colour is an index too. Pressed, on, filled and held things turn the ACTIVE
-  colour (`--active`).
+  (`lib/theme/palettes.ts`: fourteen palettes × ten colours, nine and then the accent:
+  RAINBOW, NEON and PASTEL through every hue, the themed ones across one colour's neighbouring
+  hues, most ending with two contrasting colours), or a custom palette made in LOOK. The accent
+  (`ACCENT_INDEX`, the last) is also `--accent`: highlights and selection. A widget's colour is
+  an index into its desk's palette, the accent included; `null` (AUTO) takes its desk's colour
+  (`--auto-c`, set by `GridCanvas`). A desk's identity colour is an index too. Pressed, on,
+  filled and held things turn the ACTIVE colour (`--active`).
 - **Looks.** Which palette, ACTIVE colour and skin a desk has is its *look*
   (`lib/theme/look.ts`), chosen per device, never in a preset or synced (a desk shared with
   others looks the way each of them chose; custom palettes and user skins are per device too).
   There is one look for every desk (GLOBAL SETTINGS › LOOK), and a desk can make any of the
-  three choices its own (DESK › PRESET), with the same pickers (`views/PalettePicker`,
-  `ActivePicker`, `SkinPicker`, each taking `desk: string | null`). The ACTIVE colour is GREEN
-  (the status `--ok`, in no palette: the default) or one of the palette's ten.
+  three choices its own (DESK › LOOK), with the same pickers (`views/PalettePicker`,
+  `ActivePicker`, `SkinPicker`, each taking `desk: string | null`). The ACTIVE colour is any
+  colour (`#rrggbb`, from the system's colour picker: `ui/ColorField`), green by default, the
+  same in every palette. While the picker moves it is only shown; it is saved once it settles.
   - `state/look.svelte.ts` holds the choice, as its own setting (`look`): `forDesk(id)` and
     `global` resolve it (`resolveLook`: each choice the desk's own, else every desk's; a
     palette or skin that is gone is passed over, down to RAINBOW and TERMINAL). Deleting a
     custom palette or user skin takes it off every desk that wears it (`forget`); deleting a
     preset drops its desk's look, closing a tab keeps it, duplicating a desk copies it.
   - `App.svelte` applies it the same way twice, with `lookVars` (`--p0…--p9`, their
-    reverse-video inks `--pN-ink`, `--accent`, `--active`): every desk's look on `:root` (the
+    reverse-video inks `--pN-ink`, the palette's `--accent`, `--active`): every desk's look on `:root` (the
     top bar, GLOBAL SETTINGS, dialogs), and the shown desk's own on `<main data-look>`, around
     the desk's widgets, Inspector and sections. The palette variables are registered with
     `@property`, so a change crossfades; `tokens.css` declares the tokens made from them again
     on `[data-look]` (a var() resolves where it is declared). What shows a desk's colour
     outside it (its tab, the frame) takes plain colours from its palette (`swatchOf`).
-  - The accent (highlights, selection) and dark/light are for every desk
-    (`state/appearance.svelte.ts`, setting `theme`, which also holds the custom palettes). The
-    accent is an index too, so inside a desk it is that colour of the desk's palette.
+  - Dark/light is for every desk (`state/appearance.svelte.ts`, setting `theme`, which also
+    holds the custom palettes). The accent comes with the palette, so inside a desk it is the
+    desk's palette's.
 - **Custom palettes.** Saved in the device's theme (`Theme.custom`), each with its ten
-  `colors`, its `source` and which colours were `overridden` by hand. At most 32: the store
+  `colors` (nine and the accent), its `source` and which colours were `overridden` by hand. At most 32: the store
   refuses another, since a saved theme over the cap would not load. `colors` is the truth, so a
   saved palette never changes if the generator does. `resolvePalette` finds a built-in or
   custom one (a deleted one shows RAINBOW). A new one becomes every desk's palette when saved. `lib/theme/generate.ts` makes
-  the ten colours in OKLCH: a light-to-dark ramp with the source kept exactly as colour 5 (the
-  default accent; nearer 0 or 9 for a near-white or near-black source), lights drifting towards
+  the ten colours in OKLCH: a light-to-dark ramp of nine with the source kept exactly as colour 4
+  (the middle; nearer 0 or 8 for a near-white or near-black source), lights drifting towards
   yellow and darks towards violet by the shortest way round, which is the rule the built-in themed
-  palettes follow. Changing the source regenerates only the colours not picked by hand.
+  palettes follow; then the accent, the source's opposite hue at a clear lightness (gold for a
+  grey source). Changing the source regenerates only the colours not picked by hand.
 - **Pixel motion.** Hard offset shadows that widgets sink into when pressed. `steps()` easing
   for state changes (tabs, toggles, lit segments). Dither patterns (inline conic gradients) for
   dissolves and grooves. Continuous things still follow the finger 1:1: fader caps, the graph

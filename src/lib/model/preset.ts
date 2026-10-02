@@ -403,9 +403,9 @@ export const HexColor = z.string().regex(/^#[0-9a-f]{6}$/);
 export const CustomPaletteId = z.string().regex(/^custom-[a-z0-9]{1,32}$/);
 
 /**
- * A palette made in LOOK from one source colour (see theme/generate.ts). `colors` is the truth;
- * `source` and `overridden` are kept so editing it later regenerates only the colours that
- * weren't picked by hand.
+ * A palette made in LOOK from one source colour (see theme/generate.ts): nine colours and the
+ * accent, last, like every palette. `colors` is the truth; `source` and `overridden` are kept so
+ * editing it later regenerates only the colours that weren't picked by hand.
  */
 export const CustomPaletteSchema = z.object({
   id: CustomPaletteId,
@@ -417,13 +417,12 @@ export const CustomPaletteSchema = z.object({
 export type CustomPalette = z.infer<typeof CustomPaletteSchema>;
 
 /**
- * The device's colours beyond the look (theme/look.ts, which picks the palette): the accent,
- * dark or light, and the custom palettes. A global setting since v4, no longer part of a preset.
- * Saved themes from before looks also name a palette; `look` is made from it once.
+ * The device's colours beyond the look (theme/look.ts, which picks the palette): dark or light,
+ * and the custom palettes. A global setting since v4, no longer part of a preset. Saved themes
+ * from before looks also name a palette; `look` is made from it once. Older ones also chose an
+ * accent, which is now each palette's own.
  */
 export const ThemeSchema = z.object({
-  /** Palette index used for the UI accent, in whichever palette is around it. */
-  accent: ColorIndex,
   /** Background: dark (default) or light. Older saved themes without it are dark. */
   mode: z.enum(['dark', 'light']).default('dark'),
   /** The palettes made on this device. Older saved themes have none. */
