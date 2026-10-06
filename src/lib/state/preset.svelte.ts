@@ -5,7 +5,15 @@
 // sync (state/changes.ts). `touch()` is `changed()` for the active desk.
 import { presets as presetIpc, sync as syncIpc } from '../ipc/commands';
 import type { PresetSummary } from '../ipc/types';
-import { allFree, findFreeSpot, findRoom, outOfBounds, type Placed } from '../grid/engine';
+import {
+  allFree,
+  findFreeSpot,
+  findRoom,
+  isFree,
+  outOfBounds,
+  type Placed,
+  type Rect,
+} from '../grid/engine';
 import { freshCopies, newInput, newOutput, newPreset, withFreshWidgetIds } from '../model/factory';
 import { migratePreset } from '../model/migrations';
 import { uid } from '../model/parts';
@@ -18,6 +26,7 @@ import {
   type WidgetType,
 } from '../model/preset';
 import {
+  canHold,
   canPlace,
   childrenOf,
   gridOn,
@@ -472,21 +481,30 @@ class PresetStore {
     return undefined;
   }
 
-  addWidget(type: WidgetType) {
-    const at = type === 'tabs' ? null : this.addingTo;
-    const spot = findRoom(
-      DEFS[type].defaultSize,
-      gridOn(this.current, at),
-      widgetsOn(this.current, at),
-    );
+  /**
+   * Adds a widget of `type`, selected: where it was dropped (`rect` in the grid of `at`, a frame's
+   * tab or the desk; refused there if it may not go or the cells are taken), else where ADD puts
+   * it (`addingTo`), at its usual size or the largest smaller one that fits.
+   */
+  addWidget(type: WidgetType, dropped?: { rect: Rect; at: TabRef | null }) {
+    const desk = this.current;
+    const at = dropped ? dropped.at : type === 'tabs' ? null : this.addingTo;
+    const grid = gridOn(desk, at);
+    const on = widgetsOn(desk, at);
+    let spot: Rect | null;
+    if (dropped) {
+      const { x, y, w, h } = dropped.rect;
+      spot = { x, y, w, h };
+      if (!canHold(desk, at, type) || !isFree(spot, grid, on)) return;
+    } else spot = findRoom(DEFS[type].defaultSize, grid, on);
     if (!spot) {
       toast(NO_ROOM, 'error');
       return;
     }
-    const firstOutput = this.current.network.outputs[0]?.id;
-    const n = this.current.widgets.filter((w) => w.type === type).length + 1;
+    const firstOutput = desk.network.outputs[0]?.id;
+    const n = desk.widgets.filter((w) => w.type === type).length + 1;
     const w = newWidget(type, spot, firstOutput ? [firstOutput] : [], n, at);
-    this.current.widgets.push(w);
+    desk.widgets.push(w);
     values[w.id] = initialValue(w);
     ui.selected = [w.id];
     this.touch();

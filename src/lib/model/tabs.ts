@@ -7,7 +7,7 @@
 // gone, a widget that isn't a frame, or be set on a frame itself. Such a widget shows on the desk
 // (an orphan, reported by sync/conflicts.ts) rather than vanishing while its messages still send
 // and receive. Everything here asks `placements`, so it all agrees.
-import type { Grid, Preset, Tab, TabRef, TabsWidget, Widget } from './preset';
+import type { Grid, Preset, Tab, TabRef, TabsWidget, Widget, WidgetType } from './preset';
 
 /** A tab with its frame. */
 export interface TabAt {
@@ -73,10 +73,14 @@ export function gridOn(p: Preset, ref: TabRef | null): Grid {
   return (ref && tabAt(p, ref)?.frame.props.grid) || p.grid;
 }
 
+/** Whether a tab (or the desk) can hold a widget of a type: the desk any, a tab all but frames. */
+export function canHold(p: Preset, ref: TabRef | null, type: WidgetType | undefined): boolean {
+  return !ref || (type !== 'tabs' && !!tabAt(p, ref));
+}
+
 /** Whether a widget may be put on a tab (or the desk): an existing tab, and never a frame. */
 export function canPlace(p: Preset, widgetId: string, ref: TabRef | null): boolean {
-  if (!ref) return true;
-  return !isTabs(p.widgets.find((w) => w.id === widgetId)) && !!tabAt(p, ref);
+  return canHold(p, ref, p.widgets.find((w) => w.id === widgetId)?.type);
 }
 
 /** The colour AUTO widgets take on a tab (or the desk): their frame's own, else the desk's. */

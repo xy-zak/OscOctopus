@@ -251,21 +251,23 @@ export interface Landing<K> {
 }
 
 /**
- * Where carried items land, the top-left of them all at (left, top) on screen: in the first of
- * `frames` the pointer is over, else on the desk, moved alike, so they keep their places to each
- * other. One item alone is kept inside the grid, shrunk if it is bigger; several never shrink,
- * so they are refused where they don't fit. Valid when all their cells there are free.
+ * Where carried items land: in the first of `frames` the pointer is over, else on the desk, the
+ * top-left of them all at `at` on screen (asked of the grid they land on: a new widget is held
+ * by its middle, whatever the size of that grid's cells). They move alike, so they keep their
+ * places to each other. One item alone is kept inside the grid, shrunk if it is bigger; several
+ * never shrink, so they are refused where they don't fit. Valid when all their cells there are
+ * free.
  */
 export function landing<K>(
   items: readonly Placed[],
-  left: number,
-  top: number,
+  at: (g: Ground<K>) => { left: number; top: number },
   pointer: { x: number; y: number },
   desk: Ground<K>,
   frames: readonly Ground<K>[],
 ): Landing<K> {
   const g = frames.find((f) => within(f.hit ?? f.box, pointer.x, pointer.y)) ?? desk;
   const around = bounds(items);
+  const { left, top } = at(g);
   const to = snapTo(left - g.box.left, top - g.box.top, around, g.grid, g.metrics);
   const rects =
     items.length === 1

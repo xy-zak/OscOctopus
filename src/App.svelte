@@ -55,6 +55,7 @@
   import Desk from './views/Desk.svelte';
   import DeskNetwork from './views/DeskNetwork.svelte';
   import DeskLook from './views/DeskLook.svelte';
+  import DeskSwitches from './views/DeskSwitches.svelte';
   import DeskSync from './views/DeskSync.svelte';
   import GlobalNetwork from './views/GlobalNetwork.svelte';
   import GlobalSync from './views/GlobalSync.svelte';
@@ -90,6 +91,7 @@
       await sequencerStore.start();
       await skinStore.load();
       ui.infoOpen = (await getSetting('infoOpen')) ?? true;
+      ui.editPanel = (await getSetting('editPanel')) ?? 'add';
       Object.assign(ui.inspectorOpen, await getSetting('inspectorSections'));
       Object.assign(ui.infoSections, await getSetting('infoSections'));
       ready = true;
@@ -119,8 +121,8 @@
     };
   });
 
-  // Per-device state that survives restarts: the info panel, OSC-IN, OSC-OUT, LOCK and
-  // PRESENTING. Saved on every change once startup has restored it, never before.
+  // Per-device state that survives restarts: the info panel, the edit panel, OSC-IN, OSC-OUT,
+  // LOCK and PRESENTING. Saved on every change once startup has restored it, never before.
   function remember<K extends keyof Settings>(key: K, read: () => Settings[K]) {
     $effect(() => {
       const value = read();
@@ -128,6 +130,7 @@
     });
   }
   remember('infoOpen', () => ui.infoOpen);
+  remember('editPanel', () => ui.editPanel);
   remember('inputEnabled', () => inputStore.enabled);
   remember('paused', () => networkStore.paused);
   remember('locked', () => ui.locked);
@@ -376,7 +379,7 @@
             >
           {/each}
         </nav>
-        <!-- The EDIT switch is in the desk's own tool row, next to INFO (see Desk). -->
+        {#if ready && ui.view === 'desk' && ui.deskView === 'controls'}<DeskSwitches />{/if}
       </div>
     {/if}
 
@@ -529,12 +532,15 @@
     padding: 0 1ch;
     background: var(--bg-2);
     border-bottom: 1px solid var(--line);
+  }
+  /* The tab above already names the container, so the sections start at the edge. They scroll
+     sideways when narrow; the desk's switches after them (DeskSwitches) never do. */
+  .sections {
+    flex: 1;
+    min-width: 0;
+    display: flex;
     overflow-x: auto;
     scrollbar-width: none;
-  }
-  /* The tab above already names the container, so the sections start at the edge. */
-  .sections {
-    display: flex;
   }
   /* F-key sections, Midnight Commander style: the key beside the label; active = reverse. */
   .section {

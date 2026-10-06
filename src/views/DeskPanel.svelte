@@ -83,7 +83,7 @@
         {/each}
       {/if}
     {:else}
-      <li class="faint">Empty desk: add a widget from the toolbar.</li>
+      <li class="faint">Empty desk: add a widget from ADD, above.</li>
     {/each}
   </ul>
 </div>

@@ -254,12 +254,13 @@ sit on the desk only, never on a tab.
   tabs switch, and the widgets on its tab are selected, dragged, resized and nudged like the
   desk's. A press on its border or on an empty cell drags the frame itself, with everything on
   it. ADD puts a new widget on the tab the selected frame shows, or beside the selected widgets
-  on their tab (`presetStore.addingTo`, named in the toolbar); a frame always goes on the desk.
+  on their tab (`presetStore.addingTo`, named in ADD); a frame always goes on the desk.
   Its Inspector lists its tabs (rename, order, remove) and edits its grid, which `setGrid`
   refuses to shrink under the widgets of any of its tabs. Removing or duplicating a frame takes
   everything on its tabs with it (`freshCopies` keeps references to widgets outside the copy).
-- **Carrying widgets between grids** (`grid/drag.svelte.ts`). The desk's canvas makes one
-  `DragSession`, and every canvas registers its grid with it while editing. Past the tap slop a
+- **Carrying widgets between grids** (`grid/drag.svelte.ts`). The desk view (`Desk.svelte`)
+  makes one `DragSession`, shared by its canvases and ADD, and every canvas registers its grid
+  with it while editing. Past the tap slop a
   dragged widget is lifted into the session with the rest of the selection, if it is selected
   (else alone, and selected), which then follows that pointer itself through window listeners:
   the widgets can be drawn again elsewhere mid-drag without the drag ending. Where they land is
@@ -273,6 +274,12 @@ sit on the desk only, never on a tab.
   A drop commits through `presetStore.moveWidgets`, all or none: each one's rect and `parent`
   together (one sync change each), refused for a frame on a tab and for cells off the grid,
   taken, or shared by two of them (`allFree`). A cancelled pointer or Esc puts them back.
+- **New widgets dragged in from ADD** (`AddPanel`) are the session's other kind of lift
+  (`Add`: a type and its usual size, no widget yet). One is held by its middle, whatever the
+  cells of the grid it is over, and lands the same way (into a frame only if its type may go
+  there: `canHold`, so never a frame into a frame), but only while the pointer is over the desk:
+  let go over the panel or anywhere else, nothing is added. Its drawing follows the pointer; the
+  grid shows the ghost. A drop commits through `presetStore.addWidget(type, { rect, at })`.
 
 ## Sequencer (timing in the core)
 
@@ -419,7 +426,9 @@ transport that never reads app payloads (Rust) with desk semantics owned by the 
   switches from least to most restrictive (OSC-IN, OSC-OUT, LOCK), then PRESENT. A switch shows
   `[■]` and fills with the accent while on, and has a fixed width; LOCK fills amber, and
   OSC-OUT off (PAUSE) is an unfilled red alarm. All six share one shape, `.mbtn` in `app.css`,
-  which the desk's INFO and EDIT switches use too. PRESENT, INFO and EDIT are `ToggleSwitch`es
+  which the desk's INFO and EDIT switches use too (`DeskSwitches`, at the right end of the
+  section bar while the desk's CONTROLS are open; the sections scroll sideways when narrow, the
+  switches never do). PRESENT, INFO and EDIT are `ToggleSwitch`es
   (one click). OSC-IN, OSC-OUT and LOCK are `HoldSwitch`es: they change only after a 1 s hold,
   on and off alike (pointer, Space/Enter, or their Alt shortcut, which App holds through the
   component's `press`/`release`/`cancel`).
@@ -642,7 +651,13 @@ write-locked while sockets are bound, never during a DNS lookup (see *Safety gua
   (`presetStore.select`, `ui.selected`). A selection keeps to one grid, the desk's or one frame
   tab's: a widget of another starts a new one. Dragging a widget selects it (with the rest, if
   it was selected), and arrows, Delete and the drag act on the whole selection; the side panel
-  is the Inspector for one widget, `SelectionPanel` for several. Dropped widgets land in the grid
+  is the Inspector for one widget, `SelectionPanel` for several, `DeskPanel` for none: INSPECT.
+  Its other face is ADD (`AddPanel`): each widget type drawn as it would be added, in the desk's
+  skin and colours (`ADD_PREVIEWS`, `skins/preview.ts`, as LOOK draws its skins), dragged onto
+  the desk or into a frame, or clicked to add where ADD puts it (named at the top). The
+  two are switched at the top of the panel (`ui.editPanel`, remembered per device), and
+  clicking a widget (a tap, `onpick`) opens INSPECT; adding or dragging one selects it too but
+  leaves ADD as it is, so a layout is built without the panel changing under it. Dropped widgets land in the grid
   under the pointer: the desk's or a frame's tab (see *Frames*). A cancelled pointer (the
   browser taking it over, a palm) never commits a move.
 

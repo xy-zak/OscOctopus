@@ -55,7 +55,7 @@ Scripts.
 - **Presenting** (`[ ] PRESENT` at the right end of the master bar, or F11): the desk's
   widgets fill the screen, and on desktop the window goes fullscreen. Only the desk tabs,
   OSC-IN, OSC-OUT, LOCK and `[■] PRESENT` (click it, or Esc / F11, to stop) stay; the sections, the
-  tool row, the info panel and the banners are hidden, and nothing else can navigate away. It
+  desk's switches, the info panel and the banners are hidden, and nothing else can navigate away. It
   survives restarts, like LOCK and OSC-OUT.
 - **Widget skins** (GLOBAL SETTINGS › LOOK › _Widget skin_): how widgets are drawn, apart from
   their colours. TERMINAL is the pixel look so far; GLASS draws clear, rounded panes tinted
@@ -145,9 +145,16 @@ Scripts.
   ACTIVITY. Which ones are open is remembered per device.
 - **The app icon is the pixel octopus** from the UI, in the default accent on a transparent
   background, drawn pixel-exact at every size (`scripts/make_icons.py`).
-- **EDIT is a switch in the desk's tool row:** `[■] EDIT`, at the right end next to INFO, in
-  the same shape as the master bar's switches. It no longer sits on the grid, so widgets can use
-  every cell, the top-right one included.
+- **EDIT is a switch on the section bar:** `[■] EDIT`, at the right end of the desk's
+  F1 CONTROLS … F5 SYNC row, next to INFO, in the same shape as the master bar's switches. It no
+  longer sits on the grid, so widgets can use every cell, the top-right one included, and the
+  desk has no tool row of its own: the desk gets that height back.
+- **ADD is in the side panel:** in EDIT the panel switches between **ADD** and **INSPECT** (the
+  selected widgets, else the desk). ADD draws every widget type as it will look, in the desk's
+  own skin and colours: drag one onto the desk or into a frame (where it would land shows on the
+  grid; held over a frame's tab, that tab opens), or click it to add it where there is room.
+  Clicking a widget on the desk opens INSPECT (dragging or adding one leaves ADD as it is), and
+  so does the pencil in LIVE's info panel; which panel shows is remembered per device.
 - **The desk grid shows only in EDIT**, and more clearly: every cell is an outlined slot in the
   desk's colour. LIVE has no background grid, just the widgets.
 - **One look for the master bar:** OUT and SYNC are status readouts (a lamp; click to open

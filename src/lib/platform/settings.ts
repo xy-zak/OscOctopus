@@ -6,7 +6,7 @@ import { app } from '../ipc/commands';
 import type { SyncConfig } from '../ipc/types';
 import type { Theme } from '../model/preset';
 import type { LookSetting } from '../theme/look';
-import type { InfoSection, InspectorSection } from '../state/ui.svelte';
+import type { EditPanel, InfoSection, InspectorSection } from '../state/ui.svelte';
 
 let storePromise: Promise<LazyStore> | null = null;
 
@@ -25,6 +25,8 @@ export interface Settings {
   /** Pre-desks setting; used once to migrate to `openDesks`. */
   lastPresetId: string | null;
   infoOpen: boolean;
+  /** Edit mode's side panel: ADD or INSPECT. */
+  editPanel: EditPanel;
   /** Which Inspector sections are unfolded (saved once the user folds or unfolds one). */
   inspectorSections: Partial<Record<InspectorSection, boolean>>;
   /** Which live-mode info panel sections are unfolded (saved once the user toggles one). */

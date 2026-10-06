@@ -27,8 +27,8 @@
     focused?: boolean;
     /** Edit mode: someone else is editing this widget (a sync peer): shown, and not draggable. */
     holder?: Holder | null;
-    /** A tap: picked alone, or with Shift (`add`) added to the selection or taken out of it. */
-    onselect: (id: string, add: boolean) => void;
+    /** A tap (a click, not a drag): picked alone, or with Shift (`add`) added or taken out. */
+    onpick: (id: string, add: boolean) => void;
     /** Live mode: a pointer went down on this widget. */
     onfocus?: (id: string) => void;
     /** Past the tap slop: it starts being moved or resized (GridCanvas works out with what). */
@@ -46,7 +46,7 @@
     raised = false,
     focused = false,
     holder = null,
-    onselect,
+    onpick,
     onfocus,
     onlift,
     children,
@@ -66,7 +66,7 @@
   }
   let gesture = $state<Gesture | null>(null);
 
-  const lifted = $derived(!!drag.lifted?.ids.includes(id));
+  const lifted = $derived(drag.carried.has(id));
   const moving = $derived(lifted && drag.lifted?.kind === 'move');
   // Resizing, it shows the size it would take; carried, it tracks the finger.
   const sized = $derived(lifted && !moving ? drag.drop?.rects.find((r) => r.id === id) : undefined);
@@ -104,7 +104,7 @@
 
   function end(e: PointerEvent) {
     if (!gesture || e.pointerId !== gesture.pointerId) return;
-    if (!gesture.moved) onselect(id, gesture.add);
+    if (!gesture.moved) onpick(id, gesture.add);
     gesture = null;
   }
 

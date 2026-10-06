@@ -202,6 +202,23 @@ describe('frames', () => {
     expect(presetStore.addingTo).toBeNull();
   });
 
+  it('adds a widget where it was dropped, if it may go there and the cells are free', async () => {
+    const { desk, frame, tab } = await deskWithFrame();
+    presetStore.addWidget('button', { rect: { x: 1, y: 1, w: 2, h: 2 }, at: tab });
+    const button = last();
+    expect(button).toMatchObject({ type: 'button', x: 1, y: 1, w: 2, h: 2, parent: tab });
+    expect(ui.selected).toEqual([button.id]);
+    const count = desk.widgets.length;
+    // Onto it again, or a frame into a frame: nothing is added.
+    presetStore.addWidget('slider', { rect: { x: 2, y: 2, w: 1, h: 1 }, at: tab });
+    presetStore.addWidget('tabs', { rect: { x: 4, y: 0, w: 1, h: 1 }, at: tab });
+    expect(desk.widgets).toHaveLength(count);
+    // On the desk, past every widget there.
+    presetStore.addWidget('switch', { rect: { x: 0, y: 12, w: 2, h: 1 }, at: null });
+    expect(last()).toMatchObject({ type: 'switch', y: 12, parent: null });
+    expect(frame.parent).toBeNull();
+  });
+
   it('moves widgets in, out and between frames, never a frame onto a tab', async () => {
     const { desk, frame, tab } = await deskWithFrame();
     const button = desk.widgets.find((w) => w.type === 'button' && !w.parent)!;

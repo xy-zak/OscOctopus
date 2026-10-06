@@ -16,7 +16,7 @@ import { tabsDef } from './tabs/def';
 import { textDef } from './text/def';
 import type { ChannelInfo, Gate, InputPatch, Messages, WidgetDef, WidgetOf } from './types';
 
-/** In toolbar order. Typed over every WidgetType: a type without a def does not compile. */
+/** In ADD's order. Typed over every WidgetType: a type without a def does not compile. */
 export const DEFS: { [T in WidgetType]: WidgetDef<WidgetOf<T>> } = {
   button: buttonDef,
   switch: switchDef,

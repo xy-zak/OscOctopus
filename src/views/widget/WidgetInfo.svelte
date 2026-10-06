@@ -29,6 +29,7 @@
 
   function edit(w: Widget) {
     ui.mode = 'edit';
+    ui.editPanel = 'inspect';
     presetStore.select(w.id);
   }
 

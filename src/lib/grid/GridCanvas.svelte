@@ -1,14 +1,14 @@
 <script lang="ts">
   // A desk's grid of widgets, or one tab of a frame on it (`tab`). The desk's own canvas shares
   // the desk with the frames drawn on it (context.ts), which draw their shown tab with this same
-  // canvas, nested, edited and played like the desk. One drag (drag.svelte.ts), made by the desk's
-  // canvas, moves and resizes widgets (one, or the selection) and carries them between grids.
-  // Frames sit on the desk only (model/tabs.ts), so this nests once.
+  // canvas, nested, edited and played like the desk. The desk's one drag (drag.svelte.ts, made by
+  // the desk view) moves and resizes widgets (one, or the selection), carries them between grids
+  // and brings new ones in from ADD. Frames sit on the desk only (model/tabs.ts), so this nests
+  // once.
   import { untrack } from 'svelte';
   import type { Preset, TabRef, Widget } from '../model/preset';
   import {
     autoColorOn,
-    canPlace,
     childrenIndex,
     gridOn,
     isTabs,
@@ -16,14 +16,13 @@
     sameTab,
     tabKey,
   } from '../model/tabs';
-  import { tickHaptic } from '../platform/haptics';
   import { provideSkin } from '../skins/context';
   import { lookStore } from '../state/look.svelte';
   import { colorVars } from '../theme/palettes';
   import { viewsOf } from '../widgets/registry';
   import { provideCanvas, type Holder } from './context';
-  import { DragSession, type DragStart } from './drag.svelte';
-  import { inBounds, metrics as computeMetrics, toPx, type Handle, type Placed } from './engine';
+  import type { DragSession, DragStart } from './drag.svelte';
+  import { inBounds, metrics as computeMetrics, toPx, type Handle } from './engine';
   import GridItem from './GridItem.svelte';
   import TabCanvas from './TabCanvas.svelte';
 
@@ -33,17 +32,17 @@
     tab?: TabRef | null;
     /** Where the desk's widgets show, from the desk's canvas (worked out here if none). */
     index?: Map<string, Widget[]>;
-    /** The desk's drag, for a tab; the desk's own canvas makes it. */
-    drag?: DragSession;
+    /** The desk's drag. */
+    drag: DragSession;
     editing: boolean;
     /** The widgets selected, all on one grid. */
     selected: readonly string[];
     focusedId?: string | null;
-    /** A widget picked alone (null: none), or with `add` (Shift) added or taken out. */
+    /** A widget selected alone (null: none), or with `add` (Shift) added or taken out. */
     onselect: (id: string | null, add?: boolean) => void;
+    /** A widget clicked (a tap, not a drag): selected as `onselect` does, to be inspected. */
+    onpick: (id: string, add: boolean) => void;
     onfocus?: (id: string) => void;
-    /** Widgets were put down at `rects` in the grid of `parent` (a tab; null: the desk). */
-    oncommit: (rects: readonly Placed[], parent: TabRef | null) => void;
     /** LOCK: widgets render but ignore all input. */
     locked?: boolean;
     /** A press landed on the desk while locked (to hint how to unlock). */
@@ -55,7 +54,7 @@
     preset,
     tab = null,
     index: around,
-    drag: given,
+    drag,
     editing,
     locked = false,
     onlockedpress,
@@ -63,8 +62,8 @@
     selected,
     focusedId = null,
     onselect,
+    onpick,
     onfocus,
-    oncommit,
   }: Props = $props();
 
   let el = $state<HTMLDivElement>();
@@ -72,14 +71,7 @@
   let height = $state(0);
 
   /** The desk's own canvas, not a tab's. */
-  const desk = !untrack(() => given);
-  const drag =
-    untrack(() => given) ??
-    new DragSession({
-      accepts: (id, at) => canPlace(preset, id, at),
-      commit: (rects, at) => oncommit(rects, at),
-      tick: tickHaptic,
-    });
+  const desk = !untrack(() => tab);
 
   const placed = $derived(placements(preset));
   const index = $derived(around ?? childrenIndex(preset, placed));
@@ -91,7 +83,8 @@
   const widgets = $derived.by(() => {
     if (!tab) return own;
     const on = new Set(own);
-    const carried = drag.lifted?.from?.widget === tab.widget ? drag.lifted.ids : [];
+    const l = drag.lifted;
+    const carried = l && l.kind !== 'add' && l.from?.widget === tab.widget ? l.ids : [];
     return preset.widgets.filter((w) => (on.has(w) && inBounds(w, grid)) || carried.includes(w.id));
   });
   /** The frame the selection is on: drawn over the desk's other widgets, and so are they. */
@@ -107,9 +100,9 @@
         )
       : [],
   );
-  // Where carried widgets would land, if on this grid (resized ones show it themselves).
+  // Where carried or new widgets would land, if on this grid (resized ones show it themselves).
   const ghosts = $derived(
-    drag.lifted?.kind === 'move' && drag.drop && sameTab(drag.drop.at, tab)
+    drag.carrying && drag.drop && sameTab(drag.drop.at, tab)
       ? drag.drop.rects.map((r) => toPx(r, m))
       : [],
   );
@@ -146,16 +139,12 @@
       selected,
       focusedId,
       onselect,
+      onpick,
       onfocus,
-      oncommit,
       holderOf,
       drag,
       Tab: TabCanvas,
     }));
-    // Leaving EDIT (LOCK too) puts a carried widget back.
-    $effect(() => {
-      if (!editing) untrack(() => drag.cancel());
-    });
   }
 </script>
 
@@ -201,7 +190,7 @@
         selected={selected.includes(w.id)}
         focused={focusedId === w.id}
         holder={editing ? (holderOf?.(w.id) ?? null) : null}
-        {onselect}
+        {onpick}
         {onfocus}
         onlift={(kind, start) => lift(w, kind, start)}
       >

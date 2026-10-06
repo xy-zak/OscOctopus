@@ -93,7 +93,7 @@
   const hovered = $derived.by(() => {
     const lifted = ctx?.drag.lifted;
     const p = ctx?.drag.pointer;
-    if (!ctx || lifted?.kind !== 'move' || !p || !strip || !ctx.drag.accepts(lifted.ids, ref))
+    if (!ctx || !lifted || !ctx.drag.carrying || !p || !strip || !ctx.drag.accepts(lifted, ref))
       return -1;
     // A tab scrolled out of the strip doesn't count.
     if (!within(strip.getBoundingClientRect(), p.x, p.y)) return -1;

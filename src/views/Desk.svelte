@@ -1,15 +1,21 @@
 <script lang="ts">
+  // A desk's CONTROLS: its widgets, and the side panel. In EDIT the panel adds widgets (ADD) or
+  // edits what is selected, else the desk (INSPECT; clicking a widget opens it); in LIVE it is
+  // the info panel, when INFO is on. The desk's EDIT and INFO switches are on the section bar
+  // (DeskSwitches).
+  import { untrack } from 'svelte';
+  import { DragSession } from '../lib/grid/drag.svelte';
   import GridCanvas from '../lib/grid/GridCanvas.svelte';
-  import { tabAt } from '../lib/model/tabs';
+  import { canHold, canPlace } from '../lib/model/tabs';
+  import { tickHaptic } from '../lib/platform/haptics';
   import { presetStore } from '../lib/state/preset.svelte';
-  import { toast, toggleEditMode, ui } from '../lib/state/ui.svelte';
+  import { toast, ui } from '../lib/state/ui.svelte';
   import { lockedBy, sharedDesks } from '../lib/sync/app.svelte';
   import { syncSession } from '../lib/sync/session.svelte';
   import { colorVars } from '../lib/theme/palettes';
-  import Icon from '../lib/ui/Icon.svelte';
-  import ToggleSwitch from '../lib/ui/ToggleSwitch.svelte';
-  import { DEFS, WIDGET_TYPES, widgetName } from '../lib/widgets/defs';
+  import Segmented from '../lib/ui/Segmented.svelte';
   import { removeWidgets } from '../lib/widgets/tabs/actions';
+  import AddPanel from './AddPanel.svelte';
   import DeskPanel from './DeskPanel.svelte';
   import Inspector from './Inspector.svelte';
   import SelectionPanel from './SelectionPanel.svelte';
@@ -24,12 +30,6 @@
   );
   const selected = $derived(preset.widgets[selectedIndex]);
   const focused = $derived(presetStore.widget(ui.focusedId));
-  // EDIT: the frame tab ADD puts new widgets on (null: the desk), named as the toolbar shows it.
-  const adding = $derived.by(() => {
-    const at = presetStore.addingTo;
-    const found = at && tabAt(preset, at);
-    return found ? `${widgetName(found.frame)} › ${found.tab.name}`.toUpperCase() : null;
-  });
   // Edit mode always has the panel; live mode has it when the info panel is switched on, but
   // never while presenting (always live): then the widgets fill the screen.
   const info = $derived(ui.infoOpen && !ui.presenting);
@@ -46,6 +46,23 @@
     };
   }
   const conflicts = $derived(editing && shared ? sharedDesks.conflicts(preset.id) : []);
+
+  // The desk's one drag (grid/drag.svelte.ts): its widgets moved and resized on its grids, and
+  // new ones brought in from ADD. Leaving EDIT (LOCK too) puts what is dragged back.
+  const drag = new DragSession({
+    accepts: (l, at) =>
+      l.kind === 'add'
+        ? canHold(presetStore.current, at, l.type)
+        : l.ids.every((id) => canPlace(presetStore.current, id, at)),
+    commit: (l, drop) => {
+      if (l.kind === 'add') presetStore.addWidget(l.type, { rect: drop.rects[0]!, at: drop.at });
+      else presetStore.moveWidgets(drop.rects, drop.at);
+    },
+    tick: tickHaptic,
+  });
+  $effect(() => {
+    if (!editing) untrack(() => drag.cancel());
+  });
   const invalid = $derived(sharedDesks.view[preset.id]?.invalid ?? []);
 
   function onkeydown(e: KeyboardEvent) {
@@ -89,56 +106,6 @@
 <svelte:window {onkeydown} />
 
 <div class="desk">
-  <!-- The tool row is there in both modes, at one fixed height, so the desk below never moves
-       when switching: EDIT adds widgets here, LIVE shows or hides the info panel. Presenting
-       hides it. -->
-  {#if !ui.presenting}
-    <div class="toolbar">
-      <div class="tools">
-        {#if editing}
-          <span class="faint"
-            >ADD{#if adding}&nbsp;→ {adding}{/if}</span
-          >
-          {#each WIDGET_TYPES as t (t)}
-            <button
-              class="btn"
-              title={t === 'tabs' && adding ? 'A frame goes on the desk' : undefined}
-              onclick={() => presetStore.addWidget(t)}><Icon name="plus" /> {DEFS[t].label}</button
-            >
-          {/each}
-          <span class="hint faint"
-            >shift+click: select more · drag: move, in and out of frames · handles: resize · arrows:
-            nudge · del: remove · esc: deselect</span
-          >
-        {:else}
-          <!-- A switch like the master bar's, for the side panel. -->
-          <span class="info">
-            <ToggleSwitch
-              label="INFO"
-              on={ui.infoOpen}
-              onclick={() => (ui.infoOpen = !ui.infoOpen)}
-              title={ui.infoOpen
-                ? 'Hide the widget info panel'
-                : 'Show the widget info panel (value, messages, activity)'}
-            />
-          </span>
-        {/if}
-      </div>
-      <!-- Live ⇄ edit, the same kind of switch. Outside the scrolling tools and last in the row,
-         so it stays in one place in both modes and never scrolls out of reach. -->
-      <ToggleSwitch
-        label="EDIT"
-        on={editing}
-        disabled={ui.locked}
-        onclick={toggleEditMode}
-        title={ui.locked
-          ? 'Locked'
-          : editing
-            ? 'Back to LIVE: play the widgets (Alt+E)'
-            : 'Switch to EDIT: move and change widgets (Alt+E)'}
-      />
-    </div>
-  {/if}
   {#if conflicts.length || (editing && invalid.length)}
     <div class="conflicts" role="status">
       <span class="tag">CHECK</span>
@@ -157,31 +124,57 @@
     <div class="canvas-wrap">
       <GridCanvas
         {preset}
+        {drag}
         {editing}
         {holderOf}
         selected={ui.selected}
         focusedId={info ? ui.focusedId : null}
         onselect={(id, add) => presetStore.select(id, add)}
+        onpick={(id, add) => {
+          // A widget clicked is to be looked at: INSPECT. Dragging or adding one selects it too,
+          // but leaves ADD as it is, so a layout is built without the panel changing under it.
+          presetStore.select(id, add);
+          ui.editPanel = 'inspect';
+        }}
         onfocus={(id) => (ui.focusedId = id)}
-        oncommit={(rects, parent) => presetStore.moveWidgets(rects, parent)}
         locked={ui.locked}
         onlockedpress={() => ui.lockNudge++}
       />
     </div>
     {#if panel}
       <!-- One persistent panel: its content changes, the panel itself never re-animates. -->
-      <aside class="side scroll">
-        {#if editing && selected}
-          {#key selected.id}
-            <Inspector bind:widget={preset.widgets[selectedIndex]!} />
-          {/key}
-        {:else if editing && selection.length > 1}
-          <SelectionPanel />
-        {:else if editing}
-          <DeskPanel />
-        {:else}
-          <WidgetInfo widget={focused} />
+      <aside class="side">
+        {#if editing}
+          <!-- Stays put while what is below it scrolls. -->
+          <div class="switcher">
+            <Segmented
+              options={[
+                { value: 'add', label: 'ADD', title: 'Add widgets to the desk or a frame' },
+                {
+                  value: 'inspect',
+                  label: 'INSPECT',
+                  title: 'Edit the selected widgets, or the desk when none is selected',
+                },
+              ]}
+              bind:value={ui.editPanel}
+            />
+          </div>
         {/if}
+        <div class="content scroll">
+          {#if editing && ui.editPanel === 'add'}
+            <AddPanel {drag} />
+          {:else if editing && selected}
+            {#key selected.id}
+              <Inspector bind:widget={preset.widgets[selectedIndex]!} />
+            {/key}
+          {:else if editing && selection.length > 1}
+            <SelectionPanel />
+          {:else if editing}
+            <DeskPanel />
+          {:else}
+            <WidgetInfo widget={focused} />
+          {/if}
+        </div>
       </aside>
     {/if}
   </div>
@@ -192,39 +185,6 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-  }
-  /* One fixed height in both modes (no wrapping: the tools scroll sideways when narrow), so
-     switching modes swaps its contents without moving anything below. */
-  .toolbar {
-    flex: none;
-    display: flex;
-    align-items: center;
-    gap: 1ch;
-    height: 40px;
-    padding: 0 1ch;
-    border-bottom: 1px solid var(--line);
-    background: var(--bg-2);
-  }
-  .tools {
-    flex: 1;
-    min-width: 0;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    gap: 1ch;
-    white-space: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .hint,
-  .info {
-    margin-left: auto;
-  }
-  .info {
-    display: flex;
-  }
-  .toolbar > :global(.mbtn) {
-    flex: none;
   }
   /* Concurrent edits that clash (shared desks): shown, never fixed automatically. */
   .conflicts {
@@ -264,11 +224,21 @@
     width: 380px;
     flex: none;
     height: 100%;
-    padding: 12px 14px 20px;
+    display: flex;
+    flex-direction: column;
     /* The same thin rule as under the headers (--line), in both modes. */
     border-left: 1px solid var(--line);
     background: var(--bg-2);
     animation: slide-in var(--t-release) steps(4, end);
+  }
+  .switcher {
+    flex: none;
+    padding: 12px 14px 0;
+  }
+  .content {
+    flex: 1;
+    min-height: 0;
+    padding: 12px 14px 20px;
   }
   @keyframes slide-in {
     from {
@@ -279,9 +249,6 @@
   @media (max-width: 760px) {
     .body {
       flex-direction: column;
-    }
-    .hint {
-      display: none;
     }
     .side {
       width: 100%;

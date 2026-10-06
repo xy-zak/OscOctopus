@@ -60,8 +60,7 @@ The screen always shows **where you are**, by containment:
 ▓ LOCKED / PAUSED banners: the whole app, full width
 [■ DESK A ●][■ ⇄ DESK B ●][+]  [GLOBAL SETTINGS] │ ● 3/3 OUT  ● 2 SYNC │ [■] OSC-IN  [■] OSC-OUT  [ ] LOCK  [ ] PRESENT
 ╔ frame in the active tab's colour ════════════════════════════════════════════════════╗
-║ F1 CONTROLS  F2 NETWORK  F3 TRAFFIC  F4 LOOK  F5 SYNC                                  ║
-║ desk tool row: + ADD … (EDIT) or [ ] INFO (LIVE)                             [ ] EDIT ║
+║ F1 CONTROLS  F2 NETWORK  F3 TRAFFIC  F4 LOOK  F5 SYNC              [ ] INFO  [ ] EDIT ║
 ║ …                                                                                     ║
 ```
 
@@ -74,7 +73,7 @@ The screen always shows **where you are**, by containment:
 
 | Desk (per desk) | | GLOBAL SETTINGS (all desks / this device) | |
 | --- | --- | --- | --- |
-| **F1 CONTROLS** | The widgets. *Live* plays them (multi-touch; the side panel shows the exact messages of the last-touched widget). *EDIT* adds, moves, resizes and edits them. The `[■] EDIT` switch at the right end of the desk's tool row (or Alt+E) flips between the two; the grid shows only while editing. | **F1 NETWORK** | This device's interfaces and broadcast addresses, plus a read-only table of every desk's endpoints. Click one to edit it in that desk. |
+| **F1 CONTROLS** | The widgets. *Live* plays them (multi-touch; the side panel shows the exact messages of the last-touched widget). *EDIT* adds, moves, resizes and edits them: its side panel has **ADD** (every widget type drawn as it will look: drag one onto the desk or into a frame, or click to add it where there is room) and **INSPECT** (the selected widgets, or the desk). The `[■] EDIT` switch at the right end of the section bar (or Alt+E) flips between the two, and `[■] INFO` shows or hides LIVE's side panel; the grid shows only while editing. | **F1 NETWORK** | This device's interfaces and broadcast addresses, plus a read-only table of every desk's endpoints. Click one to edit it in that desk. |
 | **F2 NETWORK** | This desk's outputs and inputs (UDP unicast/broadcast/multicast, TCP SLIP or length-prefix), with live status and the OS's own errors. | **F2 TRAFFIC** | Every packet and lifecycle event of all desks, sequence-numbered, filterable. Hex/ASCII, decoded view, export. |
 | **F3 TRAFFIC** | The traffic of this desk only. | **F3 LIBRARY** | Every saved desk preset: open as desk, delete, new blank desk, import as new desk. |
 | **F4 LOOK** | This desk's name and colour, save, export, *import into this desk*, duplicate, remove. Its own **look**, on this device: palette, active colour and widget skin, each *ALL DESKS* or its own. | **F4 LOOK** | Dark (default) or light background, shared by every desk. The **look** of every desk: its palette (nine colours and an **accent**, which marks highlights and selection), its **active colour** (what is pressed, on, filled or held: any colour from the colour picker, GREEN by default) and its widget skin. *New palette* makes a custom one: pick a colour, and nine (light to dark) and an accent are generated from it; then pick any of them by hand. Custom palettes are listed with the others; *Edit* changes or deletes one. The widget skin says how widgets are drawn: TERMINAL (pixel lines), GLASS (tinted rounded panes), SKETCH (coloured pencil), WOBBLY (every line an even wave), PIXELATED (an 8-bit game screen), HARDWARE (a mixing desk), NEON (glowing tubes), BLUEPRINT (a technical drawing), BRUTALIST (thick borders, hard shadows), LED MATRIX (round LEDs), CRT (scanlines and glow) or ARCADE (domed buttons, ball-top levers). Text, markers and the background are the same in every skin. A desk can have its own palette, active colour or skin (DESK › LOOK). |

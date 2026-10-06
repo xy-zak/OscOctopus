@@ -21,7 +21,7 @@
   selected={ctx.selected}
   focusedId={ctx.focusedId}
   onselect={ctx.onselect}
+  onpick={ctx.onpick}
   onfocus={ctx.onfocus}
-  oncommit={ctx.oncommit}
   holderOf={ctx.holderOf}
 />

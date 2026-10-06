@@ -50,7 +50,7 @@ export interface FeedbackApi {
 }
 
 export interface WidgetDef<W extends Widget> {
-  /** Shown in the toolbar and the Inspector. */
+  /** Shown in ADD and the Inspector. */
   label: string;
   /**
    * What the readout set into its frame's border shows (the "value" a widget can hide, EDIT ›

@@ -15,6 +15,8 @@ export type Mode = 'live' | 'edit';
 export type InspectorSection = 'visual' | 'interaction' | 'messages' | 'activity';
 /** The live-mode info panel's foldable sections, in order. */
 export type InfoSection = 'value' | 'messages' | 'activity';
+/** What the side panel shows in edit mode: new widgets to add, or the selection to edit. */
+export type EditPanel = 'add' | 'inspect';
 
 export interface Section<Id extends string> {
   id: Id;
@@ -58,6 +60,8 @@ export const ui = $state({
    * one picked last; the Inspector opens when there is one (`presetStore.select`).
    */
   selected: [] as string[],
+  /** Edit mode: ADD (new widgets) or INSPECT (the selection, else the desk) in the side panel. */
+  editPanel: 'add' as EditPanel,
   /** Live mode: the widget touched last, shown in the info panel. */
   focusedId: null as string | null,
   /** Live mode: whether the read-only info panel is shown. */
@@ -78,7 +82,7 @@ export const ui = $state({
   /**
    * PRESENTING: the active desk's widgets fill the screen, live. Only the desk tabs and the
    * master switches (OSC-IN, OSC-OUT, LOCK, PRESENT to stop) stay; the sections, the desk's
-   * tool row, the side panel and the banners are hidden, and nothing can navigate away from
+   * switches, the side panel and the banners are hidden, and nothing can navigate away from
    * the widgets (see `setPresenting`).
    */
   presenting: false,

@@ -5,6 +5,7 @@ import { newPreset } from './factory';
 import type { TabRef, TabsWidget, Widget } from './preset';
 import {
   autoColorOn,
+  canHold,
   canPlace,
   childrenIndex,
   childrenOf,
@@ -100,6 +101,11 @@ describe('tabs and their grid', () => {
     const other = newWidget('tabs', at, [], 2);
     p.widgets.push(other);
     expect(canPlace(p, other.id, tabOf(frame))).toBe(false);
+    // A widget yet to be made: by its type.
+    expect(canHold(p, tabOf(frame), 'button')).toBe(true);
+    expect(canHold(p, tabOf(frame), 'tabs')).toBe(false);
+    expect(canHold(p, null, 'tabs')).toBe(true);
+    expect(canHold(p, { widget: frame.id, tab: 'tb-gone' }, 'button')).toBe(false);
   });
 
   it('colours AUTO widgets after their frame’s colour, else the desk’s', () => {
