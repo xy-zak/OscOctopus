@@ -1,8 +1,7 @@
 // Every widget type's def must agree with the schema and with itself: what a new widget
 // sends, the value it starts with and the channels it offers.
 import { describe, expect, it } from 'vitest';
-import { newPreset } from '../model/factory';
-import { LIMITS, SubdeskPageSchema, WidgetSchema } from '../model/preset';
+import { LIMITS, WidgetSchema } from '../model/preset';
 import { isRecord } from '../osc/value';
 import {
   channelsFor,
@@ -13,11 +12,9 @@ import {
   isValueFor,
   messagesOf,
   newWidget,
-  outputRefsOf,
-  remapOutputsOf,
   WIDGET_TYPES,
 } from './defs';
-import { blankPage, copiedPage, pageName, pagesFull, shownPage } from './subdesk/def';
+import { newTab, shownTab, tabName, tabsFull } from './tabs/def';
 
 const rect = { x: 0, y: 0, w: 2, h: 2 };
 
@@ -39,16 +36,6 @@ describe('widget defs', () => {
     } else {
       expect(w.bindings.every((b) => !b.send)).toBe(true);
     }
-  });
-
-  it.each(WIDGET_TYPES)('%s: what it sends to besides messages can be repointed', (type) => {
-    const w = newWidget(type, rect, ['out-1']);
-    if (outputRefsOf(w).length === 0) return;
-    expect(DEFS[type].remapOutputs, type).toBeDefined();
-    remapOutputsOf(w, new Map([['out-1', 'out-9']]));
-    expect(outputRefsOf(w)).toEqual(['out-9']);
-    remapOutputsOf(w, new Map());
-    expect(outputRefsOf(w)).toEqual([]);
   });
 
   it.each(WIDGET_TYPES)('%s: the initial value has exactly the offered channels', (type) => {
@@ -81,7 +68,7 @@ describe('widget defs', () => {
       sequencer: 'queue',
       text: 'queue',
       log: 'queue',
-      subdesk: 'queue',
+      tabs: 'queue',
     });
   });
 });
@@ -151,32 +138,30 @@ describe('what a peer may set (WidgetDef.isValue)', () => {
     expect(isValueFor(list, inputValue(list, { index: 1 }, initialValue(list)))).toBe(true);
   });
 
-  it('sub-desk: one of its own pages, shown by id; a page that is gone shows the first', () => {
-    const w = newWidget('subdesk', rect, []);
-    const second = blankPage('Second');
-    w.props.pages.push(second);
+  it('frame: one of its own tabs, shown by id; a tab that is gone shows the first', () => {
+    const w = newWidget('tabs', rect, []);
+    const second = newTab('Second');
+    w.props.tabs.push(second);
     expect(isValueFor(w, second.id)).toBe(true);
-    expect(isValueFor(w, 'pg-elsewhere')).toBe(false);
+    expect(isValueFor(w, 'tb-elsewhere')).toBe(false);
     expect(isValueFor(w, 1)).toBe(false);
-    expect(shownPage(w, second.id)).toBe(second);
-    expect(shownPage(w, 'pg-gone')).toBe(w.props.pages[0]);
+    expect(shownTab(w, second.id)).toBe(second);
+    expect(shownTab(w, 'tb-gone')).toBe(w.props.tabs[0]);
     // The info panel reads it by name.
-    expect(DEFS.subdesk.valueText?.(w, second.id)).toBe('Second');
+    expect(DEFS.tabs.valueText?.(w, second.id)).toBe('Second');
   });
 
-  it('sub-desk pages: named within the limit, copied from a desk, and no more than allowed', () => {
-    expect(pageName('  Effects  ')).toBe('Effects');
-    expect(pageName('x'.repeat(40))).toHaveLength(LIMITS.pageName.max);
-    expect(pageName('   ')).toBe('');
-    const desk = newPreset('A very long desk name indeed');
-    const page = copiedPage(desk);
-    expect(SubdeskPageSchema.safeParse(page).success).toBe(true);
-    expect(page).toMatchObject({ source: desk.id, copiedAt: desk.updatedAt, grid: desk.grid });
-    expect(page.name).toBe(pageName(desk.name));
-    const w = newWidget('subdesk', rect, []);
-    expect(pagesFull(w)).toBe(false);
-    w.props.pages = Array.from({ length: LIMITS.subdeskPages.max }, (_, i) => blankPage(`${i}`));
-    expect(pagesFull(w)).toBe(true);
+  it('frame tabs: named within the limit, and no more than allowed', () => {
+    expect(tabName('  Effects  ')).toBe('Effects');
+    expect(tabName('x'.repeat(40))).toHaveLength(LIMITS.tabName.max);
+    expect(tabName('   ')).toBe('');
+    const w = newWidget('tabs', rect, []);
+    expect(tabsFull(w)).toBe(false);
+    w.props.tabs = Array.from({ length: LIMITS.tabs.max }, (_, i) => newTab(`${i}`));
+    expect(tabsFull(w)).toBe(true);
+    expect(WidgetSchema.safeParse(w).success).toBe(true);
+    w.props.tabs.push(newTab('One too many'));
+    expect(WidgetSchema.safeParse(w).success).toBe(false);
   });
 
   it('text: any scalar it can show; received text is cut to the limit', () => {

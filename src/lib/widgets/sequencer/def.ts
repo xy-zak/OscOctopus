@@ -6,7 +6,6 @@ import { canonical } from '../../canonical';
 import { uid } from '../../model/parts';
 import type { SeqStep, SequencerWidget } from '../../model/preset';
 import type { ValueRecord } from '../../osc/value';
-import { unique } from '../../util';
 import type { WidgetDef } from '../types';
 
 /** How a run is going: `step` counts from 1 (0 before the first), `pass` too. */
@@ -54,8 +53,5 @@ export const sequencerDef: WidgetDef<SequencerWidget> = {
   outputRefs: (w) => w.props.outputIds,
   dropOutput: (w, id) => {
     w.props.outputIds = w.props.outputIds.filter((o) => o !== id);
-  },
-  remapOutputs: (w, ids) => {
-    w.props.outputIds = unique(w.props.outputIds.flatMap((o) => ids.get(o) ?? []));
   },
 };

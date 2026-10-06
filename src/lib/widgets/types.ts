@@ -88,7 +88,7 @@ export interface WidgetDef<W extends Widget> {
   show?(w: W, value: WidgetValue, fx: FeedbackApi): void;
   /**
    * How its value reads (the info panel's VALUE) when the value itself means little to a person:
-   * a sub-desk's page by its name, not its id. Left out, the value is shown as it is.
+   * a frame's tab by its name, not its id. Left out, the value is shown as it is.
    */
   valueText?(w: W, value: WidgetValue): string;
   /** The touch key a value belongs to, when finer than the widget (one pad of a grid). */
@@ -103,11 +103,6 @@ export interface WidgetDef<W extends Widget> {
   outputRefs?(w: W): readonly string[];
   /** Forgets an output that was removed from its desk (see `outputRefs`). */
   dropOutput?(w: W, id: string): void;
-  /**
-   * Points its `outputRefs` at other outputs, when a desk is copied into another (a sub-desk:
-   * model/embed.ts). An output missing from `ids` is dropped. Every def with `outputRefs` has it.
-   */
-  remapOutputs?(w: W, ids: ReadonlyMap<string, string>): void;
   /**
    * Points its references to other widgets of its desk at their new ids, when a whole desk is
    * copied with fresh ids (duplicated or imported). A widget missing from `ids` is dropped.

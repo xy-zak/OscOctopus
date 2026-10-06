@@ -103,7 +103,7 @@ const steps: Record<number, (preset: Raw) => Raw> = {
       show: { title: true, value: true },
     })),
   }),
-  // v12: sub-desks. A widget can sit on a sub-desk's page; every widget so far is on the desk.
+  // v12: frames. A widget can sit on a frame's tab; every widget so far is on the desk.
   11: (p) => ({
     ...p,
     schemaVersion: 12,

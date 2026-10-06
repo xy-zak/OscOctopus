@@ -451,13 +451,13 @@
     color: var(--c-text);
   }
   .frame[data-base='arcade'] [data-part='log.empty'],
-  .frame[data-base='arcade'] [data-part='subdesk.empty'] {
+  .frame[data-base='arcade'] [data-part='tabs.empty'] {
     color: var(--fg-faint);
   }
 
-  /* ---- sub-desk: page tabs drawn like the list's options, the page shown like its current
-     option; an empty page says so like an empty log (above). ---- */
-  .frame[data-base='arcade'] [data-part='subdesk.tab'] {
+  /* ---- frame tabs: drawn like the list's options, the tab shown like its current option; an
+     empty tab says so like an empty log (above). ---- */
+  .frame[data-base='arcade'] [data-part='tabs.tab'] {
     border-radius: 999px;
     background: color-mix(in srgb, var(--c) 12%, var(--w-bg));
     color: var(--fg-dim);
@@ -466,10 +466,10 @@
       inset 0 -1px 0 rgb(0 0 0 / 0.3);
     transition: color 140ms ease;
   }
-  .frame[data-base='arcade'][data-live] [data-part='subdesk.tab']:not([data-current]):hover {
+  .frame[data-base='arcade'][data-live] [data-part='tabs.tab']:not([data-current]):hover {
     color: var(--fg);
   }
-  .frame[data-base='arcade'] [data-part='subdesk.tab'][data-current] {
+  .frame[data-base='arcade'] [data-part='tabs.tab'][data-current] {
     background: radial-gradient(
       ellipse at 50% 20%,
       color-mix(in srgb, var(--c-solid) 60%, #fff),

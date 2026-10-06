@@ -433,13 +433,13 @@
     color: var(--c-text);
   }
   .frame[data-base='wobbly'] [data-part='log.empty'],
-  .frame[data-base='wobbly'] [data-part='subdesk.empty'] {
+  .frame[data-base='wobbly'] [data-part='tabs.empty'] {
     color: var(--fg-faint);
   }
 
-  /* ---- sub-desk: page tabs drawn like the list's options, the page shown like its current
-     option; an empty page says so like an empty log (above). ---- */
-  .frame[data-base='wobbly'] [data-part='subdesk.tab'] {
+  /* ---- frame tabs: drawn like the list's options, the tab shown like its current option; an
+     empty tab says so like an empty log (above). ---- */
+  .frame[data-base='wobbly'] [data-part='tabs.tab'] {
     border-radius: 6px;
     background: color-mix(in srgb, var(--c) 14%, transparent);
     color: var(--fg-dim);
@@ -447,13 +447,13 @@
       background 180ms ease,
       color 180ms ease;
   }
-  .frame[data-base='wobbly'][data-live] [data-part='subdesk.tab']:not([data-current]):hover {
+  .frame[data-base='wobbly'][data-live] [data-part='tabs.tab']:not([data-current]):hover {
     color: var(--fg);
   }
-  .frame[data-base='wobbly'] [data-part='subdesk.tab'][data-current] {
+  .frame[data-base='wobbly'] [data-part='tabs.tab'][data-current] {
     color: var(--fg);
   }
-  .frame[data-base='wobbly'] [data-part='subdesk.tab'][data-current]::after {
+  .frame[data-base='wobbly'] [data-part='tabs.tab'][data-current]::after {
     content: '';
     position: absolute;
     inset: 0;

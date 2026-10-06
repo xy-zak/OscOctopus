@@ -38,13 +38,13 @@ describe('touch', () => {
   });
 
   it('knows whether any of a set of widgets is held, a pad counting for its widget', () => {
-    const page = new Set(['a', 'b']);
-    expect(holdsAny(page)).toBe(false);
+    const tab = new Set(['a', 'b']);
+    expect(holdsAny(tab)).toBe(false);
     begin('b#3', 1);
     pulse('c');
-    expect(holdsAny(page)).toBe(true);
+    expect(holdsAny(tab)).toBe(true);
     expect(holdsAny(new Set(['c']))).toBe(false);
     endPointer(1);
-    expect(holdsAny(page)).toBe(false);
+    expect(holdsAny(tab)).toBe(false);
   });
 });

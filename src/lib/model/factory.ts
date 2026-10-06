@@ -55,7 +55,7 @@ export function newPreset(
 
 /**
  * Copies of widgets (plain objects, not state) with new widget and binding ids. What refers to
- * one of them follows it to its new id: a widget on a copied sub-desk's page (`parent`), a text
+ * one of them follows it to its new id: a widget on a copied frame's tab (`parent`), a text
  * monitor's target, a log's sources. A reference to one of `outside` (widgets that stay where
  * they are) is kept; one to any other widget is dropped. A `parent` outside the copies is left
  * as it is, for the caller to place.
@@ -85,7 +85,7 @@ export function freshCopies(
 /**
  * A copy of a preset with new widget and binding ids. Live values and throttles are keyed by
  * widget id, so two open desks must never share one (e.g. a duplicated or re-imported desk).
- * Widgets that refer to others of the desk (a sub-desk's widgets, a text monitor, a log)
+ * Widgets that refer to others of the desk (a frame's widgets, a text monitor, a log)
  * follow them to their new ids. Endpoint ids are kept: they are namespaced per desk by the
  * network core.
  */

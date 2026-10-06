@@ -375,21 +375,21 @@
     color: var(--c-text);
   }
   .frame[data-base='terminal'] [data-part='log.empty'],
-  .frame[data-base='terminal'] [data-part='subdesk.empty'] {
+  .frame[data-base='terminal'] [data-part='tabs.empty'] {
     color: var(--fg-faint);
   }
 
-  /* ---- sub-desk: page tabs drawn like the list's options, the page shown like its current
-     option; an empty page says so like an empty log (above). ---- */
-  .frame[data-base='terminal'] [data-part='subdesk.tab'] {
+  /* ---- frame tabs: drawn like the list's options, the tab shown like its current option; an
+     empty tab says so like an empty log (above). ---- */
+  .frame[data-base='terminal'] [data-part='tabs.tab'] {
     background: var(--c-solid);
     color: color-mix(in srgb, var(--c-ink) 65%, var(--c-solid));
     transition: color var(--t-ui) steps(2);
   }
-  .frame[data-base='terminal'][data-live] [data-part='subdesk.tab']:not([data-current]):hover {
+  .frame[data-base='terminal'][data-live] [data-part='tabs.tab']:not([data-current]):hover {
     color: var(--c-ink);
   }
-  .frame[data-base='terminal'] [data-part='subdesk.tab'][data-current] {
+  .frame[data-base='terminal'] [data-part='tabs.tab'][data-current] {
     color: var(--c-ink);
   }
 }

@@ -1,83 +1,46 @@
 <script lang="ts">
-  // Edit-mode panel when no widget is selected: the grid of what is open (the desk, or a sub-desk
-  // page) and its widgets, sub-desks with their pages and what is on them.
-  import { LIMITS } from '../lib/model/preset';
-  import {
-    childrenIndex,
-    colorOf,
-    gridOn,
-    pageAt,
-    pageKey,
-    widgetsUnder,
-    type PageRef,
-  } from '../lib/model/subdesks';
+  // Edit-mode panel when no widget is selected: the desk's grid, and its widgets, each frame with
+  // its tabs and what is on them.
+  import { LIMITS, type Widget } from '../lib/model/preset';
+  import { childrenIndex, colorOf, isTabs, tabKey } from '../lib/model/tabs';
   import { presetStore } from '../lib/state/preset.svelte';
-  import { showDesk, showGlobal } from '../lib/state/ui.svelte';
+  import { showDesk, showGlobal, ui } from '../lib/state/ui.svelte';
   import { colorVars } from '../lib/theme/palettes';
   import Field from '../lib/ui/Field.svelte';
-  import Icon from '../lib/ui/Icon.svelte';
   import NumberInput from '../lib/ui/NumberInput.svelte';
-  import { DEFS, WIDGET_TYPES, widgetName } from '../lib/widgets/defs';
+  import { plural } from '../lib/util';
+  import { DEFS, WIDGET_TYPES } from '../lib/widgets/defs';
 
   const preset = $derived(presetStore.current);
-  const page = $derived(presetStore.page);
-  const open = $derived(page ? pageAt(preset, page) : undefined);
-  const grid = $derived(gridOn(preset, page));
   const index = $derived(childrenIndex(preset));
-  const count = $derived(page ? widgetsUnder(preset, page).length : preset.widgets.length);
   /** The type column fits the longest type label. */
   const LABEL_WIDTH = Math.max(...WIDGET_TYPES.map((t) => DEFS[t].label.length));
 </script>
 
-{#snippet rows(at: PageRef | null, level: number)}
-  {#each index.get(pageKey(at)) ?? [] as w (w.id)}
-    <li>
-      <button class="row" style:--level={level} onclick={() => presetStore.reveal(w.id)}>
-        <span class="sw" style:background={colorVars(colorOf(preset, w)).c}></span>
-        <span class="type faint">{DEFS[w.type].label.padEnd(LABEL_WIDTH)}</span>
-        <span class="name">{w.label}</span>
-        <span class="faint">{w.x},{w.y} {w.w}×{w.h}</span>
-      </button>
-    </li>
-    {#if w.type === 'subdesk'}
-      {#each w.props.pages as pg (pg.id)}
-        {@const ref = { widget: w.id, page: pg.id }}
-        <li>
-          <button
-            class="row page"
-            style:--level={level + 1}
-            title="Open this page"
-            onclick={() => presetStore.openPage(ref)}
-            ><Icon name="open" /><span class="name">{pg.name}</span><span class="faint"
-              >{pg.grid.cols}×{pg.grid.rows}</span
-            ></button
-          >
-        </li>
-        {@render rows(ref, level + 2)}
-      {/each}
-    {/if}
-  {/each}
+{#snippet row(w: Widget, level: number)}
+  <li>
+    <!-- Selected, it shows on its tab (widgets/tabs/Tabs.svelte). -->
+    <button class="row" style:--level={level} onclick={() => (ui.selectedId = w.id)}>
+      <span class="sw" style:background={colorVars(colorOf(preset, w)).c}></span>
+      <span class="type faint">{DEFS[w.type].label.padEnd(LABEL_WIDTH)}</span>
+      <span class="name">{w.label}</span>
+      <span class="faint">{w.x},{w.y} {w.w}×{w.h}</span>
+    </button>
+  </li>
 {/snippet}
 
 <div class="panel-body">
   <header>
-    <span class="title">{open ? 'PAGE' : 'DESK'}</span>
-    <span class="faint">{count} widgets</span>
+    <span class="title">DESK</span>
+    <span class="faint">{preset.widgets.length} widgets</span>
   </header>
-  {#if open}
-    <p class="faint">
-      “{open.page.name}” of “{widgetName(open.subdesk)}”: a grid of its own. Select a widget to edit
-      it, or click one below.
-    </p>
-  {:else}
-    <p class="faint">Select a widget to edit it, or click one below.</p>
-  {/if}
+  <p class="faint">Select a widget to edit it, or click one below.</p>
 
-  <h2>{open ? 'Page grid' : 'Grid'}</h2>
+  <h2>Grid</h2>
   <div class="grid3">
     <Field label="Cols">
       <NumberInput
-        value={grid.cols}
+        value={preset.grid.cols}
         integer
         {...LIMITS.gridSide}
         onchange={(cols) => presetStore.setGrid({ cols })}
@@ -85,7 +48,7 @@
     </Field>
     <Field label="Rows">
       <NumberInput
-        value={grid.rows}
+        value={preset.grid.rows}
         integer
         {...LIMITS.gridSide}
         onchange={(rows) => presetStore.setGrid({ rows })}
@@ -93,7 +56,7 @@
     </Field>
     <Field label="Gap px">
       <NumberInput
-        value={grid.gap}
+        value={preset.grid.gap}
         {...LIMITS.gridGap}
         onchange={(gap) => presetStore.setGrid({ gap })}
       />
@@ -111,10 +74,33 @@
 
   <h2>Widgets</h2>
   <ul class="list">
-    {@render rows(page, 0)}
-    {#if count === 0}
-      <li class="faint">Empty {open ? 'page' : 'desk'}: add a widget from the toolbar.</li>
-    {/if}
+    {#each index.get('') ?? [] as w (w.id)}
+      {@render row(w, 0)}
+      {#if isTabs(w)}
+        {#each w.props.tabs as tab (tab.id)}
+          {@const on = index.get(tabKey({ widget: w.id, tab: tab.id })) ?? []}
+          <li>
+            <button
+              class="row tab"
+              style:--level={1}
+              title="Show this tab"
+              onclick={() => {
+                presetStore.showTab(w.id, tab.id);
+                ui.selectedId = w.id;
+              }}
+              ><span class="faint">›</span><span class="name">{tab.name}</span><span class="faint"
+                >{plural(on.length, 'widget')}</span
+              ></button
+            >
+          </li>
+          {#each on as c (c.id)}
+            {@render row(c, 2)}
+          {/each}
+        {/each}
+      {/if}
+    {:else}
+      <li class="faint">Empty desk: add a widget from the toolbar.</li>
+    {/each}
   </ul>
 </div>
 
@@ -165,8 +151,8 @@
   .row:hover .faint {
     color: var(--bg);
   }
-  /* A sub-desk's page, between the sub-desk and what is on it. */
-  .row.page {
+  /* A frame's tab, between the frame and what is on it. */
+  .row.tab {
     grid-template-columns: 1ch 1fr auto;
     color: var(--fg-dim);
   }

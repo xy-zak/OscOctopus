@@ -211,60 +211,65 @@ imported or synced widget can carry any binding.
   arrival time Rust stamps on `InboundMessage`). It is never synced: each device shows its own.
 - **References between widgets** (a monitor's `target`, a log's `sources`) stay within one desk.
   A desk copied with fresh ids (duplicated, imported) points them at the new ids through
-  `WidgetDef.remapRefs` (`freshCopies`, `withFreshWidgetIds`); so does a copied sub-desk,
+  `WidgetDef.remapRefs` (`freshCopies`, `withFreshWidgetIds`); so does a copied frame,
   keeping references to widgets outside the copy.
 
-## Sub-desks
+## Frames
 
-A **sub-desk** (`widgets/subdesk/`) is a desk inside the desk: one or more pages, shown as tabs
-when there are several, each a grid of its own. Small desks are built and saved like any other,
-then copied into a bigger one; one sub-desk can hold several as pages, and a desk can hold
-several sub-desks, nested up to `LIMITS.subdeskDepth` (3) deep.
+A **frame** (`widgets/tabs/`, type `tabs`: `frame` already names every widget's border in skins)
+is one place on the desk with one or more tabs, shown along its top when there are several.
+Each tab is that same place with widgets of its own, all in one grid of the frame's (`props.grid`).
+A frame is added blank (ADD › Frame) and filled where it is: there is nothing to go into. Frames
+sit on the desk only, never on a tab.
 
-- **Flat widgets with a `parent`.** The widgets on a page are ordinary widgets of the desk, in
-  its one `widgets` list, with `parent: { widget, page }` (null: on the desk itself; schema
-  v12). Their x/y/w/h are in that page's grid. So sending, receiving, live values, routes, the
-  sequencer, `outputUsage`/`removeOutput` and per-widget sync all work on them unchanged:
-  only geometry, drawing and editing know about pages.
-- **Where a widget shows** (`model/subdesks.ts`, pure). A `parent` is a claim: a sync merge or
-  an edited file can name a page that is gone, loop, or nest too deep. `placements` resolves
-  every widget once (its page if the sub-desk and page exist, there is no loop and it is no
-  deeper than the limit; the desk otherwise), and everything else asks it: `widgetsOn`,
-  `gridOn`, `descendantsOf`, `widgetsUnder`, `pathOf`, `canPlace`, `autoColorOn`. A widget
-  whose page is unreachable shows on the desk rather than vanishing while it still sends: an
-  **orphan**, reported by `sync/conflicts.ts`. Loops break at the first of their widgets in desk
-  order, the same on every device. Overlaps and "outside the grid" are checked per page.
-- **The page shown** is the sub-desk's value: a page id, written straight into `values` (never
-  `emitValue`), so it is this device's own and is never sent or shared. A page that is gone shows
-  the first. Tabs switch whenever the desk isn't in EDIT (LOCK too, like desk tabs), but not
-  while a finger holds a widget on the page (`touch.holdsAny`), so a held momentary button still
-  sends its release.
+- **Flat widgets with a `parent`.** The widgets on a tab are ordinary widgets of the desk, in
+  its one `widgets` list, with `parent: { widget, tab }` (null: on the desk itself; schema v12).
+  Their x/y/w/h are in their frame's grid. So sending, receiving, live values, routes, the
+  sequencer, `outputUsage`/`removeOutput` and per-widget sync all work on them unchanged: only
+  geometry, drawing and editing know about tabs.
+- **Where a widget shows** (`model/tabs.ts`, pure). A `parent` is a claim: a sync merge or an
+  edited file can name a frame or tab that is gone, or be set on a frame. `placements` resolves
+  every widget once (its tab if the frame and tab exist and it is no frame itself; the desk
+  otherwise), and everything else asks it: `widgetsOn`, `childrenOf`, `gridOn`, `canPlace`,
+  `autoColorOn`. A widget whose tab is gone shows on the desk rather than vanishing while it
+  still sends: an **orphan**, reported by `sync/conflicts.ts`. Nothing nests, so nothing loops.
+  Overlaps and "outside the grid" are checked per tab.
+- **The tab shown** is the frame's value: a tab id, written straight into `values` (never
+  `emitValue`), so it is this device's own and is never sent or shared. A tab that is gone shows
+  the first. Tabs switch in every mode (LOCK too, like desk tabs), but not while a finger holds a
+  widget on the tab (`touch.holdsAny`), so a held momentary button still sends its release. In
+  EDIT the selected widget's tab is always the one shown (picking another tab selects the
+  frame), so nudging, Delete and ADD never act on a widget out of sight.
 - **Drawing.** The desk's canvas (`grid/GridCanvas.svelte`) shares the desk with what it draws
-  (`grid/context.ts`): the placement index, focus and LOCK, and `PageCanvas` to draw a page with.
-  A sub-desk draws its shown page with it, nested, played like the desk, never edited there.
-  The page is drawn **beside** the sub-desk's frame, over its empty `subdesk.page` slot (measured
-  with a ResizeObserver), never inside it: skins style a widget's parts through its frame
-  (`.frame[...] [data-part]`), so a frame around the page's widgets would reach into them (an
-  "off" rule of the sub-desk matching a switch that is on). AUTO colours take the nearest
-  sub-desk colour around them, else the desk's.
-- **Editing in place.** In EDIT a page opens on the desk's canvas (`ui.page`; double-tap a
-  sub-desk, Enter, or *Open* in its Inspector) and is edited like a desk: ADD, drag, the grid
-  fields (`setGrid` acts on the page), the Inspector. `PageCrumbs` shows where it is (DESK ›
-  MIXER › EFFECTS); Esc deselects, then goes up a level. `presetStore.page` is `ui.page` while it
-  exists and only in EDIT; leaving EDIT, LOCK, PRESENTING, switching desks or a peer deleting the
-  page closes it. Removing or duplicating a sub-desk takes everything on its pages with it
-  (`freshCopies` keeps references to widgets outside the copy); *Place* (Inspector) moves a
-  widget to another page or the desk.
-- **Copied from LIBRARY** (`model/embed.ts`, pure). A saved desk is copied in as a new
-  sub-desk, a new page, or again over the page it filled before (*Update from LIBRARY*, which
-  replaces what is on that page). The page remembers it (`source`, `copiedAt`: its `updatedAt`
-  then, so the Inspector can say it changed since). The copies get fresh ids; text monitors and
-  logs follow them, and the small desk's own sub-desks keep their nesting. Their messages adapt
-  to the big desk: each of the small desk's outputs becomes the big desk's output with the same
-  target (`sameOutput`), else its first output; each input the big desk's input on the same
-  socket (`sameInput`), else its first. Nothing is added to the big desk's NETWORK, so nothing new
-  binds a port. The confirmation lists where each endpoint now goes and what sends nowhere. A
-  page's *Send to* points everything on it at one output (`routeTo`).
+  (`grid/context.ts`): the placement index, the selection, focus and LOCK, the drag, and
+  `TabCanvas` to draw a tab with. A frame draws its shown tab with it, nested, edited and played
+  like the desk. The tab is drawn **beside** the frame's `WidgetFrame`, over its empty
+  `tabs.panel` slot (measured with a ResizeObserver), never inside it: skins style a widget's
+  parts through its frame (`.frame[...] [data-part]`), so a frame around the tab's widgets would
+  reach into them (an "off" rule of the frame matching a switch that is on). AUTO colours take
+  the frame's colour, else the desk's. A tab draws only what fits its grid and doesn't clip, so
+  a widget carried off it, and resize handles at its edge, still show. Every grid item is a
+  stacking context, so the frame holding the selected widget is raised over the desk's others.
+- **Editing in place.** In EDIT a frame's content stays usable (`GridItem`'s `container`): its
+  tabs switch, and the widgets on its tab are selected, dragged, resized and nudged like the
+  desk's. A press on its border or on an empty cell drags the frame itself, with everything on
+  it. ADD puts a new widget on the tab the selected frame shows, or beside the selected widget
+  on its tab (`presetStore.addingTo`, named in the toolbar); a frame always goes on the desk.
+  Its Inspector lists its tabs (rename, order, remove) and edits its grid, which `setGrid`
+  refuses to shrink under the widgets of any of its tabs. Removing or duplicating a frame takes
+  everything on its tabs with it (`freshCopies` keeps references to widgets outside the copy).
+- **Carrying widgets between grids** (`grid/drag.svelte.ts`). The desk's canvas makes one
+  `DragSession`, and every canvas registers its grid with it while editing. Past the tap slop a
+  dragged widget is lifted into the session (and selected), which then follows that pointer
+  itself through window listeners: the widget can be drawn again elsewhere mid-drag without the
+  drag ending. Where it lands is pure (`grid/engine.ts` `landing`): in the frame whose whole box
+  the pointer is over (its border and tabs too), if the widget may go there, else on the desk;
+  snapped from the widget's top-left (`snapTo`, the same as `moveRect` in its own grid). The
+  grid it would land on draws the ghost. Held over a tab's name for a moment, a frame opens that
+  tab; the widget's own frame keeps drawing it meanwhile, so its drag goes on. A drop commits
+  through `presetStore.moveWidget`, which sets the rect and the `parent` together (one sync
+  change) and refuses a frame on a tab and taken cells; a cancelled pointer or Esc puts the
+  widget back. Resizing stays in the widget's own grid.
 
 ## Sequencer (timing in the core)
 
@@ -338,11 +343,12 @@ transport that never reads app payloads (Rust) with desk semantics owned by the 
 
 ### Shared desks (`src/lib/sync/`)
 - **Records.** A shared desk is also a record (`deskdoc.ts`) of independent fields
-  (`paths.ts`): desk name, colour and grid; per widget its existence, rect (with the sub-desk
-  page it is on: a move to another page is one change), label, colour, what it shows (`show`:
-  title, value), bindings and each prop (a sub-desk's pages are one); per endpoint its existence
-  and settings. A record from before sub-desks has no `parent`: those widgets are on the desk. Machine-specific fields
-  (output bind address and local port, input bind address) are not shared.
+  (`paths.ts`): desk name, colour and grid; per widget its existence, rect (with the frame tab
+  it is on: a move onto another tab is one change), label, colour, what it shows (`show`: title,
+  value), bindings and each prop (a frame's tabs are one); per endpoint its existence and
+  settings. A record from before frames has no `parent`: those widgets are on the desk.
+  Machine-specific fields (output bind address and local port, input bind address) are not
+  shared.
 - **Merge.** Every field is a last-writer-wins register stamped by a hybrid logical clock
   (`hlc.ts`: never goes backwards; stamps over 60 s ahead are refused). The merge is
   commutative, associative and idempotent. Deletions are tombstones, kept forever, and beat
@@ -350,10 +356,9 @@ transport that never reads app payloads (Rust) with desk semantics owned by the 
 - **Local edits.** Every edit path ends in `presetStore.changed()`, which reaches
   `SharedDesks.localChange`. After 50 ms, the desk is compared (canonical JSON) with what was
   last in step, and changed fields become ops.
-  - **No inferred deletions:** only `removeWidget`, `removeOutput`, `removeInput`,
-    `importInto`, and a sub-desk's `removePage` and *Update from LIBRARY* make tombstones; a
-    sub-desk going names every widget on its pages. Anything else that went missing is restored
-    from the record.
+  - **No inferred deletions:** only `removeWidget`, `removeOutput`, `removeInput`, `importInto`
+    and a frame's `removeTab` make tombstones; a frame going names every widget on its tabs.
+    Anything else that went missing is restored from the record.
 - **Remote edits.** Validated per key, merged, then applied in place (`reconcile.ts`), so open
   editors stay attached. They are never re-sent, and applying them is marked `remote`, so it
   isn't a local edit.
@@ -370,9 +375,9 @@ transport that never reads app payloads (Rust) with desk semantics owned by the 
   `docs/backups/<desk>` (at most every 5 minutes, the last 10), restorable as a copy.
 - **Soft locks** (`locks.ts`): presence says which widget a device has open. Others see a
   badge; for them the Inspector is read-only and dragging is refused, until they *Take over*.
-- **Conflicts** (`conflicts.ts`): overlaps and widgets outside the grid (per sub-desk page),
-  widgets whose page is gone (orphans), and messages to missing endpoints are shown in a
-  banner, never fixed automatically.
+- **Conflicts** (`conflicts.ts`): overlaps and widgets outside the grid (per frame tab),
+  widgets whose tab is gone (orphans), and messages to missing endpoints are shown in a banner,
+  never fixed automatically.
 - **Live values** (`values.ts`): each widget's value (each pad's, for pads) is a register.
   - Sent at ≤ 30 Hz (presses at once), with a full refresh every 2 s. A new joiner gets
     them in the desk's state.
@@ -419,9 +424,6 @@ transport that never reads app payloads (Rust) with desk semantics owned by the 
   into fullscreen and back (`lib/platform/fullscreen.ts`).
 - `Traffic.svelte` is one component: `scope = deskId` for a desk's TRAFFIC, unscoped for
   GLOBAL SETTINGS › TRAFFIC.
-- In EDIT, `ui.page` opens a sub-desk page on the desk's canvas, with a breadcrumb above it
-  (`PageCrumbs.svelte`; see *Sub-desks*). It is not a section: the frame and the tabs stay the
-  desk's.
 - Desk actions with a confirmation (add, duplicate, open, remove, import, export, delete) live
   once in `views/deskActions.ts`, shared by the tab bar, DESK › LOOK and LIBRARY. LOOK's (save and
   delete a palette; import, export and delete a skin) are in `views/lookActions.ts`. Both
@@ -632,8 +634,9 @@ write-locked while sockets are bound, never during a DNS lookup (see *Safety gua
   auto-compaction. Invalid drops (overlap or out of bounds) show a red ghost and spring back.
   Shrinking the grid is refused if widgets would fall outside it. A new widget takes its default
   size, or the largest smaller one that still fits (`findRoom`).
-- In EDIT, a double tap on a sub-desk (two taps without moving, `doubleTap()` in `GridItem`)
-  opens its page.
+- In EDIT, dragging a widget selects it, and it lands in the grid under the pointer: the desk's
+  or a frame's tab (see *Frames*). A cancelled pointer (the browser taking it over, a palm)
+  never commits a move.
 
 ## Adding a widget type
 
@@ -654,11 +657,11 @@ missing.
    - `isValue` (whether a value from a sync peer is one this widget can hold);
    - optionally `show` (feedback a shown value implies: lit pads, flashes, never for `init`),
      `touchKey` (a finer touch key, like one pad of a grid) and `valueText` (how its value reads
-     in the info panel when the value itself means little, like a sub-desk's page id);
+     in the info panel when the value itself means little, like a frame's tab id);
    - optionally `messages` (`receive` or `none` for a widget whose messages don't send; see
      *Widgets that don't send*), `outputRefs` / `dropOutput` (outputs it sends to other than
-     through its messages, like a sequencer's; with `remapOutputs`, used when a desk is copied
-     into another) and `remapRefs` (its references to other widgets of its desk).
+     through its messages, like a sequencer's) and `remapRefs` (its references to other widgets
+     of its desk).
 
    Add it to `DEFS` in `lib/widgets/defs.ts`.
 3. **Views.**
@@ -698,7 +701,7 @@ missing.
    - v9→v10 added the sequencer, text and log widgets. Nothing changed in old desks: the bump
      makes older apps refuse such a desk with "update" and keeps older sync peers out.
    - v10→v11 let a widget hide its title and value: every widget shows both (`show`).
-   - v11→v12 added sub-desks: every widget gets `parent: null` (on the desk itself).
+   - v11→v12 added frames: every widget gets `parent: null` (on the desk itself).
    - New widget types always bump the version: an older peer would drop them silently.
 
 ## Safety guarantees
@@ -777,6 +780,5 @@ missing.
 - **Widgets producing `ValueList`s** (e.g. a multi-fader bank) **and note events** (a keyboard).
   The mapping, including the `m` MIDI type, already handles both.
 - **Android `MulticastLock` plugin** (see ANDROID.md).
-- **Sub-desks, later:** a page editor in the sub-desk's own proportions (a page is edited at
-  the canvas's shape but played at the widget's), dragging widgets between pages, a Log that
-  follows one page, and a live link to the saved desk instead of a copy.
+- **Frames, later:** frames inside frames, a Log that follows one tab, and tabs reordered by
+  dragging them.

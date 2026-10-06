@@ -31,25 +31,22 @@ Scripts.
   Per device, like the rest of LOOK: a shared desk shows in each person's own look.
 - **Hide a widget's title or value** (EDIT › VISUAL › _Show_): the title and the value readout
   set into its frame can each be switched off.
-- **Sub-desks: desks inside a desk.** A new widget holding one or more pages, as tabs, each a
-  grid of its own; drawn in every skin.
-  - **From LIBRARY:** _+ Desk from LIBRARY_ (EDIT) copies a saved desk in as a sub-desk, and a
-    sub-desk's _Add a page_ adds another as a tab. The copy is the desk's own; its messages use
-    this desk's outputs and inputs (the one with the same target or socket, else the first),
-    so NETWORK never changes, and the confirmation says where each goes. _Update from LIBRARY_
-    copies the saved desk again over its page (it says when that desk changed since).
-  - **Edit in place:** double-tap a sub-desk in EDIT (or _Open_ a page) to edit what is on it like
-    a desk, with a breadcrumb back out; Esc goes up. _Place_ (EDIT › VISUAL) moves a widget to
-    another page or the desk. Pages can be renamed, reordered, removed, and pointed at one output
-    (_Send to_).
-  - Tabs are each person's own, switch while LOCKED, and never while a finger still holds a
-    widget on the page. Sub-desks nest up to three deep. On a shared desk, widgets whose page
-    someone deleted show on the desk, with a warning.
+- **Frames: tabs on the desk.** A new widget (ADD › _Frame_): one place on the desk with one or
+  more tabs, each holding widgets of its own in the frame's grid; drawn in every skin.
+  - **Built where it is:** select a frame (or a widget on it) and ADD puts new widgets on the tab
+    it shows. Widgets on a tab are moved, resized, nudged and edited like any other, right there
+    on the desk. Drag widgets into a frame, out of it or into another; hold one over a tab's
+    name and that tab opens, to drop it there. Dragging the frame takes what is on it along.
+  - Its Inspector renames, reorders, adds and removes tabs, and sets the grid all its tabs share.
+    Deleting or duplicating a frame takes what is on its tabs.
+  - Tabs are each person's own, switch in every mode (while LOCKED too), and never while a finger
+    still holds a widget on the tab. On a shared desk, widgets whose tab someone deleted show on
+    the desk, with a warning.
 - **A new widget fits where there is room:** its usual size, or the largest smaller one that
   fits, instead of "no free space".
-- **Preset schema v12** (for the new widgets, the title/value switches and sub-desks; old desks
-  are unchanged, their widgets on the desk itself). Devices on v11 or older can't join a v12
-  sync session.
+- **Preset schema v12** (for the new widgets, the title/value switches and frames; old desks are
+  unchanged, their widgets on the desk itself). Devices on v11 or older can't join a v12 sync
+  session.
 - **Presenting** (`[ ] PRESENT` at the right end of the master bar, or F11): the desk's
   widgets fill the screen, and on desktop the window goes fullscreen. Only the desk tabs,
   OSC-IN, OSC-OUT, LOCK and `[■] PRESENT` (click it, or Esc / F11, to stop) stay; the sections, the

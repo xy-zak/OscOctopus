@@ -1,15 +1,17 @@
 <script lang="ts">
-  // One widget on the canvas. In edit mode it can be dragged (body) or resized (handles);
-  // the widget follows the finger exactly while a snapped ghost shows where it will land.
-  // Invalid drops spring back.
-  import type { Snippet } from 'svelte';
+  // One widget on the canvas. In edit mode it can be dragged (body) or resized (handles).
+  // Dragged, it is carried by the desk's drag (drag.svelte.ts): it follows the finger exactly,
+  // onto the desk or a frame's tab, while the grid it would land on shows a snapped ghost.
+  // Resized, it shows its snapped size in place. Invalid drops spring back.
+  import { untrack, type Snippet } from 'svelte';
+  import type { TabRef } from '../model/preset';
   import { tapHaptic, tickHaptic } from '../platform/haptics';
   import { flag } from '../skins/anatomy';
   import * as touch from '../state/touch';
-  import { doubleTap } from '../widgets/interaction';
+  import type { Holder } from './context';
+  import type { DragSession } from './drag.svelte';
   import {
     isFree,
-    moveRect,
     pxToCells,
     resizeRect,
     toPx,
@@ -22,38 +24,48 @@
 
   interface Props {
     id: string;
+    /** The tab it is on (null: the desk). */
+    at: TabRef | null;
     rect: Rect;
     grid: GridSize;
     metrics: Metrics;
+    /** What else is on its grid. */
     others: readonly Placed[];
+    drag: DragSession;
     editing: boolean;
     selected: boolean;
+    /** A frame: what it draws stays usable in edit mode (its tabs, and the widgets on them). */
+    container?: boolean;
+    /** Drawn over the other widgets of its grid (the frame holding the selected widget). */
+    raised?: boolean;
     /** Live mode: highlighted as the widget shown in the info panel. */
     focused?: boolean;
     /** Edit mode: someone else is editing this widget (a sync peer): shown, and not draggable. */
-    holder?: { name: string; color: string } | null;
+    holder?: Holder | null;
     onselect: (id: string) => void;
     /** Live mode: a pointer went down on this widget. */
     onfocus?: (id: string) => void;
-    oncommit: (id: string, rect: Rect) => void;
-    /** Edit mode: tapped twice in a row without moving (opens a sub-desk). */
-    ondoubletap?: (id: string) => void;
+    /** Resized: its new rect in the same grid (moves are the drag's to put down). */
+    oncommit: (id: string, rect: Rect, parent: TabRef | null) => void;
     children: Snippet;
   }
   let {
     id,
+    at,
     rect,
     grid,
     metrics,
     others,
+    drag,
     editing,
     selected,
+    container = false,
+    raised = false,
     focused = false,
     holder = null,
     onselect,
     onfocus,
     oncommit,
-    ondoubletap,
     children,
   }: Props = $props();
 
@@ -68,40 +80,46 @@
     moved: boolean;
   }
   let gesture = $state<Gesture | null>(null);
-  const tappedTwice = doubleTap();
-  let offset = $state({ x: 0, y: 0 });
+  /** While resizing: the snapped size it would take. */
   let candidate = $state<Rect | null>(null);
 
-  const valid = $derived(candidate ? isFree(candidate, grid, others, id) : true);
-  const base = $derived(toPx(rect, metrics));
-  // While resizing, the item itself shows the snapped size; while moving, it tracks the finger.
-  const box = $derived(
-    gesture && gesture.kind !== 'move' && candidate ? toPx(candidate, metrics) : base,
+  const lifted = $derived(drag.lifted?.id === id);
+  const valid = $derived(
+    lifted ? (drag.drop?.valid ?? true) : candidate ? isFree(candidate, grid, others, id) : true,
   );
-  const ghost = $derived(candidate && gesture?.moved ? toPx(candidate, metrics) : null);
+  const up = $derived(lifted || !!candidate);
+  // Carried, it tracks the finger; resizing, it shows the snapped size.
+  const box = $derived(toPx(candidate ?? rect, metrics));
+  const offset = $derived(lifted ? drag.offset : { x: 0, y: 0 });
 
   function start(e: PointerEvent, kind: 'move' | Handle) {
     if (!editing || gesture) return;
+    // Never the frame's around it, even while another widget is carried.
     e.stopPropagation();
+    if (drag.lifted) return;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     gesture = { pointerId: e.pointerId, kind, x0: e.clientX, y0: e.clientY, moved: false };
-    candidate = { ...rect };
   }
 
   function move(e: PointerEvent) {
     if (!gesture || e.pointerId !== gesture.pointerId) return;
     // Someone else is editing it: a tap still selects it (to see who), a drag does nothing.
     if (holder) return;
+    // Carried: the drag follows the pointer from here.
+    if (gesture.moved && gesture.kind === 'move') return;
     const dx = e.clientX - gesture.x0;
     const dy = e.clientY - gesture.y0;
     if (!gesture.moved && Math.hypot(dx, dy) < TAP_SLOP) return;
     if (!gesture.moved) tapHaptic('light');
     gesture.moved = true;
+    if (gesture.kind === 'move') {
+      const lift = { id, from: at, pointerId: e.pointerId, x0: gesture.x0, y0: gesture.y0 };
+      // Carried means selected: its tab stays shown, and peers see who has it.
+      if (drag.lift({ ...lift, rect: () => rect }, e.clientX, e.clientY)) onselect(id);
+      return;
+    }
     const { dCols, dRows } = pxToCells(dx, dy, metrics);
-    const next =
-      gesture.kind === 'move'
-        ? moveRect(rect, dCols, dRows, grid)
-        : resizeRect(rect, gesture.kind, dCols, dRows, grid);
+    const next = resizeRect(rect, gesture.kind, dCols, dRows, grid);
     if (
       candidate &&
       (next.x !== candidate.x ||
@@ -112,43 +130,44 @@
       tickHaptic();
     }
     candidate = next;
-    if (gesture.kind === 'move') offset = { x: dx, y: dy };
   }
 
   function end(e: PointerEvent) {
     if (!gesture || e.pointerId !== gesture.pointerId) return;
-    const { moved } = gesture;
-    if (!moved) {
-      onselect(id);
-      if (tappedTwice() && ondoubletap) ondoubletap(id);
-    } else if (candidate && valid) oncommit(id, candidate);
+    if (!gesture.moved) onselect(id);
+    else if (candidate && valid) oncommit(id, candidate, at);
+    reset();
+  }
+
+  /** Back to rest; a cancelled pointer (the browser took it over) commits nothing. */
+  function reset() {
     gesture = null;
     candidate = null;
-    offset = { x: 0, y: 0 };
   }
-</script>
 
-{#if ghost}
-  <div
-    class="ghost"
-    class:invalid={!valid}
-    style:transform="translate3d({ghost.left}px, {ghost.top}px, 0)"
-    style:width="{ghost.width}px"
-    style:height="{ghost.height}px"
-  ></div>
-{/if}
+  $effect(() => {
+    if (!editing) untrack(reset);
+  });
+  // Gone while carried (deleted, its frame deleted, another desk shown): the drag ends.
+  $effect(() => {
+    const me = id;
+    return () => drag.forget(me);
+  });
+</script>
 
 <div
   class="item"
   role="presentation"
   class:editing
+  class:container
   class:selected
+  class:raised
   class:focused={focused && !editing}
-  class:lifted={gesture?.moved}
-  data-lifted={flag(gesture?.moved)}
+  class:lifted={up}
+  data-lifted={flag(up)}
   class:held={editing && !!holder}
   style:--holder={holder?.color}
-  class:invalid={gesture?.moved && !valid}
+  class:invalid={up && !valid}
   style:transform="translate3d({box.left + offset.x}px, {box.top + offset.y}px, 0)"
   style:width="{box.width}px"
   style:height="{box.height}px"
@@ -161,9 +180,9 @@
   }}
   onpointermove={move}
   onpointerup={end}
-  onpointercancel={end}
+  onpointercancel={reset}
 >
-  <div class="content" inert={editing}>
+  <div class="content" inert={editing && !container}>
     {@render children()}
   </div>
   {#if editing && holder}
@@ -193,8 +212,14 @@
     cursor: grab;
     touch-action: none;
   }
-  .item.editing .content {
+  /* A frame's tabs and the widgets on them stay usable; any other widget is only moved. */
+  .item.editing:not(.container) .content {
     pointer-events: none;
+  }
+  /* Every item is a stacking context (its transform): a frame is raised for what is on it to
+     show over the desk's other widgets. */
+  .item.raised {
+    z-index: 5;
   }
   /* A peer is editing it: outlined in their colour, with their name. */
   .item.held {
@@ -286,27 +311,6 @@
   .content {
     width: 100%;
     height: 100%;
-  }
-  /* Drop target: dithered block, red if the drop would be refused. */
-  .ghost {
-    position: absolute;
-    top: 0;
-    left: 0;
-    --g: var(--accent);
-    border: 1px dashed var(--g);
-    background: repeating-conic-gradient(
-        color-mix(in srgb, var(--g) 35%, transparent) 0 25%,
-        transparent 0 50%
-      )
-      0 0 / 4px 4px;
-    transition:
-      transform 80ms steps(2, end),
-      width 80ms steps(2, end),
-      height 80ms steps(2, end);
-    pointer-events: none;
-  }
-  .ghost.invalid {
-    --g: var(--danger);
   }
 
   .handle {

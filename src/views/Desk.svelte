@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { isFree } from '../lib/grid/engine';
   import GridCanvas from '../lib/grid/GridCanvas.svelte';
-  import { canHoldSubdesk, gridOn, samePage, widgetsOn } from '../lib/model/subdesks';
+  import { tabAt } from '../lib/model/tabs';
   import { presetStore } from '../lib/state/preset.svelte';
   import { toast, toggleEditMode, ui } from '../lib/state/ui.svelte';
   import { lockedBy, sharedDesks } from '../lib/sync/app.svelte';
@@ -9,13 +8,10 @@
   import { colorVars } from '../lib/theme/palettes';
   import Icon from '../lib/ui/Icon.svelte';
   import ToggleSwitch from '../lib/ui/ToggleSwitch.svelte';
-  import { DEFS, WIDGET_TYPES } from '../lib/widgets/defs';
-  import SavedDeskField from '../lib/widgets/fields/SavedDeskField.svelte';
-  import { embedDesk, removeWidget } from '../lib/widgets/subdesk/actions';
-  import { TOO_DEEP } from '../lib/widgets/subdesk/def';
+  import { DEFS, WIDGET_TYPES, widgetName } from '../lib/widgets/defs';
+  import { removeWidget } from '../lib/widgets/tabs/actions';
   import DeskPanel from './DeskPanel.svelte';
   import Inspector from './Inspector.svelte';
-  import PageCrumbs from './PageCrumbs.svelte';
   import WidgetInfo from './widget/WidgetInfo.svelte';
 
   const editing = $derived(ui.mode === 'edit');
@@ -23,10 +19,12 @@
   const selectedIndex = $derived(preset.widgets.findIndex((w) => w.id === ui.selectedId));
   const selected = $derived(preset.widgets[selectedIndex]);
   const focused = $derived(presetStore.widget(ui.focusedId));
-  // EDIT: the sub-desk page open on the canvas (null: the desk itself).
-  const page = $derived(presetStore.page);
-  /** Why no sub-desk can be added here, if it can't. */
-  const noSubdesk = $derived(canHoldSubdesk(preset, page) ? null : TOO_DEEP);
+  // EDIT: the frame tab ADD puts new widgets on (null: the desk), named as the toolbar shows it.
+  const adding = $derived.by(() => {
+    const at = presetStore.addingTo;
+    const found = at && tabAt(preset, at);
+    return found ? `${widgetName(found.frame)} › ${found.tab.name}`.toUpperCase() : null;
+  });
   // Edit mode always has the panel; live mode has it when the info panel is switched on, but
   // never while presenting (always live): then the widgets fill the screen.
   const info = $derived(ui.infoOpen && !ui.presenting);
@@ -46,21 +44,15 @@
   const invalid = $derived(sharedDesks.view[preset.id]?.invalid ?? []);
 
   function onkeydown(e: KeyboardEvent) {
-    if (!editing) return;
+    // Taken already (Esc putting a carried widget back, a widget's own keys).
+    if (!editing || e.defaultPrevented) return;
     const t = e.target as HTMLElement;
     if (t.closest('input, textarea, select, [contenteditable]')) return;
-    // Esc: deselect first, then up one level out of an open sub-desk page.
     if (e.key === 'Escape') {
-      if (ui.selectedId) ui.selectedId = null;
-      else presetStore.closePage();
+      ui.selectedId = null;
       return;
     }
     if (!selected) return;
-    if (e.key === 'Enter' && selected.type === 'subdesk') {
-      presetStore.openSubdesk(selected.id);
-      e.preventDefault();
-      return;
-    }
     const holder = holderOf(selected.id);
     if (holder) {
       toast(`${holder.name} is editing this widget: take it over in the Inspector first`);
@@ -71,8 +63,7 @@
       e.preventDefault();
       return;
     }
-    // Nudged on the page it is on, which must be the one open.
-    if (!samePage(presetStore.pageOf(selected.id), page)) return;
+    // Nudged in its own grid: the desk's, or its frame's.
     const d: Record<string, [number, number]> = {
       ArrowLeft: [-1, 0],
       ArrowRight: [1, 0],
@@ -88,8 +79,7 @@
       w: selected.w,
       h: selected.h,
     };
-    if (isFree(next, gridOn(preset, page), widgetsOn(preset, page), selected.id))
-      presetStore.setRect(selected.id, next);
+    presetStore.moveWidget(selected.id, next, presetStore.tabOf(selected.id));
   }
 </script>
 
@@ -103,24 +93,19 @@
     <div class="toolbar">
       <div class="tools">
         {#if editing}
-          <span class="faint">ADD</span>
+          <span class="faint"
+            >ADD{#if adding}&nbsp;→ {adding}{/if}</span
+          >
           {#each WIDGET_TYPES as t (t)}
-            {@const refused = t === 'subdesk' ? noSubdesk : null}
             <button
               class="btn"
-              disabled={!!refused}
-              title={refused}
+              title={t === 'tabs' && adding ? 'A frame goes on the desk' : undefined}
               onclick={() => presetStore.addWidget(t)}><Icon name="plus" /> {DEFS[t].label}</button
             >
           {/each}
-          <SavedDeskField
-            placeholder="+ Desk from LIBRARY…"
-            refused={noSubdesk}
-            onpick={(id) => embedDesk(id, { kind: 'new' })}
-          />
           <span class="hint faint"
-            >drag: move · handles: resize · arrows: nudge · del: remove · double-tap a sub-desk:
-            open · esc: deselect, up</span
+            >drag: move, in and out of frames · handles: resize · arrows: nudge · del: remove · esc:
+            deselect</span
           >
         {:else}
           <!-- A switch like the master bar's, for the side panel. -->
@@ -165,20 +150,17 @@
       </span>
     </div>
   {/if}
-  {#if editing}<PageCrumbs />{/if}
   <div class="body">
     <div class="canvas-wrap">
       <GridCanvas
         {preset}
-        {page}
         {editing}
         {holderOf}
         selectedId={ui.selectedId}
         focusedId={info ? ui.focusedId : null}
         onselect={(id) => (ui.selectedId = id)}
         onfocus={(id) => (ui.focusedId = id)}
-        oncommit={(id, rect) => presetStore.setRect(id, rect)}
-        onopen={(id) => presetStore.openSubdesk(id)}
+        oncommit={(id, rect, parent) => presetStore.moveWidget(id, rect, parent)}
         locked={ui.locked}
         onlockedpress={() => ui.lockNudge++}
       />

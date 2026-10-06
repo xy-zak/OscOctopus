@@ -338,21 +338,21 @@
     color: var(--c-text);
   }
   .frame[data-base='brutalist'] [data-part='log.empty'],
-  .frame[data-base='brutalist'] [data-part='subdesk.empty'] {
+  .frame[data-base='brutalist'] [data-part='tabs.empty'] {
     color: var(--fg-faint);
   }
 
-  /* ---- sub-desk: page tabs drawn like the list's options, the page shown like its current
-     option; an empty page says so like an empty log (above). ---- */
-  .frame[data-base='brutalist'] [data-part='subdesk.tab'] {
+  /* ---- frame tabs: drawn like the list's options, the tab shown like its current option; an
+     empty tab says so like an empty log (above). ---- */
+  .frame[data-base='brutalist'] [data-part='tabs.tab'] {
     border: 2px solid var(--br-line);
     background: var(--w-bg);
     color: var(--fg);
   }
-  .frame[data-base='brutalist'][data-live] [data-part='subdesk.tab']:not([data-current]):hover {
+  .frame[data-base='brutalist'][data-live] [data-part='tabs.tab']:not([data-current]):hover {
     background: color-mix(in srgb, var(--c) 25%, var(--w-bg));
   }
-  .frame[data-base='brutalist'] [data-part='subdesk.tab'][data-current] {
+  .frame[data-base='brutalist'] [data-part='tabs.tab'][data-current] {
     background: var(--c);
     color: var(--br-ink);
   }

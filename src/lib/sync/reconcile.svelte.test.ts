@@ -54,28 +54,28 @@ describe('conflicts', () => {
     expect(kinds).toContain('missingEndpoint');
   });
 
-  it('checks each sub-desk page as a grid of its own, and reports widgets that lost theirs', () => {
+  it('checks each frame tab as a place of its own, and reports widgets that lost theirs', () => {
     const desk = newPreset('Desk');
-    const sub = newWidget('subdesk', { x: 0, y: 6, w: 4, h: 2 }, []);
-    const page = { widget: sub.id, page: sub.props.pages[0]!.id };
-    sub.props.pages[0]!.name = 'Mixer';
-    // Same cells as a desk widget, but on the page: no overlap.
-    const onPage = newWidget('button', { x: 0, y: 0, w: 2, h: 2 }, ['gone'], 1, page);
-    onPage.bindings = [];
-    desk.widgets.push(sub, onPage);
+    const frame = newWidget('tabs', { x: 0, y: 6, w: 4, h: 2 }, []);
+    const tab = { widget: frame.id, tab: frame.props.tabs[0]!.id };
+    frame.props.tabs[0]!.name = 'Mixer';
+    // Same cells as a desk widget, but on the tab: no overlap.
+    const onTab = newWidget('button', { x: 0, y: 0, w: 2, h: 2 }, ['gone'], 1, tab);
+    onTab.bindings = [];
+    desk.widgets.push(frame, onTab);
     expect(findConflicts(desk)).toEqual([]);
-    // Past the page's 6×4 grid, though well inside the desk's.
-    onPage.x = 5;
+    // Past the frame's 6×4 grid, though well inside the desk's.
+    onTab.x = 5;
     expect(findConflicts(desk)).toEqual([
       expect.objectContaining({
         kind: 'outside',
-        widgetIds: [onPage.id],
+        widgetIds: [onTab.id],
         text: expect.stringContaining('6×4 grid of “Mixer”'),
       }),
     ]);
-    onPage.x = 0;
-    // Its page deleted (by someone else): it shows on the desk, and says so.
-    sub.props.pages = [{ ...sub.props.pages[0]!, id: 'pg-other' }];
+    onTab.x = 0;
+    // Its tab deleted (by someone else): it shows on the desk, and says so.
+    frame.props.tabs = [{ ...frame.props.tabs[0]!, id: 'tb-other' }];
     expect(findConflicts(desk).map((c) => c.kind)).toContain('orphan');
   });
 

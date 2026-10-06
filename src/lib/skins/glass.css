@@ -398,13 +398,13 @@
     color: var(--c-text);
   }
   .frame[data-base='glass'] [data-part='log.empty'],
-  .frame[data-base='glass'] [data-part='subdesk.empty'] {
+  .frame[data-base='glass'] [data-part='tabs.empty'] {
     color: var(--fg-faint);
   }
 
-  /* ---- sub-desk: page tabs drawn like the list's options, the page shown like its current
-     option; an empty page says so like an empty log (above). ---- */
-  .frame[data-base='glass'] [data-part='subdesk.tab'] {
+  /* ---- frame tabs: drawn like the list's options, the tab shown like its current option; an
+     empty tab says so like an empty log (above). ---- */
+  .frame[data-base='glass'] [data-part='tabs.tab'] {
     border-radius: 6px;
     background: color-mix(in srgb, var(--c) 16%, rgb(255 255 255 / 0.05));
     color: var(--fg-dim);
@@ -412,11 +412,11 @@
       background 180ms ease,
       color 180ms ease;
   }
-  .frame[data-base='glass'][data-live] [data-part='subdesk.tab']:not([data-current]):hover {
+  .frame[data-base='glass'][data-live] [data-part='tabs.tab']:not([data-current]):hover {
     color: var(--fg);
     background: color-mix(in srgb, var(--c) 24%, rgb(255 255 255 / 0.07));
   }
-  .frame[data-base='glass'] [data-part='subdesk.tab'][data-current] {
+  .frame[data-base='glass'] [data-part='tabs.tab'][data-current] {
     background: color-mix(in srgb, var(--c) 42%, rgb(255 255 255 / 0.08));
     color: var(--fg);
   }

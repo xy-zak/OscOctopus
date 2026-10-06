@@ -4,8 +4,8 @@
 //
 //   name · color · grid                            the desk
 //   w/<id>                {type}                   a widget exists (its stamp orders widgets)
-//   w/<id>/rect           {x,y,w,h,parent}         moved, resized or put on another sub-desk
-//                                                  page together, never half
+//   w/<id>/rect           {x,y,w,h,parent}         moved, resized or put on another frame's
+//                                                  tab together, never half
 //   w/<id>/label · w/<id>/color · w/<id>/show
 //   w/<id>/bindings                                (all bindings are one unit)
 //   w/<id>/props/<key>                             each prop on its own
@@ -21,7 +21,7 @@ import {
   GridSchema,
   InputConfigSchema,
   OutputConfigSchema,
-  ParentSchema,
+  TabRefSchema,
   WidgetSchema,
   WidgetShowSchema,
   type Preset,
@@ -47,8 +47,8 @@ const RectSchema = z.object({
   y: z.number().int().min(0),
   w: z.number().int().min(1),
   h: z.number().int().min(1),
-  /** Records from before sub-desks (schema v12) have none: those widgets are on the desk. */
-  parent: ParentSchema.nullable().optional(),
+  /** Records from before frames (schema v12) have none: those widgets are on the desk. */
+  parent: TabRefSchema.nullable().optional(),
 });
 const WIDGET_TYPES = WidgetSchema.options.map((o) => o.shape.type.value) as [
   WidgetType,

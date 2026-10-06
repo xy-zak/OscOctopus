@@ -7,7 +7,7 @@
   // No editing here (the pencil opens it in EDIT). Which sections are open is remembered per
   // device once one is folded or unfolded (`ui.infoSections`).
   import type { Widget } from '../../lib/model/preset';
-  import { colorOf } from '../../lib/model/subdesks';
+  import { colorOf } from '../../lib/model/tabs';
   import { formatValue } from '../../lib/osc/format';
   import { rearmForward } from '../../lib/osc/receiver.svelte';
   import { ACTIVITY_ROWS, debugStore } from '../../lib/state/debug.svelte';
@@ -29,7 +29,7 @@
 
   function edit(w: Widget) {
     ui.mode = 'edit';
-    presetStore.reveal(w.id);
+    ui.selectedId = w.id;
   }
 
   const toggle = (s: InfoSection) => (on: boolean) => {

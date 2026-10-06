@@ -159,3 +159,74 @@ export function toPx(r: Rect, m: Metrics) {
 export function pxToCells(dx: number, dy: number, m: Metrics) {
   return { dCols: dx / (m.cellW + m.gap || 1), dRows: dy / (m.cellH + m.gap || 1) };
 }
+
+// ---- carrying an item between grids (drag.svelte.ts) -----------------------------------------
+
+/** A box on screen, in CSS px. */
+export interface Box {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+/** Whether a point is in a box; its right and bottom edges belong to the next box. */
+export const within = (b: Box, x: number, y: number) =>
+  x >= b.left && x < b.left + b.width && y >= b.top && y < b.top + b.height;
+
+/** The (fractional) cell at a point of the canvas: `toPx` backwards, for a rect's top-left. */
+export function cellAt(left: number, top: number, m: Metrics) {
+  return { x: (left - m.gap) / (m.cellW + m.gap || 1), y: (top - m.gap) / (m.cellH + m.gap || 1) };
+}
+
+/**
+ * Where an item of `size` lands with its top-left at a point of the canvas: on the nearest cell,
+ * inside the grid (shrunk if it is bigger). In its own grid, the same as `moveRect` by the
+ * distance moved.
+ */
+export function snapTo(
+  left: number,
+  top: number,
+  size: { w: number; h: number },
+  grid: GridSize,
+  m: Metrics,
+): Rect {
+  return clampRect({ ...cellAt(left, top, m), w: size.w, h: size.h }, grid);
+}
+
+/** A grid an item can be put down on: where it is on screen, and what is on it already. */
+export interface Ground<K> {
+  /** Which grid it is (null: the desk's). */
+  at: K | null;
+  /** Its canvas on screen: where its cells are. */
+  box: Box;
+  /** Where the pointer counts as over it, when that is more than its canvas (a frame's box). */
+  hit?: Box;
+  grid: GridSize;
+  metrics: Metrics;
+  items: readonly Placed[];
+}
+
+/** Where a carried item would land, and whether it may. */
+export interface Landing<K> {
+  at: K | null;
+  rect: Rect;
+  valid: boolean;
+}
+
+/**
+ * Where a carried item lands with its top-left at (left, top) on screen: in the first of `frames`
+ * the pointer is over, else on the desk. Valid when its cells there are free (itself aside).
+ */
+export function landing<K>(
+  item: Placed,
+  left: number,
+  top: number,
+  pointer: { x: number; y: number },
+  desk: Ground<K>,
+  frames: readonly Ground<K>[],
+): Landing<K> {
+  const g = frames.find((f) => within(f.hit ?? f.box, pointer.x, pointer.y)) ?? desk;
+  const rect = snapTo(left - g.box.left, top - g.box.top, item, g.grid, g.metrics);
+  return { at: g.at, rect, valid: isFree(rect, g.grid, g.items, item.id) };
+}

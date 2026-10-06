@@ -83,22 +83,3 @@ describe('lock', () => {
     expect(ui.mode).toBe('edit');
   });
 });
-
-describe('the open sub-desk page', () => {
-  it('closes when leaving EDIT, locking or presenting', () => {
-    const page = { widget: 'w-sub', page: 'pg-1' };
-    ui.mode = 'edit';
-    ui.page = page;
-    toggleEditMode();
-    expect(ui.page).toBeNull();
-    toggleEditMode();
-    ui.page = page;
-    setLocked(true);
-    expect(ui.page).toBeNull();
-    setLocked(false);
-    toggleEditMode();
-    ui.page = page;
-    setPresenting(true);
-    expect(ui.page).toBeNull();
-  });
-});

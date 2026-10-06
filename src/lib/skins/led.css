@@ -401,22 +401,22 @@
     color: var(--c-text);
   }
   .frame[data-base='led'] [data-part='log.empty'],
-  .frame[data-base='led'] [data-part='subdesk.empty'] {
+  .frame[data-base='led'] [data-part='tabs.empty'] {
     color: var(--fg-faint);
   }
 
-  /* ---- sub-desk: page tabs drawn like the list's options, the page shown like its current
-     option; an empty page says so like an empty log (above). ---- */
-  .frame[data-base='led'] [data-part='subdesk.tab'] {
+  /* ---- frame tabs: drawn like the list's options, the tab shown like its current option; an
+     empty tab says so like an empty log (above). ---- */
+  .frame[data-base='led'] [data-part='tabs.tab'] {
     border-bottom: 2px dotted color-mix(in srgb, var(--led-ink) 35%, transparent);
     background: var(--led-panel);
     color: var(--fg-dim);
     transition: color 120ms steps(2);
   }
-  .frame[data-base='led'][data-live] [data-part='subdesk.tab']:not([data-current]):hover {
+  .frame[data-base='led'][data-live] [data-part='tabs.tab']:not([data-current]):hover {
     color: var(--fg);
   }
-  .frame[data-base='led'] [data-part='subdesk.tab'][data-current] {
+  .frame[data-base='led'] [data-part='tabs.tab'][data-current] {
     border-bottom-color: var(--led-ink);
     color: var(--fg);
   }

@@ -1,5 +1,3 @@
-import type { Parent } from '../model/preset';
-
 /**
  * Navigation is two-level and scoped by containment:
  * - `view` picks the container: the active desk, or GLOBAL SETTINGS (things that belong to no
@@ -57,11 +55,6 @@ export const ui = $state({
   mode: 'live' as Mode,
   /** Edit mode: the widget open in the Inspector. */
   selectedId: null as string | null,
-  /**
-   * Edit mode: the sub-desk page open on the canvas (model/subdesks.ts), edited like a desk of
-   * its own; null is the desk itself. `presetStore.page` is the one that still exists.
-   */
-  page: null as Parent | null,
   /** Live mode: the widget touched last, shown in the info panel. */
   focusedId: null as string | null,
   /** Live mode: whether the read-only info panel is shown. */
@@ -149,7 +142,6 @@ export function setLocked(locked: boolean) {
   if (!locked) return;
   ui.mode = 'live';
   ui.selectedId = null;
-  ui.page = null;
   ui.confirm?.resolve(false);
 }
 
@@ -157,7 +149,7 @@ export function setLocked(locked: boolean) {
 export function toggleEditMode() {
   if (ui.locked || ui.presenting) return;
   ui.mode = ui.mode === 'live' ? 'edit' : 'live';
-  if (ui.mode === 'live') ui.selectedId = ui.page = null;
+  if (ui.mode === 'live') ui.selectedId = null;
   else ui.deskView = 'controls';
 }
 
@@ -171,7 +163,7 @@ export function setPresenting(on: boolean) {
   ui.view = 'desk';
   ui.deskView = 'controls';
   ui.mode = 'live';
-  ui.selectedId = ui.page = null;
+  ui.selectedId = null;
 }
 
 /** Go to a section of the active desk. Only CONTROLS while PRESENTING. */

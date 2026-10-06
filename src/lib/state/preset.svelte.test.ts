@@ -2,8 +2,9 @@
 // into an existing desk.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { newPreset } from '../model/factory';
-import type { Preset, SubdeskWidget, Widget } from '../model/preset';
-import { resolvePage } from '../model/subdesks';
+import { findFreeSpot } from '../grid/engine';
+import type { Preset, TabsWidget, Widget } from '../model/preset';
+import { tabAt, widgetsOn } from '../model/tabs';
 import { newWidget } from '../widgets/defs';
 
 const files = new Map<string, unknown>();
@@ -153,72 +154,116 @@ describe('workspace', () => {
   });
 });
 
-describe('sub-desks', () => {
-  /** A fresh desk in EDIT with a sub-desk on it, its page open. */
-  async function deskWithSubdesk() {
+describe('frames', () => {
+  /** A fresh desk in EDIT, with room to spare, and a frame on it, selected. */
+  async function deskWithFrame() {
     await presetStore.init();
-    await presetStore.newDesk('Subs');
+    await presetStore.newDesk('Frames');
     ui.mode = 'edit';
-    ui.page = null;
-    presetStore.addWidget('subdesk');
-    const sub = presetStore.current.widgets.at(-1) as SubdeskWidget;
-    presetStore.openSubdesk(sub.id);
-    const page = { widget: sub.id, page: sub.props.pages[0]!.id };
-    return { desk: presetStore.current, sub, page };
+    presetStore.current.grid = { ...presetStore.current.grid, rows: 16 };
+    presetStore.addWidget('tabs');
+    const frame = last() as TabsWidget;
+    const tab = { widget: frame.id, tab: frame.props.tabs[0]!.id };
+    return { desk: presetStore.current, frame, tab };
   }
   const last = (): Widget => presetStore.current.widgets.at(-1)!;
-  const deletedBy = async (run: () => void) => {
+  const changesBy = async (run: () => void) => {
     const { deskChanges } = await import('./changes');
     const deleted: string[] = [];
-    const stop = deskChanges.on((c) => deleted.push(...(c.deleted ?? [])));
+    let count = 0;
+    const stop = deskChanges.on((c) => {
+      count++;
+      deleted.push(...(c.deleted ?? []));
+    });
     run();
     stop();
-    return deleted;
+    return { count, deleted };
   };
 
-  it('adds widgets to the open page, in its own grid', async () => {
-    const { desk, page } = await deskWithSubdesk();
-    expect(presetStore.page).toEqual(page);
+  it('adds widgets on the tab the selected frame shows, or beside the selected widget', async () => {
+    const { frame, tab } = await deskWithFrame();
+    expect(frame.parent).toBeNull();
+    expect(presetStore.addingTo).toEqual(tab);
     presetStore.addWidget('button');
     const button = last();
-    expect(button.parent).toEqual(page);
-    // The desk's widgets fill (0,0) on the desk, not on the page.
+    expect(button.parent).toEqual(tab);
+    // In the frame's own grid: (0,0) there, though the desk's widgets fill (0,0) on the desk.
     expect(button).toMatchObject({ x: 0, y: 0 });
-    expect(desk.widgets.some((w) => !w.parent && w.x === 0 && w.y === 0)).toBe(true);
-    expect(presetStore.pageOf(button.id)).toEqual(page);
-    // Leaving EDIT closes the page.
-    ui.mode = 'live';
-    expect(presetStore.page).toBeNull();
+    expect(presetStore.tabOf(button.id)).toEqual(tab);
+    // The button is selected now: the next one goes beside it, on the same tab.
+    presetStore.addWidget('slider');
+    expect(last().parent).toEqual(tab);
+    // A frame always goes on the desk.
+    presetStore.addWidget('tabs');
+    expect(last().parent).toBeNull();
+    ui.selectedId = null;
+    expect(presetStore.addingTo).toBeNull();
   });
 
-  it('resizes the open page’s grid, never under its widgets', async () => {
-    const { sub, desk } = await deskWithSubdesk();
+  it('moves widgets in, out and between frames, never a frame onto a tab', async () => {
+    const { desk, frame, tab } = await deskWithFrame();
+    const button = desk.widgets.find((w) => w.type === 'button' && !w.parent)!;
+    const cell = { x: 1, y: 1, w: 1, h: 1 };
+    expect(presetStore.moveWidget(button.id, cell, tab)).toBe(true);
+    expect(button).toMatchObject({ ...cell, parent: tab });
+    // Out onto the desk where it is free; never onto taken cells, nor off the frame's grid.
+    const spot = findFreeSpot({ w: 1, h: 1 }, desk.grid, widgetsOn(desk, null))!;
+    expect(presetStore.moveWidget(button.id, spot, null)).toBe(true);
+    expect(button.parent).toBeNull();
+    const taken = { x: frame.x, y: frame.y, w: 1, h: 1 };
+    expect(presetStore.moveWidget(button.id, taken, null)).toBe(false);
+    expect(presetStore.moveWidget(button.id, { x: 5, y: 0, w: 2, h: 1 }, tab)).toBe(false);
+    // Onto another frame's tab.
+    presetStore.addWidget('tabs');
+    const other = last() as TabsWidget;
+    const there = { widget: other.id, tab: other.props.tabs[0]!.id };
+    expect(presetStore.moveWidget(button.id, cell, there)).toBe(true);
+    expect(presetStore.tabOf(button.id)).toEqual(there);
+    // A frame never goes on a tab, nor on a tab that is gone.
+    expect(presetStore.moveWidget(other.id, cell, tab)).toBe(false);
+    expect(other.parent).toBeNull();
+    expect(presetStore.moveWidget(button.id, cell, { widget: other.id, tab: 'tb-gone' })).toBe(
+      false,
+    );
+    // Put down where it is: nothing changes, nothing is sent.
+    const same = await changesBy(() => presetStore.moveWidget(button.id, cell, there));
+    expect(same.count).toBe(0);
+  });
+
+  it('resizes a frame’s grid, one for all its tabs, never under what is on them', async () => {
+    const { desk, frame } = await deskWithFrame();
+    presetStore.addTab(frame.id);
     presetStore.addWidget('button');
-    last().x = 4;
-    expect(presetStore.setGrid({ cols: 5 })).toBe(false);
-    expect(presetStore.setGrid({ cols: 8, rows: 2 })).toBe(true);
-    expect(sub.props.pages[0]!.grid).toMatchObject({ cols: 8, rows: 2 });
+    const button = last();
+    expect(button.parent?.tab).toBe(frame.props.tabs[1]!.id);
+    button.x = 4;
+    expect(presetStore.setGrid({ cols: 5 }, frame.id)).toBe(false);
+    expect(presetStore.setGrid({ cols: 8, rows: 2 }, frame.id)).toBe(true);
+    expect(frame.props.grid).toMatchObject({ cols: 8, rows: 2 });
     expect(desk.grid.cols).toBe(12);
+    // The desk's grid counts what is on the desk only.
+    expect(presetStore.setGrid({ cols: 13 })).toBe(true);
+    expect(presetStore.setGrid({ cols: 2 }, button.id)).toBe(false);
   });
 
-  it('removes a sub-desk with everything on it, naming every deletion', async () => {
-    const { sub } = await deskWithSubdesk();
-    presetStore.addWidget('subdesk');
-    const inner = last() as SubdeskWidget;
-    presetStore.openSubdesk(inner.id);
+  it('removes a frame with everything on its tabs, naming every deletion', async () => {
+    const { frame } = await deskWithFrame();
     presetStore.addWidget('slider');
     const fader = last();
+    presetStore.addTab(frame.id);
+    ui.selectedId = frame.id;
+    presetStore.addWidget('button');
+    const button = last();
     ui.selectedId = fader.id;
-    const deleted = await deletedBy(() => presetStore.removeWidget(sub.id));
-    expect(deleted.sort()).toEqual([`w/${sub.id}`, `w/${inner.id}`, `w/${fader.id}`].sort());
+    const { deleted } = await changesBy(() => presetStore.removeWidget(frame.id));
+    expect(deleted.sort()).toEqual([`w/${frame.id}`, `w/${fader.id}`, `w/${button.id}`].sort());
     expect(presetStore.current.widgets.some((w) => w.parent)).toBe(false);
     expect(values[fader.id]).toBeUndefined();
-    expect(ui.page).toBeNull();
     expect(ui.selectedId).toBeNull();
   });
 
-  it('duplicates a sub-desk with its pages; references outside it stay', async () => {
-    const { sub, desk } = await deskWithSubdesk();
+  it('duplicates a frame with its tabs; references outside it stay', async () => {
+    const { frame, desk } = await deskWithFrame();
     const outsider = desk.widgets.find((w) => !w.parent && w.type === 'slider')!;
     presetStore.addWidget('slider');
     const fader = last();
@@ -228,11 +273,9 @@ describe('sub-desks', () => {
     presetStore.addWidget('log');
     const log = last();
     if (log.type === 'log') log.props = { ...log.props, follow: 'chosen', sources: [fader.id] };
-    presetStore.openPage(null);
-    desk.grid = { ...desk.grid, rows: 16 }; // room for a copy of the same size
-    presetStore.duplicateWidget(sub.id);
-    const copy = desk.widgets.find((w) => w.id === ui.selectedId) as SubdeskWidget;
-    expect(copy.id).not.toBe(sub.id);
+    presetStore.duplicateWidget(frame.id);
+    const copy = desk.widgets.find((w) => w.id === ui.selectedId) as TabsWidget;
+    expect(copy.id).not.toBe(frame.id);
     expect(copy.parent).toBeNull();
     const onCopy = desk.widgets.filter((w) => w.parent?.widget === copy.id);
     expect(onCopy.map((w) => w.type).sort()).toEqual(['log', 'slider', 'text']);
@@ -244,70 +287,40 @@ describe('sub-desks', () => {
     for (const w of [copy, ...onCopy]) expect(values[w.id]).toBeDefined();
   });
 
-  it('puts a widget on another page, but never into itself', async () => {
-    const { sub, page } = await deskWithSubdesk();
-    presetStore.openPage(null);
-    const button = presetStore.current.widgets.find((w) => w.type === 'button')!;
-    expect(presetStore.place(button.id, page)).toBe(true);
-    expect(button.parent).toEqual(page);
-    expect(ui.page).toEqual(page);
-    expect(presetStore.place(sub.id, page)).toBe(false);
-    expect(sub.parent).toBeNull();
-    expect(presetStore.place(button.id, null)).toBe(true);
-    expect(button.parent).toBeNull();
-    // Too big for the page's 6×4 grid: it goes there smaller.
-    Object.assign(button, { w: 8, h: 6 });
-    expect(presetStore.place(button.id, page)).toBe(true);
-    expect(button).toMatchObject({ parent: page, w: 6, h: 4 });
-  });
-
-  it('adds, orders and removes pages; showing one is never sent or shared', async () => {
-    const { sub } = await deskWithSubdesk();
+  it('adds, orders and removes tabs; showing one is never sent or shared', async () => {
+    const { frame } = await deskWithFrame();
     const { localValues } = await import('./changes');
     const emitted: unknown[] = [];
     const stop = localValues.on((v) => emitted.push(v));
-    expect(presetStore.addBlankPage(sub.id)).toBe(true);
-    const [first, second] = sub.props.pages;
-    expect(values[sub.id]).toBe(second!.id);
-    presetStore.showPage(sub.id, first!.id);
-    expect(values[sub.id]).toBe(first!.id);
+    expect(presetStore.addTab(frame.id)).toBe(true);
+    const [first, second] = frame.props.tabs;
+    expect(second!.name).toBe('Tab 2');
+    expect(values[frame.id]).toBe(second!.id);
+    presetStore.showTab(frame.id, first!.id);
+    expect(values[frame.id]).toBe(first!.id);
     stop();
     expect(emitted).toEqual([]);
 
-    presetStore.movePage(sub.id, second!.id, -1);
-    expect(sub.props.pages.map((p) => p.id)).toEqual([second!.id, first!.id]);
-    presetStore.openPage({ widget: sub.id, page: first!.id });
+    presetStore.moveTab(frame.id, second!.id, -1);
+    expect(frame.props.tabs.map((t) => t.id)).toEqual([second!.id, first!.id]);
     presetStore.addWidget('button');
     const button = last();
-    const deleted = await deletedBy(() => presetStore.removePage(sub.id, first!.id));
+    expect(button.parent?.tab).toBe(first!.id);
+    const { deleted } = await changesBy(() => presetStore.removeTab(frame.id, first!.id));
     expect(deleted).toEqual([`w/${button.id}`]);
-    expect(sub.props.pages.map((p) => p.id)).toEqual([second!.id]);
-    expect(values[sub.id]).toBe(second!.id);
-    expect(presetStore.page).toBeNull();
-    // The last page stays.
-    presetStore.removePage(sub.id, second!.id);
-    expect(sub.props.pages).toHaveLength(1);
+    expect(frame.props.tabs.map((t) => t.id)).toEqual([second!.id]);
+    expect(values[frame.id]).toBe(second!.id);
+    // The last tab stays.
+    presetStore.removeTab(frame.id, second!.id);
+    expect(frame.props.tabs).toHaveLength(1);
   });
 
-  it('refuses a sub-desk deeper than they nest', async () => {
-    await deskWithSubdesk();
-    for (let i = 0; i < 2; i++) {
-      presetStore.addWidget('subdesk');
-      presetStore.openSubdesk(last().id);
-    }
-    const count = presetStore.current.widgets.length;
-    presetStore.addWidget('subdesk');
-    expect(presetStore.current.widgets).toHaveLength(count);
-    presetStore.addWidget('button');
-    expect(presetStore.current.widgets).toHaveLength(count + 1);
-  });
-
-  it('keeps the nesting when a desk is opened with fresh widget ids', async () => {
+  it('keeps widgets on their tabs when a desk is opened with fresh widget ids', async () => {
     await presetStore.init();
-    const p = newPreset('Nested');
-    const sub = newWidget('subdesk', { x: 0, y: 6, w: 4, h: 2 }, []);
-    const page = { widget: sub.id, page: sub.props.pages[0]!.id };
-    p.widgets.push(sub, newWidget('button', { x: 0, y: 0, w: 1, h: 1 }, [], 1, page));
+    const p = newPreset('Framed');
+    const frame = newWidget('tabs', { x: 0, y: 6, w: 4, h: 2 }, []);
+    const tab = { widget: frame.id, tab: frame.props.tabs[0]!.id };
+    p.widgets.push(frame, newWidget('button', { x: 0, y: 0, w: 1, h: 1 }, [], 1, tab));
     files.set(p.id, structuredClone(p));
     // The same widgets again, under another preset id: their ids clash.
     const twin = { ...structuredClone(p), id: 'p-twin', name: 'Twin' };
@@ -315,81 +328,22 @@ describe('sub-desks', () => {
     await presetStore.openDesk(p.id);
     await presetStore.openDesk(twin.id);
     const opened = presetStore.current;
-    const openedSub = opened.widgets.find((w) => w.type === 'subdesk')!;
-    expect(openedSub.id).not.toBe(sub.id);
+    const openedFrame = opened.widgets.find((w) => w.type === 'tabs')!;
+    expect(openedFrame.id).not.toBe(frame.id);
     const child = opened.widgets.find((w) => w.parent)!;
-    expect(resolvePage(opened, child.parent)).toEqual(child.parent);
-    expect(child.parent?.widget).toBe(openedSub.id);
+    expect(child.parent?.widget).toBe(openedFrame.id);
+    expect(tabAt(opened, child.parent!)).toBeDefined();
   });
 
-  it('copies a saved desk in as a sub-desk, a page, and again over its page', async () => {
-    await deskWithSubdesk();
-    const desk = presetStore.current;
-    const network = JSON.stringify($state.snapshot(desk.network));
-    const small = newPreset('Small desk', { loopbackInput: false });
-    small.widgets = small.widgets.slice(0, 2);
-    small.grid = { cols: 4, rows: 3, gap: 2 };
-    files.set(small.id, structuredClone(small));
-    presetStore.openPage(null);
-
-    // Asked first; saying no changes nothing.
-    const count = desk.widgets.length;
-    expect(await presetStore.embed(small.id, { kind: 'new' }, async () => false)).toBe(false);
-    expect(desk.widgets).toHaveLength(count);
-
-    // A new sub-desk, named after it, its page copied from it.
-    let asked = 0;
-    const yes = async (plan: { widgets: unknown[] }) => ((asked = plan.widgets.length), true);
-    expect(await presetStore.embed(small.id, { kind: 'new' }, yes)).toBe(true);
-    expect(asked).toBe(2);
-    const sub = desk.widgets.find((w) => w.id === ui.selectedId) as SubdeskWidget;
-    expect(sub).toMatchObject({ type: 'subdesk', label: 'Small desk', parent: null });
-    const [page] = sub.props.pages;
-    expect(page).toMatchObject({ name: 'Small desk', source: small.id, grid: small.grid });
-    const onPage = desk.widgets.filter((w) => w.parent?.page === page!.id);
-    expect(onPage).toHaveLength(2);
-    expect(onPage.every((w) => values[w.id] !== undefined)).toBe(true);
-    // Its messages send through this desk's own output; NETWORK is as it was.
-    const out = desk.network.outputs[0]!.id;
-    expect(onPage.every((w) => w.bindings.every((b) => b.outputIds.join() === out))).toBe(true);
-    expect(JSON.stringify($state.snapshot(desk.network))).toBe(network);
-
-    // Another page of the same sub-desk, shown.
-    await presetStore.embed(small.id, { kind: 'page', widget: sub.id });
-    expect(sub.props.pages).toHaveLength(2);
-    expect(values[sub.id]).toBe(sub.props.pages[1]!.id);
-
-    // The saved desk changes; copying it again replaces what is on the page.
-    const changed = { ...structuredClone(small), updatedAt: '2030-01-01T00:00:00.000Z' };
-    changed.widgets = changed.widgets.slice(0, 1);
-    changed.grid = { cols: 2, rows: 2, gap: 2 };
-    files.set(small.id, changed);
-    const old = onPage.map((w) => w.id);
-    const { deskChanges } = await import('./changes');
-    const deleted: string[] = [];
-    const stop = deskChanges.on((c) => deleted.push(...(c.deleted ?? [])));
-    await presetStore.embed(small.id, { kind: 'update', widget: sub.id, page: page!.id });
-    stop();
-    expect(deleted.sort()).toEqual(old.map((id) => `w/${id}`).sort());
-    const now = desk.widgets.filter((w) => w.parent?.page === page!.id);
-    expect(now).toHaveLength(1);
-    expect(old).not.toContain(now[0]!.id);
-    expect(sub.props.pages[0]).toMatchObject({
-      id: page!.id,
-      copiedAt: '2030-01-01T00:00:00.000Z',
-      grid: { cols: 2, rows: 2, gap: 2 },
-    });
-  });
-
-  it('sends everything on a page to one output', async () => {
-    const { sub, desk, page } = await deskWithSubdesk();
-    desk.network.outputs.push({ ...desk.network.outputs[0]!, id: 'out-2', name: 'Two' });
-    presetStore.addWidget('slider');
-    const fader = last();
-    expect(fader.bindings[0]!.outputIds).not.toEqual(['out-2']);
-    presetStore.routePage(sub.id, page.page, 'out-2');
-    expect(fader.bindings[0]!.outputIds).toEqual(['out-2']);
-    presetStore.routePage(sub.id, page.page, 'out-gone');
-    expect(fader.bindings[0]!.outputIds).toEqual(['out-2']);
+  it('forgets a frame deleted on another device, with what was on it', async () => {
+    const { desk, frame } = await deskWithFrame();
+    presetStore.addWidget('button');
+    const button = last();
+    const next = structuredClone($state.snapshot(desk)) as Preset;
+    next.widgets = next.widgets.filter((w) => w.id !== frame.id && w.id !== button.id);
+    presetStore.applyRemote(desk.id, next, false);
+    expect(desk.widgets.some((w) => w.id === frame.id || w.id === button.id)).toBe(false);
+    expect(values[button.id]).toBeUndefined();
+    expect(ui.selectedId).toBeNull();
   });
 });

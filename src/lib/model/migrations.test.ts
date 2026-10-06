@@ -316,7 +316,7 @@ describe('v10 → v11: widgets can hide their title and value', () => {
   });
 });
 
-describe('v11 → v12: sub-desks', () => {
+describe('v11 → v12: frames', () => {
   it('puts every widget on the desk itself', () => {
     const cur = newPreset();
     const old = JSON.parse(JSON.stringify(cur)) as { schemaVersion: number; widgets: object[] };

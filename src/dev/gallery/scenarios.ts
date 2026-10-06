@@ -436,22 +436,22 @@ export const SCENARIOS: Scenario[] = [
   ),
   make('log-empty', 'log', [320, 120], (w) => (w.color = 7)),
 
-  // Sub-desk: one page, and three as tabs with the second shown. Previews are on no desk, so
-  // their pages are empty.
-  make('subdesk', 'subdesk', [360, 200], (w) => (w.color = 2)),
+  // Frame: one tab, and three with the second shown. Previews are on no desk, so their tabs are
+  // empty.
+  make('tabs', 'tabs', [360, 200], (w) => (w.color = 2)),
   make(
-    'subdesk-tabs',
-    'subdesk',
+    'tabs-many',
+    'tabs',
     [360, 200],
     (w) => {
       w.color = 6;
       w.label = 'Mixer';
-      w.props.pages = [
-        { ...w.props.pages[0]!, id: 'pg-main', name: 'Main' },
-        { ...w.props.pages[0]!, id: 'pg-fx', name: 'Effects' },
-        { ...w.props.pages[0]!, id: 'pg-cues', name: 'Cues' },
+      w.props.tabs = [
+        { id: 'tb-main', name: 'Main' },
+        { id: 'tb-fx', name: 'Effects' },
+        { id: 'tb-cues', name: 'Cues' },
       ];
     },
-    { value: 'pg-fx' },
+    { value: 'tb-fx' },
   ),
 ];

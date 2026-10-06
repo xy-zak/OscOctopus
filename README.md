@@ -128,14 +128,11 @@ The screen always shows **where you are**, by containment:
 - **Log**: what widgets sent (→) and received (←) on this device, newest first: every widget of
   the desk or the ones you pick, up to 200 rows, with the columns you choose (time, widget,
   address, value, where, IP, result, size).
-- **Sub-desk**: a desk inside the desk. Build small desks on their own, then copy them into a
-  bigger one: **+ Desk from LIBRARY** in EDIT, or *Add a page* in a sub-desk's Inspector. Several
-  copied desks in one sub-desk become tabs (each person picks their own tab; it works while
-  LOCKED too). The copy is the big desk's own: its messages use the big desk's outputs and
-  inputs (the same one where it exists, else the first), and its NETWORK never changes; a page's
-  *Send to* points everything on it at one output. Double-tap a sub-desk in EDIT (or *Open*) to
-  edit its page in place, with a breadcrumb back out (Esc goes up). *Update from LIBRARY* copies
-  the saved desk again over its page. Sub-desks nest up to three deep.
+- **Frame**: one place on the desk with tabs, each holding widgets of its own (each person picks
+  their own tab; it works while LOCKED too). Select a frame, or a widget on it, and ADD puts new
+  widgets on the tab it shows; everything on it is edited right there. Drag widgets into a frame,
+  out of it or into another, and hold one over a tab's name to open that tab. Its Inspector names,
+  orders, adds and removes tabs and sets the grid they share.
 
 **Messages:**
 - **Both ways:** each message can **OUT** (send to outputs when the widget changes) and **IN**
@@ -169,7 +166,7 @@ The screen always shows **where you are**, by containment:
 - F1…F5 switch sections inside the current frame.
 - F11 presents (and stops); Esc also stops. While presenting, F1…F5, Alt+0 and Alt+E do nothing.
 - Alt+E edit. Hold for 1 s: Alt+I OSC-IN, Alt+P OSC-OUT (pause), Alt+L lock.
-- In edit mode: arrows nudge, Del removes, Esc deselects.
+- In edit mode: arrows nudge, Del removes, Esc deselects (or puts back a widget being dragged).
 
 ## Platforms
 

@@ -182,11 +182,11 @@ export const PARTS = {
   'log.cell': { label: 'Log cell', states: {}, image: 'none' },
   'log.empty': { label: 'Empty log', states: {}, image: 'none' },
 
-  'subdesk.tabs': { label: 'Page tabs', states: {}, image: 'region' },
-  'subdesk.tab': { label: 'Page tab', states: { current: 'self' }, image: 'region' },
-  'subdesk.text': { label: 'Page name', states: { current: 'self' }, image: 'none' },
-  'subdesk.page': { label: 'Page', states: {}, image: 'region' },
-  'subdesk.empty': { label: 'Empty page', states: {}, image: 'none' },
+  'tabs.list': { label: 'Frame tabs', states: {}, image: 'region' },
+  'tabs.tab': { label: 'Frame tab', states: { current: 'self' }, image: 'region' },
+  'tabs.text': { label: 'Tab name', states: { current: 'self' }, image: 'none' },
+  'tabs.panel': { label: 'Tab shown', states: {}, image: 'region' },
+  'tabs.empty': { label: 'Empty tab', states: {}, image: 'none' },
 } as const satisfies Record<string, Part>;
 
 export type PartName = keyof typeof PARTS;
@@ -212,8 +212,8 @@ export const MARKER_PARTS: ReadonlySet<PartName> = new Set<PartName>([
   'text.run',
   'log.cell',
   'log.empty',
-  'subdesk.text',
-  'subdesk.empty',
+  'tabs.text',
+  'tabs.empty',
 ]);
 
 /**
@@ -246,8 +246,8 @@ export const TOKENS = {
   '--seq-step-gap': { label: 'Gap between step marks', default: '2px' },
   '--text-c': { label: 'Text colour', default: 'var(--fg)', paint: true },
   '--log-row-h': { label: 'Log row height', default: 'var(--lh)' },
-  '--subdesk-tabs-h': { label: 'Page tab height', default: 'var(--lh)' },
-  '--subdesk-tab-gap': { label: 'Gap between page tabs', default: '2px' },
+  '--tabs-list-h': { label: 'Frame tab height', default: 'var(--lh)' },
+  '--tabs-gap': { label: 'Gap between frame tabs', default: '2px' },
 } as const satisfies Record<string, { label: string; default: string; paint?: true }>;
 
 export type Token = keyof typeof TOKENS;
