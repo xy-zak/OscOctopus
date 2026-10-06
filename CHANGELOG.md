@@ -42,6 +42,11 @@ Scripts.
   - Tabs are each person's own, switch in every mode (while LOCKED too), and never while a finger
     still holds a widget on the tab. On a shared desk, widgets whose tab someone deleted show on
     the desk, with a warning.
+- **Select several widgets** (EDIT): Shift+click adds a widget to the selection or takes it out.
+  Drag any of them and they move together, keeping their places to each other, onto the desk or
+  into a frame; a handle resizes them all by the same amount; arrows nudge them all; Delete asks,
+  then removes them all. The side panel lists them. A selection keeps to one grid (the desk, or
+  one frame tab), and on a shared desk others see all of them as being edited.
 - **A new widget fits where there is room:** its usual size, or the largest smaller one that
   fits, instead of "no free space".
 - **Preset schema v12** (for the new widgets, the title/value switches and frames; old desks are

@@ -18,7 +18,7 @@
   drag={ctx.drag}
   editing={ctx.editing}
   locked={ctx.locked}
-  selectedId={ctx.selectedId}
+  selected={ctx.selected}
   focusedId={ctx.focusedId}
   onselect={ctx.onselect}
   onfocus={ctx.onfocus}

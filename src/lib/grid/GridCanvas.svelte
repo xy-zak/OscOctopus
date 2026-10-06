@@ -2,8 +2,8 @@
   // A desk's grid of widgets, or one tab of a frame on it (`tab`). The desk's own canvas shares
   // the desk with the frames drawn on it (context.ts), which draw their shown tab with this same
   // canvas, nested, edited and played like the desk. One drag (drag.svelte.ts), made by the desk's
-  // canvas, carries widgets between them. Frames sit on the desk only (model/tabs.ts), so this
-  // nests once.
+  // canvas, moves and resizes widgets (one, or the selection) and carries them between grids.
+  // Frames sit on the desk only (model/tabs.ts), so this nests once.
   import { untrack } from 'svelte';
   import type { Preset, TabRef, Widget } from '../model/preset';
   import {
@@ -22,8 +22,8 @@
   import { colorVars } from '../theme/palettes';
   import { viewsOf } from '../widgets/registry';
   import { provideCanvas, type Holder } from './context';
-  import { DragSession } from './drag.svelte';
-  import { inBounds, metrics as computeMetrics, toPx, type Rect } from './engine';
+  import { DragSession, type DragStart } from './drag.svelte';
+  import { inBounds, metrics as computeMetrics, toPx, type Handle, type Placed } from './engine';
   import GridItem from './GridItem.svelte';
   import TabCanvas from './TabCanvas.svelte';
 
@@ -36,12 +36,14 @@
     /** The desk's drag, for a tab; the desk's own canvas makes it. */
     drag?: DragSession;
     editing: boolean;
-    selectedId: string | null;
+    /** The widgets selected, all on one grid. */
+    selected: readonly string[];
     focusedId?: string | null;
-    onselect: (id: string | null) => void;
+    /** A widget picked alone (null: none), or with `add` (Shift) added or taken out. */
+    onselect: (id: string | null, add?: boolean) => void;
     onfocus?: (id: string) => void;
-    /** A widget was put down at `rect` in the grid of `parent` (a tab; null: the desk). */
-    oncommit: (id: string, rect: Rect, parent: TabRef | null) => void;
+    /** Widgets were put down at `rects` in the grid of `parent` (a tab; null: the desk). */
+    oncommit: (rects: readonly Placed[], parent: TabRef | null) => void;
     /** LOCK: widgets render but ignore all input. */
     locked?: boolean;
     /** A press landed on the desk while locked (to hint how to unlock). */
@@ -58,7 +60,7 @@
     locked = false,
     onlockedpress,
     holderOf,
-    selectedId,
+    selected,
     focusedId = null,
     onselect,
     onfocus,
@@ -75,7 +77,7 @@
     untrack(() => given) ??
     new DragSession({
       accepts: (id, at) => canPlace(preset, id, at),
-      commit: (id, rect, at) => oncommit(id, rect, at),
+      commit: (rects, at) => oncommit(rects, at),
       tick: tickHaptic,
     });
 
@@ -83,17 +85,17 @@
   const index = $derived(around ?? childrenIndex(preset, placed));
   const own = $derived(index.get(tabKey(tab)) ?? []);
   const grid = $derived(gridOn(preset, tab));
-  // A tab draws what fits its grid (one outside it is "not shown", sync/conflicts.ts), and a
-  // widget carried off its frame while the frame shows another tab, so that drag goes on. In desk
-  // order, so the keyed each below never moves it.
+  // A tab draws what fits its grid (one outside it is "not shown", sync/conflicts.ts), and the
+  // widgets carried off its frame while the frame shows another tab, so that drag goes on. In
+  // desk order, so the keyed each below never moves them.
   const widgets = $derived.by(() => {
     if (!tab) return own;
     const on = new Set(own);
-    const carried = drag.lifted?.from?.widget === tab.widget ? drag.lifted.id : null;
-    return preset.widgets.filter((w) => (on.has(w) && inBounds(w, grid)) || w.id === carried);
+    const carried = drag.lifted?.from?.widget === tab.widget ? drag.lifted.ids : [];
+    return preset.widgets.filter((w) => (on.has(w) && inBounds(w, grid)) || carried.includes(w.id));
   });
-  /** The frame the selected widget is on: drawn over the desk's other widgets, and so are its. */
-  const raised = $derived(desk && selectedId ? placed.get(selectedId)?.widget : undefined);
+  /** The frame the selection is on: drawn over the desk's other widgets, and so are they. */
+  const raised = $derived(desk && selected[0] ? placed.get(selected[0])?.widget : undefined);
   // Widgets whose colour is AUTO take the desk's own colour, or their frame's (colorVars).
   const auto = $derived(colorVars(autoColorOn(preset, tab)));
   const m = $derived(computeMetrics(width, height, grid, grid.gap));
@@ -105,12 +107,26 @@
         )
       : [],
   );
-  // Where a carried widget would land, if on this grid.
-  const ghost = $derived(
-    drag.drop && sameTab(drag.drop.at, tab)
-      ? { ...toPx(drag.drop.rect, m), valid: drag.drop.valid }
-      : null,
+  // Where carried widgets would land, if on this grid (resized ones show it themselves).
+  const ghosts = $derived(
+    drag.lifted?.kind === 'move' && drag.drop && sameTab(drag.drop.at, tab)
+      ? drag.drop.rects.map((r) => toPx(r, m))
+      : [],
   );
+
+  /**
+   * A widget starts being moved or resized: with the rest of the selection if it is selected
+   * (or added to it with Shift), alone otherwise, and never while a peer is editing one of them.
+   * Dragged means selected: their tab stays shown, and peers see who has them.
+   */
+  function lift(w: Widget, kind: 'move' | Handle, start: DragStart) {
+    if (!selected.includes(w.id)) onselect(w.id, start.add);
+    const ids = selected.includes(w.id) ? [...selected] : [w.id];
+    const group = () => preset.widgets.filter((x) => ids.includes(x.id));
+    if (group().some((x) => holderOf?.(x.id))) return;
+    const { pointerId, x0, y0, x, y } = start;
+    drag.lift({ kind, ids, from: tab, pointerId, x0, y0, rects: group }, x, y);
+  }
 
   // Editing, this grid is somewhere to put a carried widget.
   $effect(() => {
@@ -127,7 +143,7 @@
       index,
       editing,
       locked,
-      selectedId,
+      selected,
       focusedId,
       onselect,
       onfocus,
@@ -176,21 +192,18 @@
       {@const Widget = viewsOf(w).component}
       <GridItem
         id={w.id}
-        at={tab}
         rect={{ x: w.x, y: w.y, w: w.w, h: w.h }}
-        {grid}
         metrics={m}
-        others={own}
         {drag}
         {editing}
         container={isTabs(w)}
         raised={raised === w.id}
-        selected={selectedId === w.id}
+        selected={selected.includes(w.id)}
         focused={focusedId === w.id}
         holder={editing ? (holderOf?.(w.id) ?? null) : null}
-        onselect={(id) => onselect(id)}
+        {onselect}
         {onfocus}
-        {oncommit}
+        onlift={(kind, start) => lift(w, kind, start)}
       >
         <!-- Not live while editing or LOCKED: widgets then ignore pointer and keyboard. -->
         <Widget widget={w} live={!editing && !locked} />
@@ -198,16 +211,16 @@
     {/each}
   {/if}
 
-  {#if ghost}
+  {#each ghosts as g, i (i)}
     <!-- Where a carried widget would land: a dithered block, red if it would be refused. -->
     <div
       class="ghost"
-      class:invalid={!ghost.valid}
-      style:transform="translate3d({ghost.left}px, {ghost.top}px, 0)"
-      style:width="{ghost.width}px"
-      style:height="{ghost.height}px"
+      class:invalid={!drag.drop?.valid}
+      style:transform="translate3d({g.left}px, {g.top}px, 0)"
+      style:width="{g.width}px"
+      style:height="{g.height}px"
     ></div>
-  {/if}
+  {/each}
 </div>
 
 <style>

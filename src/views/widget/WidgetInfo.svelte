@@ -29,7 +29,7 @@
 
   function edit(w: Widget) {
     ui.mode = 'edit';
-    ui.selectedId = w.id;
+    presetStore.select(w.id);
   }
 
   const toggle = (s: InfoSection) => (on: boolean) => {

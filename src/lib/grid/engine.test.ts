@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  allFree,
+  bounds,
   cellAt,
   clampRect,
   collisions,
@@ -11,6 +13,7 @@ import {
   moveRect,
   outOfBounds,
   pxToCells,
+  resizeAll,
   resizeRect,
   snapTo,
   toPx,
@@ -119,6 +122,41 @@ describe('pixel metrics', () => {
   });
 });
 
+describe('several items at once', () => {
+  it('are free together only off every other item, inside the grid and off each other', () => {
+    const two: Placed[] = [
+      { id: 'p', x: 2, y: 0, w: 2, h: 1 },
+      { id: 'a', x: 2, y: 1, w: 2, h: 1 },
+    ];
+    // 'a' moves too: its old cells don't count.
+    expect(allFree(two, grid, items)).toBe(true);
+    expect(allFree([{ ...two[0]!, x: 3 }, two[1]!], grid, items)).toBe(false); // on 'b'
+    expect(allFree([two[0]!, { ...two[1]!, y: 0 }], grid, items)).toBe(false);
+    expect(allFree([{ ...two[0]!, x: 11 }], grid, items)).toBe(false);
+  });
+
+  it('have a box around them', () => {
+    expect(
+      bounds([
+        { x: 2, y: 3, w: 1, h: 1 },
+        { x: 4, y: 1, w: 2, h: 1 },
+      ]),
+    ).toEqual({ x: 2, y: 1, w: 4, h: 3 });
+  });
+
+  it('resize alike from one handle, each kept in the grid', () => {
+    const two: Placed[] = [
+      { id: 'p', x: 0, y: 0, w: 2, h: 2 },
+      { id: 'q', x: 10, y: 4, w: 1, h: 1 },
+    ];
+    expect(resizeAll(two, 'se', 1.4, 2, grid)).toEqual([
+      { id: 'p', x: 0, y: 0, w: 3, h: 4 },
+      { id: 'q', x: 10, y: 4, w: 2, h: 3 },
+    ]);
+    expect(resizeAll(two, 'e', 5, 0, grid)[1]).toEqual({ id: 'q', x: 10, y: 4, w: 2, h: 1 });
+  });
+});
+
 describe('carrying between grids', () => {
   const m = metrics(12 * 100 + 13 * 10, 8 * 50 + 9 * 10, grid, 10);
   const box = (left: number, top: number, width: number, height: number) => ({
@@ -181,26 +219,49 @@ describe('carrying between grids', () => {
     const item: Placed = { id: 'me', x: 0, y: 0, w: 1, h: 1 };
 
     it('lands in a frame the pointer is over, its border and tabs too', () => {
-      expect(landing(item, 310, 310, { x: 330, y: 330 }, desk, [frame])).toEqual({
+      expect(landing([item], 310, 310, { x: 330, y: 330 }, desk, [frame])).toEqual({
         at: 'tab',
-        rect: { x: 0, y: 0, w: 1, h: 1 },
+        rects: [{ id: 'me', x: 0, y: 0, w: 1, h: 1 }],
         valid: true,
       });
       // Over the tab strip, above the canvas: still the frame, the item kept in its grid.
-      expect(landing(item, 310, 250, { x: 300, y: 280 }, desk, [frame]).at).toBe('tab');
+      expect(landing([item], 310, 250, { x: 300, y: 280 }, desk, [frame]).at).toBe('tab');
     });
 
     it('lands on the desk off every frame', () => {
-      const l = landing(item, 230, 70, { x: 250, y: 90 }, desk, [frame]);
-      expect(l).toEqual({ at: null, rect: { x: 2, y: 1, w: 1, h: 1 }, valid: true });
+      const l = landing([item], 230, 70, { x: 250, y: 90 }, desk, [frame]);
+      expect(l).toEqual({ at: null, rects: [{ id: 'me', x: 2, y: 1, w: 1, h: 1 }], valid: true });
     });
 
     it('is refused on taken cells, never on its own', () => {
-      expect(landing(item, 370, 370, { x: 380, y: 380 }, desk, [frame]).valid).toBe(false);
+      expect(landing([item], 370, 370, { x: 380, y: 380 }, desk, [frame]).valid).toBe(false);
       const kid = { ...item, id: 'kid' };
-      expect(landing(kid, 370, 370, { x: 380, y: 380 }, desk, [frame]).valid).toBe(true);
+      expect(landing([kid], 370, 370, { x: 380, y: 380 }, desk, [frame]).valid).toBe(true);
       // On the desk: items 'a' covers (0,0)–(1,1).
-      expect(landing(item, 10, 10, { x: 20, y: 20 }, desk, []).valid).toBe(false);
+      expect(landing([item], 10, 10, { x: 20, y: 20 }, desk, []).valid).toBe(false);
+    });
+
+    it('carries several alike, keeping their places to each other, never shrinking them', () => {
+      const two: Placed[] = [
+        { id: 'p', x: 6, y: 5, w: 1, h: 1 },
+        { id: 'q', x: 7, y: 6, w: 2, h: 1 },
+      ];
+      // Their top-left (the cell of p) dropped on (5, 1) of the desk.
+      expect(landing(two, 560, 70, { x: 580, y: 90 }, desk, [])).toEqual({
+        at: null,
+        rects: [
+          { id: 'p', x: 5, y: 1, w: 1, h: 1 },
+          { id: 'q', x: 6, y: 2, w: 2, h: 1 },
+        ],
+        valid: true,
+      });
+      // One cell further left, q would be on 'b'.
+      expect(landing(two, 450, 70, { x: 470, y: 90 }, desk, []).valid).toBe(false);
+      // Into the 2×2 tab they are 3 wide: refused, not shrunk.
+      const there = landing(two, 310, 310, { x: 330, y: 330 }, desk, [frame]);
+      expect(there.at).toBe('tab');
+      expect(there.valid).toBe(false);
+      expect(there.rects.map((r) => r.w)).toEqual([1, 2]);
     });
   });
 });

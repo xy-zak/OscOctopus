@@ -5,7 +5,7 @@
 // sync (state/changes.ts). `touch()` is `changed()` for the active desk.
 import { presets as presetIpc, sync as syncIpc } from '../ipc/commands';
 import type { PresetSummary } from '../ipc/types';
-import { findFreeSpot, findRoom, isFree, outOfBounds, type Rect } from '../grid/engine';
+import { allFree, findFreeSpot, findRoom, outOfBounds, type Placed } from '../grid/engine';
 import { freshCopies, newInput, newOutput, newPreset, withFreshWidgetIds } from '../model/factory';
 import { migratePreset } from '../model/migrations';
 import { uid } from '../model/parts';
@@ -171,7 +171,8 @@ class PresetStore {
   activate(id: string) {
     if (!this.isOpen(id) || id === this.activeId) return;
     this.activeId = id;
-    ui.selectedId = ui.focusedId = null;
+    ui.selected = [];
+    ui.focusedId = null;
     void this.persistOpen();
   }
 
@@ -223,7 +224,8 @@ class PresetStore {
     this.autosave.forget(id);
     if (this.activeId === id) {
       this.activeId = this.desks[Math.min(i, this.desks.length - 1)]!.id;
-      ui.selectedId = ui.focusedId = null;
+      ui.selected = [];
+      ui.focusedId = null;
     }
     await this.persistOpen();
     return true;
@@ -330,10 +332,11 @@ class PresetStore {
       if (after.has(id)) continue;
       forgetWidget(id);
       if (ui.focusedId === id) ui.focusedId = null;
-      if (ui.selectedId === id) {
-        ui.selectedId = null;
-        toast('The widget you were editing was deleted on another device');
-      }
+    }
+    const kept = ui.selected.filter((id) => !before.has(id) || after.has(id));
+    if (kept.length < ui.selected.length) {
+      ui.selected = kept;
+      toast('A widget you were editing was deleted on another device');
     }
     this.changed(deskId, { origin: 'remote', network });
   }
@@ -382,7 +385,10 @@ class PresetStore {
     };
     this.desks[i] = replaced;
     for (const w of replaced.widgets) values[w.id] = initialValue(w);
-    if (this.activeId === deskId) ui.selectedId = ui.focusedId = null;
+    if (this.activeId === deskId) {
+      ui.selected = [];
+      ui.focusedId = null;
+    }
     await networkStore.apply(deskId, this.snapshot(deskId).network);
     this.changed(deskId, { deleted: removedKeys(old, replaced) });
     await this.autosave.save(deskId);
@@ -482,7 +488,7 @@ class PresetStore {
     const w = newWidget(type, spot, firstOutput ? [firstOutput] : [], n, at);
     this.current.widgets.push(w);
     values[w.id] = initialValue(w);
-    ui.selectedId = w.id;
+    ui.selected = [w.id];
     this.touch();
   }
 
@@ -514,15 +520,16 @@ class PresetStore {
     Object.assign(copy, spot, { parent: at });
     this.current.widgets.push(...widgets);
     for (const w of widgets) values[w.id] = initialValue(w);
-    ui.selectedId = copy.id;
+    ui.selected = [copy.id];
     this.touch();
   }
 
-  /** Removes a widget; a frame goes with everything on its tabs. */
-  removeWidget(id: string) {
-    const gone = [id, ...childrenOf(this.current, id).map((w) => w.id)];
-    this.dropWidgets(gone);
-    this.touch({ deleted: gone.map(syncKey.widget) });
+  /** Removes widgets; a frame goes with everything on its tabs. */
+  removeWidgets(ids: readonly string[]) {
+    const gone = new Set(ids);
+    for (const id of ids) for (const w of childrenOf(this.current, id)) gone.add(w.id);
+    this.dropWidgets([...gone]);
+    this.touch({ deleted: [...gone].map(syncKey.widget) });
   }
 
   /** Takes widgets off the active desk and forgets what they left behind. */
@@ -531,25 +538,32 @@ class PresetStore {
     const gone = new Set(ids);
     this.current.widgets = this.current.widgets.filter((w) => !gone.has(w.id));
     for (const id of ids) forgetWidget(id);
-    if (ui.selectedId && gone.has(ui.selectedId)) ui.selectedId = null;
+    ui.selected = ui.selected.filter((id) => !gone.has(id));
     if (ui.focusedId && gone.has(ui.focusedId)) ui.focusedId = null;
   }
 
   /**
-   * Puts a widget at `rect` in the grid of `parent` (a frame's tab; null: the desk): a drop, a
-   * nudge, a resize. Refused where it may not go (a frame on a tab) or onto cells that are taken
-   * or off the grid. Its rect and parent change together, one change for sync (`w/<id>/rect`).
+   * Puts widgets at `rects` in the grid of `parent` (a frame's tab; null: the desk), all of them
+   * or none: a drop, a nudge or a resize, of one widget or a selection. Refused where one may not
+   * go (a frame on a tab), or where they would sit off the grid, on another widget or on each
+   * other. Each one's rect and parent change together, one change for sync (`w/<id>/rect`).
    */
-  moveWidget(id: string, rect: Rect, parent: TabRef | null): boolean {
-    const w = this.widget(id);
+  moveWidgets(rects: readonly Placed[], parent: TabRef | null): boolean {
     const desk = this.current;
-    if (!w || !canPlace(desk, id, parent)) return false;
-    if (!isFree(rect, gridOn(desk, parent), widgetsOn(desk, parent), id)) return false;
-    const { x, y, w: width, h } = rect;
-    if (w.x === x && w.y === y && w.w === width && w.h === h && sameTab(this.tabOf(id), parent))
-      return true;
-    Object.assign(w, { x, y, w: width, h, parent: parent && { ...parent } });
-    this.touch();
+    const widgets = rects.map((r) => this.widget(r.id));
+    if (widgets.length === 0 || widgets.some((w) => !w || !canPlace(desk, w.id, parent)))
+      return false;
+    if (!allFree(rects, gridOn(desk, parent), widgetsOn(desk, parent))) return false;
+    const placed = placements(desk);
+    let changed = false;
+    rects.forEach(({ x, y, w: width, h }, i) => {
+      const w = widgets[i]!;
+      const same = w.x === x && w.y === y && w.w === width && w.h === h;
+      if (same && sameTab(placed.get(w.id) ?? null, parent)) return;
+      Object.assign(w, { x, y, w: width, h, parent: parent && { ...parent } });
+      changed = true;
+    });
+    if (changed) this.touch();
     return true;
   }
 
@@ -584,16 +598,38 @@ class PresetStore {
     return placements(this.current).get(id) ?? null;
   }
 
+  /** The selected widgets of the active desk, in the order they were picked. */
+  get selection(): Widget[] {
+    return ui.selected.flatMap((id) => this.widget(id) ?? []);
+  }
+
   /**
-   * Where ADD puts a new widget: on the tab shown of the selected frame, or on the tab of the
-   * selected widget, else on the desk. A frame always goes on the desk.
+   * Selects a widget alone (null: nothing), or with `add` (Shift) adds it to the selection or
+   * takes it out. A selection stays on one grid, the desk's or one frame tab's: a widget from
+   * another starts a new one.
+   */
+  select(id: string | null, add = false) {
+    if (!id) ui.selected = [];
+    else if (!add) ui.selected = [id];
+    else if (ui.selected.includes(id)) ui.selected = ui.selected.filter((s) => s !== id);
+    else {
+      const placed = placements(this.current);
+      const here = placed.get(id) ?? null;
+      const same = ui.selected.filter((s) => sameTab(placed.get(s) ?? null, here));
+      ui.selected = [...same, id];
+    }
+  }
+
+  /**
+   * Where ADD puts a new widget: on the tab the selected frame shows, or beside the selected
+   * widgets on their tab, else on the desk. A frame always goes on the desk.
    */
   get addingTo(): TabRef | null {
-    const selected = this.widget(ui.selectedId);
-    if (!selected) return null;
-    if (isTabs(selected))
-      return { widget: selected.id, tab: shownTab(selected, values[selected.id]).id };
-    return this.tabOf(selected.id);
+    const [first, ...more] = this.selection;
+    if (!first) return null;
+    if (isTabs(first) && more.length === 0)
+      return { widget: first.id, tab: shownTab(first, values[first.id]).id };
+    return this.tabOf(first.id);
   }
 
   /** Shows a tab of a frame on this device (never sent or shared). */

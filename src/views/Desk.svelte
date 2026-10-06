@@ -9,14 +9,19 @@
   import Icon from '../lib/ui/Icon.svelte';
   import ToggleSwitch from '../lib/ui/ToggleSwitch.svelte';
   import { DEFS, WIDGET_TYPES, widgetName } from '../lib/widgets/defs';
-  import { removeWidget } from '../lib/widgets/tabs/actions';
+  import { removeWidgets } from '../lib/widgets/tabs/actions';
   import DeskPanel from './DeskPanel.svelte';
   import Inspector from './Inspector.svelte';
+  import SelectionPanel from './SelectionPanel.svelte';
   import WidgetInfo from './widget/WidgetInfo.svelte';
 
   const editing = $derived(ui.mode === 'edit');
   const preset = $derived(presetStore.current);
-  const selectedIndex = $derived(preset.widgets.findIndex((w) => w.id === ui.selectedId));
+  const selection = $derived(presetStore.selection);
+  // One widget selected: it is open in the Inspector.
+  const selectedIndex = $derived(
+    selection.length === 1 ? preset.widgets.indexOf(selection[0]!) : -1,
+  );
   const selected = $derived(preset.widgets[selectedIndex]);
   const focused = $derived(presetStore.widget(ui.focusedId));
   // EDIT: the frame tab ADD puts new widgets on (null: the desk), named as the toolbar shows it.
@@ -49,21 +54,23 @@
     const t = e.target as HTMLElement;
     if (t.closest('input, textarea, select, [contenteditable]')) return;
     if (e.key === 'Escape') {
-      ui.selectedId = null;
+      presetStore.select(null);
       return;
     }
-    if (!selected) return;
-    const holder = holderOf(selected.id);
+    const [first] = selection;
+    if (!first) return;
+    const holder = selection.map((w) => holderOf(w.id)).find(Boolean);
     if (holder) {
-      toast(`${holder.name} is editing this widget: take it over in the Inspector first`);
+      const what = selection.length > 1 ? 'one of these widgets' : 'this widget';
+      toast(`${holder.name} is editing ${what}: take it over in the Inspector first`);
       return;
     }
     if (e.key === 'Delete' || e.key === 'Backspace') {
-      void removeWidget(selected.id);
+      void removeWidgets(ui.selected);
       e.preventDefault();
       return;
     }
-    // Nudged in its own grid: the desk's, or its frame's.
+    // Nudged in their own grid, the desk's or their frame's, all alike.
     const d: Record<string, [number, number]> = {
       ArrowLeft: [-1, 0],
       ArrowRight: [1, 0],
@@ -73,13 +80,9 @@
     const delta = d[e.key];
     if (!delta) return;
     e.preventDefault();
-    const next = {
-      x: selected.x + delta[0],
-      y: selected.y + delta[1],
-      w: selected.w,
-      h: selected.h,
-    };
-    presetStore.moveWidget(selected.id, next, presetStore.tabOf(selected.id));
+    const [dx, dy] = delta;
+    const next = selection.map(({ id, x, y, w, h }) => ({ id, x: x + dx, y: y + dy, w, h }));
+    presetStore.moveWidgets(next, presetStore.tabOf(first.id));
   }
 </script>
 
@@ -104,8 +107,8 @@
             >
           {/each}
           <span class="hint faint"
-            >drag: move, in and out of frames · handles: resize · arrows: nudge · del: remove · esc:
-            deselect</span
+            >shift+click: select more · drag: move, in and out of frames · handles: resize · arrows:
+            nudge · del: remove · esc: deselect</span
           >
         {:else}
           <!-- A switch like the master bar's, for the side panel. -->
@@ -156,11 +159,11 @@
         {preset}
         {editing}
         {holderOf}
-        selectedId={ui.selectedId}
+        selected={ui.selected}
         focusedId={info ? ui.focusedId : null}
-        onselect={(id) => (ui.selectedId = id)}
+        onselect={(id, add) => presetStore.select(id, add)}
         onfocus={(id) => (ui.focusedId = id)}
-        oncommit={(id, rect, parent) => presetStore.moveWidget(id, rect, parent)}
+        oncommit={(rects, parent) => presetStore.moveWidgets(rects, parent)}
         locked={ui.locked}
         onlockedpress={() => ui.lockNudge++}
       />
@@ -172,6 +175,8 @@
           {#key selected.id}
             <Inspector bind:widget={preset.widgets[selectedIndex]!} />
           {/key}
+        {:else if editing && selection.length > 1}
+          <SelectionPanel />
         {:else if editing}
           <DeskPanel />
         {:else}

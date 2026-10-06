@@ -13,7 +13,7 @@ import { presetStore } from '../state/preset.svelte';
 import { HOLD_OFF_MS, isTouched } from '../state/touch';
 import { confirmAction, toast, ui } from '../state/ui.svelte';
 import { editorsOf } from './locks';
-import type { Presence } from './protocol';
+import { MAX_EDITING, type Presence } from './protocol';
 import { syncSession } from './session.svelte';
 import { DIGEST_MS, SharedDesks, type Workspace } from './shared.svelte';
 import { REFRESH_MS } from './values';
@@ -61,7 +61,7 @@ export const sharedDesks = new SharedDesks(workspace, {
   newDocId,
 });
 
-/** The widget this device took over from another editor ("desk/widget"), if any. */
+/** The widget this device took over from other editors ("desk/widget"), if any. */
 export const locks = $state({ takenOver: null as string | null });
 
 /** Peers (other than this device) editing a widget, unless this device took it over. */
@@ -123,10 +123,10 @@ export async function startSharedDesks() {
     });
     // A take-over lasts while that widget stays selected.
     $effect(() => {
-      const selected =
-        ui.mode === 'edit' && ui.selectedId ? `${presetStore.activeId}/${ui.selectedId}` : null;
+      const desk = presetStore.activeId;
+      const selected = ui.mode === 'edit' ? ui.selected.map((id) => `${desk}/${id}`) : [];
       untrack(() => {
-        if (locks.takenOver !== selected) locks.takenOver = null;
+        if (locks.takenOver && !selected.includes(locks.takenOver)) locks.takenOver = null;
       });
     });
     // Presence: what this device views and edits, and who it is connected to.
@@ -135,8 +135,8 @@ export async function startSharedDesks() {
       void Object.keys(syncSession.peers);
       void syncSession.joined;
       const editing =
-        ui.mode === 'edit' && ui.selectedId
-          ? { desk: presetStore.activeId, widget: ui.selectedId }
+        ui.mode === 'edit' && ui.selected.length
+          ? { desk: presetStore.activeId, widgets: ui.selected.slice(0, MAX_EDITING) }
           : null;
       const next = sharedDesks.presence(presetStore.activeId, editing);
       void sharedDesks.forwarding.length;

@@ -5,8 +5,8 @@
   // mode, LOCKED too like the desk tabs, but never while a finger still holds a widget on the tab.
   // Arrow keys step through the tabs (not in EDIT, where they nudge the selected widget).
   //
-  // In EDIT the selected widget's tab is always the one shown, and a widget carried over a tab's
-  // name opens that tab after a moment, so it can be put down there.
+  // In EDIT the selected widgets' tab is always the one shown, and widgets carried over a tab's
+  // name open that tab after a moment, so they can be put down there.
   //
   // The tab is drawn beside the frame, over its empty `tabs.panel` slot, never inside it: skins
   // style a widget's parts through its frame, so a frame around the tab's widgets would reach
@@ -44,9 +44,9 @@
   /** Arrow keys step through the tabs, but not in EDIT: there they nudge. */
   const stepping = $derived(ctx ? !ctx.editing : live);
 
-  /** The tab the selected widget is on, if it is on one of this frame's. */
+  /** The tab the selected widgets are on (all on one), if it is one of this frame's. */
   const selectedTab = $derived.by(() => {
-    const id = ctx?.selectedId;
+    const id = ctx?.selected[0];
     if (!ctx || !id) return undefined;
     const on = (t: (typeof tabs)[number]) =>
       ctx.index.get(tabKey({ widget: widget.id, tab: t.id }))?.some((w) => w.id === id);
@@ -62,7 +62,7 @@
     presetStore.showTab(widget.id, tab.id);
   }
 
-  /** A tab picked by hand: one of this frame's widgets selected, the frame is selected instead. */
+  /** A tab picked by hand: with widgets of this frame selected, the frame is selected instead. */
   function pick(i: number) {
     if (ctx && selectedTab && tabs[i] !== selectedTab) ctx.onselect(widget.id);
     show(i);
@@ -78,22 +78,23 @@
     e.preventDefault();
   }
 
-  // EDIT: the selected widget's tab is the one shown, so what nudges, Del and ADD act on is seen.
+  // EDIT: the selected widgets' tab is the one shown, so what nudges, Del and ADD act on is seen.
   $effect(() => {
     const tab = selectedTab;
     if (!ctx?.editing || ctx.drag.lifted || !tab || tab === shown) return;
     untrack(() => presetStore.showTab(widget.id, tab.id));
   });
 
-  // A widget that may come onto this frame, carried over a tab's name, opens that tab after a
-  // moment (sweeping across the tabs opens none of them). The pointer is the drag's: the carried
+  // Widgets that may come onto this frame, carried over a tab's name, open that tab after a
+  // moment (sweeping across the tabs opens none of them). The pointer is the drag's: a carried
   // widget holds it, so the tabs see none of its events.
   let strip = $state<HTMLDivElement>();
   const tabEls: (HTMLButtonElement | null)[] = [];
   const hovered = $derived.by(() => {
     const lifted = ctx?.drag.lifted;
     const p = ctx?.drag.pointer;
-    if (!ctx || !lifted || !p || !strip || !ctx.drag.accepts(lifted.id, ref)) return -1;
+    if (!ctx || lifted?.kind !== 'move' || !p || !strip || !ctx.drag.accepts(lifted.ids, ref))
+      return -1;
     // A tab scrolled out of the strip doesn't count.
     if (!within(strip.getBoundingClientRect(), p.x, p.y)) return -1;
     return tabEls.findIndex((el) => el && within(el.getBoundingClientRect(), p.x, p.y));

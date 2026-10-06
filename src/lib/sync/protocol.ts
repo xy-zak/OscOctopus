@@ -43,12 +43,16 @@ export type WireRegister = z.infer<typeof RegisterSchema>;
 export const MAX_ENTRIES = 50_000;
 export const MAX_OPS = 10_000;
 export const MAX_REGISTERS = 4096;
+/** The most widgets one presence says are selected. */
+export const MAX_EDITING = 256;
 
 export const PresenceSchema = z.object({
   /** The desk on screen. */
   viewing: IdSchema.nullable(),
-  /** The widget open in the Inspector: a soft lock others see. */
-  editing: z.object({ desk: IdSchema, widget: IdSchema }).nullable(),
+  /** The widgets selected (one open in the Inspector, or several): a soft lock others see. */
+  editing: z
+    .object({ desk: IdSchema, widgets: z.array(IdSchema).min(1).max(MAX_EDITING) })
+    .nullable(),
   /** Shared desks whose received OSC input this device forwards. */
   forwarding: z.array(IdSchema).max(64),
   /** Peers this device is connected to, so others can spot missing links. */

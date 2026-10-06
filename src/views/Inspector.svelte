@@ -25,7 +25,7 @@
   import { plural } from '../lib/util';
   import { DEFS, messagesOf } from '../lib/widgets/defs';
   import { viewsOf } from '../lib/widgets/registry';
-  import { removeWidget } from '../lib/widgets/tabs/actions';
+  import { removeWidgets } from '../lib/widgets/tabs/actions';
   import BindingsEditor from './inspector/BindingsEditor.svelte';
   import WidgetActivity from './widget/WidgetActivity.svelte';
   import WidgetHeader from './widget/WidgetHeader.svelte';
@@ -76,7 +76,7 @@
           title="Duplicate"
           onclick={() => presetStore.duplicateWidget(widget.id)}><Icon name="copy" /></button
         >
-        <button class="btn icon danger" title="Delete" onclick={() => removeWidget(widget.id)}
+        <button class="btn icon danger" title="Delete" onclick={() => removeWidgets([widget.id])}
           ><Icon name="trash" /></button
         >
       </fieldset>

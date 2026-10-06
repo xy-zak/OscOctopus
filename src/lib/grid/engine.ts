@@ -53,6 +53,31 @@ export function isFree(
   return inBounds(r, grid) && collisions(r, items, selfId).length === 0;
 }
 
+/**
+ * Whether items can all be at `rects` at once (a selection moved or resized together): each
+ * inside the grid, none on another of `items` (they themselves aside) nor on each other.
+ */
+export function allFree(
+  rects: readonly Placed[],
+  grid: GridSize,
+  items: readonly Placed[],
+): boolean {
+  const moving = new Set(rects.map((r) => r.id));
+  const rest = items.filter((it) => !moving.has(it.id));
+  return rects.every(
+    (r, i) => isFree(r, grid, rest) && rects.slice(i + 1).every((o) => !overlaps(r, o)),
+  );
+}
+
+/** The smallest rect around rects (at least one). */
+export function bounds(rects: readonly Rect[]): Rect {
+  const x = Math.min(...rects.map((r) => r.x));
+  const y = Math.min(...rects.map((r) => r.y));
+  const w = Math.max(...rects.map((r) => r.x + r.w)) - x;
+  const h = Math.max(...rects.map((r) => r.y + r.h)) - y;
+  return { x, y, w, h };
+}
+
 /** Keeps a rect inside the grid, shrinking it if the grid is smaller than the rect. */
 export function clampRect(r: Rect, grid: GridSize): Rect {
   const w = clamp(Math.round(r.w), 1, grid.cols);
@@ -94,6 +119,17 @@ export function resizeRect(
     y = ny;
   }
   return { x, y, w, h };
+}
+
+/** Items resized alike: from the same handle by the same number of cells, each kept in the grid. */
+export function resizeAll(
+  rects: readonly Placed[],
+  handle: Handle,
+  dCols: number,
+  dRows: number,
+  grid: GridSize,
+): Placed[] {
+  return rects.map((r) => ({ id: r.id, ...resizeRect(r, handle, dCols, dRows, grid) }));
 }
 
 /** First free spot for a w × h item, scanning row by row. Null if the grid is full. */
@@ -160,7 +196,7 @@ export function pxToCells(dx: number, dy: number, m: Metrics) {
   return { dCols: dx / (m.cellW + m.gap || 1), dRows: dy / (m.cellH + m.gap || 1) };
 }
 
-// ---- carrying an item between grids (drag.svelte.ts) -----------------------------------------
+// ---- carrying items between grids (drag.svelte.ts) -------------------------------------------
 
 /** A box on screen, in CSS px. */
 export interface Box {
@@ -207,19 +243,21 @@ export interface Ground<K> {
   items: readonly Placed[];
 }
 
-/** Where a carried item would land, and whether it may. */
+/** Where carried items would land, and whether they may. */
 export interface Landing<K> {
   at: K | null;
-  rect: Rect;
+  rects: Placed[];
   valid: boolean;
 }
 
 /**
- * Where a carried item lands with its top-left at (left, top) on screen: in the first of `frames`
- * the pointer is over, else on the desk. Valid when its cells there are free (itself aside).
+ * Where carried items land, the top-left of them all at (left, top) on screen: in the first of
+ * `frames` the pointer is over, else on the desk, moved alike, so they keep their places to each
+ * other. One item alone is kept inside the grid, shrunk if it is bigger; several never shrink,
+ * so they are refused where they don't fit. Valid when all their cells there are free.
  */
 export function landing<K>(
-  item: Placed,
+  items: readonly Placed[],
   left: number,
   top: number,
   pointer: { x: number; y: number },
@@ -227,6 +265,17 @@ export function landing<K>(
   frames: readonly Ground<K>[],
 ): Landing<K> {
   const g = frames.find((f) => within(f.hit ?? f.box, pointer.x, pointer.y)) ?? desk;
-  const rect = snapTo(left - g.box.left, top - g.box.top, item, g.grid, g.metrics);
-  return { at: g.at, rect, valid: isFree(rect, g.grid, g.items, item.id) };
+  const around = bounds(items);
+  const to = snapTo(left - g.box.left, top - g.box.top, around, g.grid, g.metrics);
+  const rects =
+    items.length === 1
+      ? [{ id: items[0]!.id, ...to }]
+      : items.map(({ id, x, y, w, h }) => ({
+          id,
+          x: x + to.x - around.x,
+          y: y + to.y - around.y,
+          w,
+          h,
+        }));
+  return { at: g.at, rects, valid: allFree(rects, g.grid, g.items) };
 }

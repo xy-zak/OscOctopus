@@ -1,6 +1,7 @@
-// Soft locks: a peer that has a widget open in its Inspector says so in its presence. Others
-// see "Bob is editing": the Inspector is read-only for them and dragging is refused, unless
-// they choose *Take over*. Advisory only: edits still merge per field if two people insist.
+// Soft locks: a peer says in its presence which widgets it has selected (one open in its
+// Inspector, or several moved together). Others see "Bob is editing": the Inspector is read-only
+// for them and dragging is refused, unless they choose *Take over*. Advisory only: edits still
+// merge per field if two people insist.
 import type { Presence } from './protocol';
 
 /** Peers editing a widget right now. */
@@ -10,7 +11,7 @@ export function editorsOf(
   widgetId: string,
 ): string[] {
   return Object.entries(presence)
-    .filter(([, p]) => p.editing?.desk === deskId && p.editing.widget === widgetId)
+    .filter(([, p]) => p.editing?.desk === deskId && p.editing.widgets.includes(widgetId))
     .map(([peer]) => peer);
 }
 

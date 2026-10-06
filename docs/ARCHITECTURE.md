@@ -238,7 +238,7 @@ sit on the desk only, never on a tab.
   `emitValue`), so it is this device's own and is never sent or shared. A tab that is gone shows
   the first. Tabs switch in every mode (LOCK too, like desk tabs), but not while a finger holds a
   widget on the tab (`touch.holdsAny`), so a held momentary button still sends its release. In
-  EDIT the selected widget's tab is always the one shown (picking another tab selects the
+  EDIT the selected widgets' tab is always the one shown (picking another tab selects the
   frame), so nudging, Delete and ADD never act on a widget out of sight.
 - **Drawing.** The desk's canvas (`grid/GridCanvas.svelte`) shares the desk with what it draws
   (`grid/context.ts`): the placement index, the selection, focus and LOCK, the drag, and
@@ -249,27 +249,30 @@ sit on the desk only, never on a tab.
   reach into them (an "off" rule of the frame matching a switch that is on). AUTO colours take
   the frame's colour, else the desk's. A tab draws only what fits its grid and doesn't clip, so
   a widget carried off it, and resize handles at its edge, still show. Every grid item is a
-  stacking context, so the frame holding the selected widget is raised over the desk's others.
+  stacking context, so the frame holding the selection is raised over the desk's others.
 - **Editing in place.** In EDIT a frame's content stays usable (`GridItem`'s `container`): its
   tabs switch, and the widgets on its tab are selected, dragged, resized and nudged like the
   desk's. A press on its border or on an empty cell drags the frame itself, with everything on
-  it. ADD puts a new widget on the tab the selected frame shows, or beside the selected widget
-  on its tab (`presetStore.addingTo`, named in the toolbar); a frame always goes on the desk.
+  it. ADD puts a new widget on the tab the selected frame shows, or beside the selected widgets
+  on their tab (`presetStore.addingTo`, named in the toolbar); a frame always goes on the desk.
   Its Inspector lists its tabs (rename, order, remove) and edits its grid, which `setGrid`
   refuses to shrink under the widgets of any of its tabs. Removing or duplicating a frame takes
   everything on its tabs with it (`freshCopies` keeps references to widgets outside the copy).
 - **Carrying widgets between grids** (`grid/drag.svelte.ts`). The desk's canvas makes one
   `DragSession`, and every canvas registers its grid with it while editing. Past the tap slop a
-  dragged widget is lifted into the session (and selected), which then follows that pointer
-  itself through window listeners: the widget can be drawn again elsewhere mid-drag without the
-  drag ending. Where it lands is pure (`grid/engine.ts` `landing`): in the frame whose whole box
-  the pointer is over (its border and tabs too), if the widget may go there, else on the desk;
-  snapped from the widget's top-left (`snapTo`, the same as `moveRect` in its own grid). The
-  grid it would land on draws the ghost. Held over a tab's name for a moment, a frame opens that
-  tab; the widget's own frame keeps drawing it meanwhile, so its drag goes on. A drop commits
-  through `presetStore.moveWidget`, which sets the rect and the `parent` together (one sync
-  change) and refuses a frame on a tab and taken cells; a cancelled pointer or Esc puts the
-  widget back. Resizing stays in the widget's own grid.
+  dragged widget is lifted into the session with the rest of the selection, if it is selected
+  (else alone, and selected), which then follows that pointer itself through window listeners:
+  the widgets can be drawn again elsewhere mid-drag without the drag ending. Where they land is
+  pure (`grid/engine.ts` `landing`): in the frame whose whole box the pointer is over (its
+  border and tabs too), if they may all go there, else on the desk; moved alike from their
+  top-left (`snapTo`, the same as `moveRect` in their own grid). One widget alone is kept in
+  the grid, shrunk if bigger; several never shrink, so they are refused where they don't fit.
+  The grid they would land on draws the ghosts. Held over a tab's name for a moment, a frame
+  opens that tab; their own frame keeps drawing them meanwhile, so the drag goes on. Resized
+  from a handle, they stay in their grid, each grown or shrunk by the same cells (`resizeAll`).
+  A drop commits through `presetStore.moveWidgets`, all or none: each one's rect and `parent`
+  together (one sync change each), refused for a frame on a tab and for cells off the grid,
+  taken, or shared by two of them (`allFree`). A cancelled pointer or Esc puts them back.
 
 ## Sequencer (timing in the core)
 
@@ -356,7 +359,7 @@ transport that never reads app payloads (Rust) with desk semantics owned by the 
 - **Local edits.** Every edit path ends in `presetStore.changed()`, which reaches
   `SharedDesks.localChange`. After 50 ms, the desk is compared (canonical JSON) with what was
   last in step, and changed fields become ops.
-  - **No inferred deletions:** only `removeWidget`, `removeOutput`, `removeInput`, `importInto`
+  - **No inferred deletions:** only `removeWidgets`, `removeOutput`, `removeInput`, `importInto`
     and a frame's `removeTab` make tombstones; a frame going names every widget on its tabs.
     Anything else that went missing is restored from the record.
 - **Remote edits.** Validated per key, merged, then applied in place (`reconcile.ts`), so open
@@ -373,8 +376,9 @@ transport that never reads app payloads (Rust) with desk semantics owned by the 
 - **Persistence.** Records live in `<data>/sync/docs/`, written before the preset
   (`sync_desk_save`). On load, the record wins. Earlier versions are kept in
   `docs/backups/<desk>` (at most every 5 minutes, the last 10), restorable as a copy.
-- **Soft locks** (`locks.ts`): presence says which widget a device has open. Others see a
-  badge; for them the Inspector is read-only and dragging is refused, until they *Take over*.
+- **Soft locks** (`locks.ts`): presence says which widgets a device has selected (one open in
+  its Inspector, or several). Others see a badge; for them the Inspector is read-only and
+  dragging is refused (a selection with one of them in it too), until they *Take over*.
 - **Conflicts** (`conflicts.ts`): overlaps and widgets outside the grid (per frame tab),
   widgets whose tab is gone (orphans), and messages to missing endpoints are shown in a banner,
   never fixed automatically.
@@ -634,9 +638,13 @@ write-locked while sockets are bound, never during a DNS lookup (see *Safety gua
   auto-compaction. Invalid drops (overlap or out of bounds) show a red ghost and spring back.
   Shrinking the grid is refused if widgets would fall outside it. A new widget takes its default
   size, or the largest smaller one that still fits (`findRoom`).
-- In EDIT, dragging a widget selects it, and it lands in the grid under the pointer: the desk's
-  or a frame's tab (see *Frames*). A cancelled pointer (the browser taking it over, a palm)
-  never commits a move.
+- In EDIT, a click selects a widget and Shift+click adds one to the selection or takes it out
+  (`presetStore.select`, `ui.selected`). A selection keeps to one grid, the desk's or one frame
+  tab's: a widget of another starts a new one. Dragging a widget selects it (with the rest, if
+  it was selected), and arrows, Delete and the drag act on the whole selection; the side panel
+  is the Inspector for one widget, `SelectionPanel` for several. Dropped widgets land in the grid
+  under the pointer: the desk's or a frame's tab (see *Frames*). A cancelled pointer (the
+  browser taking it over, a palm) never commits a move.
 
 ## Adding a widget type
 

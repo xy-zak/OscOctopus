@@ -20,21 +20,21 @@ beforeEach(() => {
     deskView: 'controls',
     globalView: 'network',
     mode: 'live',
-    selectedId: null,
+    selected: [],
     locked: false,
   });
 });
 
 describe('presenting', () => {
   it('shows the active desk’s controls, live, from anywhere', () => {
-    Object.assign(ui, { view: 'global', deskView: 'network', mode: 'edit', selectedId: 'w1' });
+    Object.assign(ui, { view: 'global', deskView: 'network', mode: 'edit', selected: ['w1'] });
     setPresenting(true);
     expect(ui).toMatchObject({
       presenting: true,
       view: 'desk',
       deskView: 'controls',
       mode: 'live',
-      selectedId: null,
+      selected: [],
     });
   });
 
@@ -65,10 +65,10 @@ describe('presenting', () => {
 
 describe('lock', () => {
   it('leaves edit mode and cancels an open confirmation', async () => {
-    Object.assign(ui, { mode: 'edit', selectedId: 'w1' });
+    Object.assign(ui, { mode: 'edit', selected: ['w1'] });
     const asked = confirmAction({ title: 'Delete', message: 'Sure?' });
     setLocked(true);
-    expect(ui).toMatchObject({ locked: true, mode: 'live', selectedId: null, confirm: null });
+    expect(ui).toMatchObject({ locked: true, mode: 'live', selected: [], confirm: null });
     await expect(asked).resolves.toBe(false);
     toggleEditMode();
     expect(ui.mode).toBe('live');

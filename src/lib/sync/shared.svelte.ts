@@ -4,7 +4,7 @@
 //   - local edits become ops. Every edit path ends in `presetStore.changed()`, which reaches
 //     `localChange` here. A short debounce later, the desk is compared with what was last in
 //     step (`base`); changed fields get fresh stamps, go into the record, and are sent;
-//   - nothing is deleted by inference. Only explicit deletions (removeWidget, removeOutput,
+//   - nothing is deleted by inference. Only explicit deletions (removeWidgets, removeOutput,
 //     removeInput, importInto) make tombstones. Anything else that went missing comes back
 //     from the record;
 //   - remote ops are validated, merged, and applied to the open desk in place
@@ -228,7 +228,7 @@ export class SharedDesks {
     return { version: 1, deskId, doc: rec.doc.doc, shared: rec.shared, entries: rec.doc.wire() };
   }
 
-  presence(activeId: string | null, editing: { desk: string; widget: string } | null): Presence {
+  presence(activeId: string | null, editing: Presence['editing']): Presence {
     const live = (id: string | null | undefined): id is string => !!id && this.isLive(id);
     return {
       viewing: live(activeId) ? activeId : null,

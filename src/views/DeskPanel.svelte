@@ -1,40 +1,25 @@
 <script lang="ts">
   // Edit-mode panel when no widget is selected: the desk's grid, and its widgets, each frame with
   // its tabs and what is on them.
-  import { LIMITS, type Widget } from '../lib/model/preset';
-  import { childrenIndex, colorOf, isTabs, tabKey } from '../lib/model/tabs';
+  import { LIMITS } from '../lib/model/preset';
+  import { childrenIndex, isTabs, tabKey } from '../lib/model/tabs';
   import { presetStore } from '../lib/state/preset.svelte';
-  import { showDesk, showGlobal, ui } from '../lib/state/ui.svelte';
-  import { colorVars } from '../lib/theme/palettes';
+  import { showDesk, showGlobal } from '../lib/state/ui.svelte';
   import Field from '../lib/ui/Field.svelte';
   import NumberInput from '../lib/ui/NumberInput.svelte';
   import { plural } from '../lib/util';
-  import { DEFS, WIDGET_TYPES } from '../lib/widgets/defs';
+  import WidgetRow from './WidgetRow.svelte';
 
   const preset = $derived(presetStore.current);
   const index = $derived(childrenIndex(preset));
-  /** The type column fits the longest type label. */
-  const LABEL_WIDTH = Math.max(...WIDGET_TYPES.map((t) => DEFS[t].label.length));
 </script>
-
-{#snippet row(w: Widget, level: number)}
-  <li>
-    <!-- Selected, it shows on its tab (widgets/tabs/Tabs.svelte). -->
-    <button class="row" style:--level={level} onclick={() => (ui.selectedId = w.id)}>
-      <span class="sw" style:background={colorVars(colorOf(preset, w)).c}></span>
-      <span class="type faint">{DEFS[w.type].label.padEnd(LABEL_WIDTH)}</span>
-      <span class="name">{w.label}</span>
-      <span class="faint">{w.x},{w.y} {w.w}×{w.h}</span>
-    </button>
-  </li>
-{/snippet}
 
 <div class="panel-body">
   <header>
     <span class="title">DESK</span>
     <span class="faint">{preset.widgets.length} widgets</span>
   </header>
-  <p class="faint">Select a widget to edit it, or click one below.</p>
+  <p class="faint">Select a widget to edit it, or click one below; Shift+click selects several.</p>
 
   <h2>Grid</h2>
   <div class="grid3">
@@ -75,18 +60,17 @@
   <h2>Widgets</h2>
   <ul class="list">
     {#each index.get('') ?? [] as w (w.id)}
-      {@render row(w, 0)}
+      <WidgetRow widget={w} />
       {#if isTabs(w)}
         {#each w.props.tabs as tab (tab.id)}
           {@const on = index.get(tabKey({ widget: w.id, tab: tab.id })) ?? []}
           <li>
             <button
-              class="row tab"
-              style:--level={1}
+              class="tab"
               title="Show this tab"
               onclick={() => {
                 presetStore.showTab(w.id, tab.id);
-                ui.selectedId = w.id;
+                presetStore.select(w.id);
               }}
               ><span class="faint">›</span><span class="name">{tab.name}</span><span class="faint"
                 >{plural(on.length, 'widget')}</span
@@ -94,7 +78,7 @@
             >
           </li>
           {#each on as c (c.id)}
-            {@render row(c, 2)}
+            <WidgetRow widget={c} level={2} />
           {/each}
         {/each}
       {/if}
@@ -133,35 +117,25 @@
     margin: 0;
     padding: 0;
   }
-  .row {
+  /* A frame's tab, between the frame and what is on it (a WidgetRow's look, one level in). */
+  .tab {
     width: 100%;
     display: grid;
-    grid-template-columns: 1ch auto 1fr auto;
+    grid-template-columns: 1ch 1fr auto;
     gap: 1ch;
     align-items: center;
-    padding: 2px 0.5ch 2px calc(0.5ch + var(--level, 0) * 2ch);
+    padding: 2px 0.5ch 2px 2.5ch;
     border: 0;
     background: none;
+    color: var(--fg-dim);
     text-align: left;
   }
-  .row:hover {
+  .tab:hover {
     background: var(--fg);
     color: var(--bg);
   }
-  .row:hover .faint {
+  .tab:hover .faint {
     color: var(--bg);
-  }
-  /* A frame's tab, between the frame and what is on it. */
-  .row.tab {
-    grid-template-columns: 1ch 1fr auto;
-    color: var(--fg-dim);
-  }
-  .sw {
-    width: 1ch;
-    height: 12px;
-  }
-  .type {
-    white-space: pre;
   }
   .name {
     overflow: hidden;

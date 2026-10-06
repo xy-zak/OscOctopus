@@ -166,7 +166,8 @@ The screen always shows **where you are**, by containment:
 - F1…F5 switch sections inside the current frame.
 - F11 presents (and stops); Esc also stops. While presenting, F1…F5, Alt+0 and Alt+E do nothing.
 - Alt+E edit. Hold for 1 s: Alt+I OSC-IN, Alt+P OSC-OUT (pause), Alt+L lock.
-- In edit mode: arrows nudge, Del removes, Esc deselects (or puts back a widget being dragged).
+- In edit mode: Shift+click selects several (they move, resize, nudge and delete together),
+  arrows nudge, Del removes, Esc deselects (or puts back what is being dragged).
 
 ## Platforms
 

@@ -13,7 +13,11 @@ const presence = (p: Partial<Presence>): Presence => ({
 
 describe('soft locks and presence', () => {
   const all = {
-    bob: presence({ viewing: 'd1', editing: { desk: 'd1', widget: 'w1' }, neighbours: ['me'] }),
+    bob: presence({
+      viewing: 'd1',
+      editing: { desk: 'd1', widgets: ['w0', 'w1'] },
+      neighbours: ['me'],
+    }),
     carol: presence({ viewing: 'd2', forwarding: ['d1'], neighbours: ['me'] }),
   };
 

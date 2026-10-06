@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { TabRef } from '../model/preset';
 import { DragSession, type DropTarget, type PointerNews } from './drag.svelte';
-import { moveRect, pxToCells, type Box, type Placed, type Rect } from './engine';
+import { moveRect, pxToCells, type Box, type Handle, type Placed } from './engine';
 
 // The desk at the origin: 12×8 cells of 100×50, gap 10. A frame on it at x6 y2, 4×4 cells
 // (670, 130 – 1100, 360), its tab canvas at (680, 160), 2×2 cells of 190×80, gap 10.
@@ -20,7 +20,7 @@ let kid: Placed;
 let deskItems: Placed[];
 let tabItems: Placed[];
 let shown: TabRef;
-let commits: [string, Rect, TabRef | null][];
+let commits: [Placed[], TabRef | null][];
 let ticks: number;
 let session: DragSession;
 
@@ -49,9 +49,22 @@ const news = (type: string, x: number, y: number, more: Partial<PointerNews> = {
     clientY: y,
     ...more,
   });
-/** Lifts a widget with the pointer at (x0, y0), from the desk or a tab. */
-const lift = (w: Placed, from: TabRef | null, x0: number, y0: number) =>
-  session.lift({ id: w.id, from, pointerId: 1, x0, y0, rect: () => w }, x0, y0);
+/** Lifts widgets with the pointer at (x0, y0), from the desk or a tab: moved, or resized. */
+const lift = (
+  ws: Placed | Placed[],
+  from: TabRef | null,
+  x0: number,
+  y0: number,
+  kind: 'move' | Handle = 'move',
+  s = session,
+) => {
+  const all = [ws].flat();
+  return s.lift(
+    { kind, ids: all.map((w) => w.id), from, pointerId: 1, x0, y0, rects: () => all },
+    x0,
+    y0,
+  );
+};
 
 beforeEach(() => {
   button = { id: 'button', x: 0, y: 0, w: 1, h: 1 };
@@ -63,7 +76,7 @@ beforeEach(() => {
   ticks = 0;
   session = new DragSession({
     accepts: (id) => id !== 'frame',
-    commit: (id, rect, at) => commits.push([id, rect, at]),
+    commit: (rects, at) => commits.push([[...rects], at]),
     measure: (el) => boxes.get(el)!,
     tick: () => ticks++,
   });
@@ -75,7 +88,7 @@ describe('carrying a widget', () => {
   it('carries one at a time', () => {
     expect(lift(button, null, 50, 30)).toBe(true);
     expect(lift(kid, T1, 700, 180)).toBe(false);
-    expect(session.lifted?.id).toBe('button');
+    expect(session.lifted?.ids).toEqual(['button']);
   });
 
   it('lands where moveRect would, in its own grid', () => {
@@ -83,10 +96,10 @@ describe('carrying a widget', () => {
     news('pointermove', 50 + 225, 30 + 65);
     const { dCols, dRows } = pxToCells(225, 65, deskMetrics);
     const rect = moveRect(button, dCols, dRows, { cols: 12, rows: 8 });
-    expect(session.drop).toEqual({ at: null, rect, valid: true });
+    expect(session.drop).toEqual({ at: null, rects: [{ id: 'button', ...rect }], valid: true });
     expect(session.offset).toEqual({ x: 225, y: 65 });
     news('pointerup', 275, 95);
-    expect(commits).toEqual([['button', { x: 2, y: 1, w: 1, h: 1 }, null]]);
+    expect(commits).toEqual([[[{ id: 'button', x: 2, y: 1, w: 1, h: 1 }], null]]);
     expect(session.lifted).toBeNull();
   });
 
@@ -94,12 +107,16 @@ describe('carrying a widget', () => {
     lift(button, null, 50, 30);
     // Top-left at (660, 160): the first cell of the tab.
     news('pointermove', 700, 180);
-    expect(session.drop).toEqual({ at: T1, rect: { x: 0, y: 0, w: 1, h: 1 }, valid: true });
+    expect(session.drop).toEqual({
+      at: T1,
+      rects: [{ id: 'button', x: 0, y: 0, w: 1, h: 1 }],
+      valid: true,
+    });
     // Over the frame's border, outside its tab canvas: still the frame.
     news('pointermove', 675, 140);
     expect(session.drop?.at).toEqual(T1);
     news('pointerup', 700, 180);
-    expect(commits).toEqual([['button', { x: 0, y: 0, w: 1, h: 1 }, T1]]);
+    expect(commits).toEqual([[[{ id: 'button', x: 0, y: 0, w: 1, h: 1 }], T1]]);
   });
 
   it('never puts a widget down where it may not go, nor on taken cells', () => {
@@ -127,7 +144,7 @@ describe('carrying a widget', () => {
     // Another pointer changes nothing.
     lift(button, null, 50, 30);
     news('pointerup', 275, 95, { pointerId: 2 });
-    expect(session.lifted?.id).toBe('button');
+    expect(session.lifted?.ids).toEqual(['button']);
     session.cancel();
     expect(commits).toEqual([]);
   });
@@ -138,7 +155,7 @@ describe('carrying a widget', () => {
     tabItems = [];
     news('pointermove', 790, 180);
     news('pointerup', 790, 180);
-    expect(commits).toEqual([['kid', { x: 0, y: 0, w: 1, h: 1 }, T2]]);
+    expect(commits).toEqual([[[{ id: 'kid', x: 0, y: 0, w: 1, h: 1 }], T2]]);
   });
 
   it('falls back to the desk when the frame goes', () => {
@@ -149,21 +166,26 @@ describe('carrying a widget', () => {
     });
     session2.register(deskTarget);
     const off = session2.register(tabTarget);
-    session2.lift(
-      { id: 'button', from: null, pointerId: 1, x0: 50, y0: 30, rect: () => button },
-      700,
-      180,
-    );
+    lift(button, null, 50, 30, 'move', session2);
+    session2.follow({
+      type: 'pointermove',
+      pointerId: 1,
+      pointerType: 'touch',
+      buttons: 1,
+      clientX: 700,
+      clientY: 180,
+    });
     expect(session2.drop?.at).toEqual(T1);
     off();
     expect(session2.drop?.at).toBeNull();
   });
 
-  it('ends the drag only when the widget carried goes away', () => {
-    lift(button, null, 50, 30);
+  it('ends the drag only when a widget carried goes away', () => {
+    const other = { id: 'other', x: 2, y: 0, w: 1, h: 1 };
+    lift([button, other], null, 50, 30);
     session.forget('kid');
-    expect(session.lifted?.id).toBe('button');
-    session.forget('button');
+    expect(session.lifted?.ids).toEqual(['button', 'other']);
+    session.forget('other');
     expect(session.lifted).toBeNull();
   });
 
@@ -178,6 +200,69 @@ describe('carrying a widget', () => {
   });
 });
 
+describe('carrying and resizing a selection', () => {
+  const other = { id: 'other', x: 2, y: 0, w: 1, h: 1 };
+
+  it('carries them all alike, keeping their places to each other', () => {
+    deskItems.push(other);
+    lift([button, other], null, 50, 30);
+    news('pointermove', 50 + 110, 30 + 60);
+    expect(session.drop).toEqual({
+      at: null,
+      rects: [
+        { id: 'button', x: 1, y: 1, w: 1, h: 1 },
+        { id: 'other', x: 3, y: 1, w: 1, h: 1 },
+      ],
+      valid: true,
+    });
+    news('pointerup', 160, 90);
+    expect(commits[0]![0].map((r) => r.id)).toEqual(['button', 'other']);
+  });
+
+  it('takes them onto a tab only if it fits them all and takes them all', () => {
+    lift([button, other], null, 50, 30);
+    // Their top-left on the tab's first cell: 'other' would be past its 2 columns.
+    news('pointermove', 700, 180);
+    expect(session.drop).toMatchObject({ at: T1, valid: false });
+    session.cancel();
+    const frame = deskItems[1]!;
+    lift([button, frame], null, 50, 30);
+    news('pointermove', 700, 180);
+    expect(session.drop?.at).toBeNull();
+  });
+
+  it('resizes them all alike, in their own grid, refused where one would overlap', () => {
+    deskItems.push(other);
+    lift([button, other], null, 100, 50, 'se');
+    news('pointermove', 100 + 110, 50 + 60);
+    expect(session.offset).toEqual({ x: 0, y: 0 });
+    expect(session.drop).toEqual({
+      at: null,
+      rects: [
+        { id: 'button', x: 0, y: 0, w: 2, h: 2 },
+        { id: 'other', x: 2, y: 0, w: 2, h: 2 },
+      ],
+      valid: true,
+    });
+    // Two cells wider each: button would cover other.
+    news('pointermove', 100 + 220, 50);
+    expect(session.drop?.valid).toBe(false);
+    news('pointerup', 320, 50);
+    expect(commits).toEqual([]);
+    lift([button, other], null, 100, 50, 's');
+    news('pointerup', 100, 50 + 60);
+    expect(commits).toEqual([
+      [
+        [
+          { id: 'button', x: 0, y: 0, w: 1, h: 2 },
+          { id: 'other', x: 2, y: 0, w: 1, h: 2 },
+        ],
+        null,
+      ],
+    ]);
+  });
+});
+
 describe('registering', () => {
   it('sees what is on a grid as it is now', () => {
     const items: Placed[] = $state([]);
@@ -187,7 +272,7 @@ describe('registering', () => {
       measure: (el) => boxes.get(el)!,
     });
     s.register(() => ({ ...deskTarget(), widgets: items }));
-    s.lift({ id: 'button', from: null, pointerId: 1, x0: 50, y0: 30, rect: () => button }, 50, 30);
+    lift(button, null, 50, 30, 'move', s);
     expect(s.drop?.valid).toBe(true);
     items.push({ id: 'other', x: 0, y: 0, w: 1, h: 1 });
     expect(s.drop?.valid).toBe(false);

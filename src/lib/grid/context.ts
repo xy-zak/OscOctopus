@@ -6,7 +6,7 @@
 import { getContext, setContext, type Component } from 'svelte';
 import type { Preset, TabRef, Widget } from '../model/preset';
 import type { DragSession } from './drag.svelte';
-import type { Rect } from './engine';
+import type { Placed } from './engine';
 
 /** Someone else editing a widget (a sync peer): their name and colour. */
 export interface Holder {
@@ -25,12 +25,14 @@ export interface CanvasContext {
   index: Map<string, Widget[]>;
   editing: boolean;
   locked: boolean;
-  selectedId: string | null;
+  /** The widgets selected, all on one grid. */
+  selected: readonly string[];
   focusedId: string | null;
-  onselect: (id: string | null) => void;
+  /** A widget picked alone (null: none), or with `add` (Shift) added or taken out. */
+  onselect: (id: string | null, add?: boolean) => void;
   onfocus?: (id: string) => void;
-  /** A widget was put down at `rect` in the grid of `parent` (a tab; null: the desk). */
-  oncommit: (id: string, rect: Rect, parent: TabRef | null) => void;
+  /** Widgets were put down at `rects` in the grid of `parent` (a tab; null: the desk). */
+  oncommit: (rects: readonly Placed[], parent: TabRef | null) => void;
   holderOf?: (id: string) => Holder | null;
   /** Carries widgets between the desk's grid and its frames' (drag.svelte.ts). */
   drag: DragSession;

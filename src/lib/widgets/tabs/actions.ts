@@ -1,6 +1,7 @@
-// Removing a widget or a frame's tab, asking first when widgets on a frame would go with it (the
-// confirmation texts live here, once). Shared by the desk (Delete), the Inspector and the frame's
-// own Inspector. Like views/deskActions.ts, but in lib: the frame's Inspector uses them too.
+// Removing widgets or a frame's tab, asking first when more than one widget would go (several
+// selected, or what is on a frame's tabs; the confirmation texts live here, once). Shared by the
+// desk (Delete), the side panels and the frame's own Inspector. Like views/deskActions.ts, but in
+// lib: the frame's Inspector uses them too.
 import { childrenOf, tabAt, widgetsOn } from '../../model/tabs';
 import { presetStore } from '../../state/preset.svelte';
 import { confirmAction } from '../../state/ui.svelte';
@@ -15,24 +16,31 @@ function forEveryone(what: string): string[] {
     : [];
 }
 
-/** Removes a widget; a frame with widgets on its tabs asks first. */
-export async function removeWidget(id: string): Promise<boolean> {
-  const w = presetStore.widget(id);
-  if (!w) return false;
-  const inside = childrenOf(presetStore.current, id).length;
+/** Removes widgets (a frame with everything on its tabs); asks first when more than one goes. */
+export async function removeWidgets(ids: readonly string[]): Promise<boolean> {
+  const widgets = ids.flatMap((id) => presetStore.widget(id) ?? []);
+  const [first] = widgets;
+  if (!first) return false;
+  const inside = widgets.reduce((n, w) => n + childrenOf(presetStore.current, w.id).length, 0);
+  const onTabs = inside
+    ? ` and the ${plural(inside, 'widget')} on ${widgets.length > 1 ? 'their frames’' : 'its'} tabs`
+    : '';
   if (
-    inside > 0 &&
+    widgets.length + inside > 1 &&
     !(await confirmAction({
-      title: 'Delete frame',
-      message: `Delete “${widgetName(w)}” and the ${plural(inside, 'widget')} on its tabs?`,
-      details: forEveryone('it is deleted'),
+      title: widgets.length > 1 ? 'Delete widgets' : 'Delete frame',
+      message:
+        widgets.length > 1
+          ? `Delete these ${plural(widgets.length, 'widget')}${onTabs}?`
+          : `Delete “${widgetName(first)}”${onTabs}?`,
+      details: forEveryone(widgets.length > 1 ? 'they are deleted' : 'it is deleted'),
       confirmLabel: 'Delete',
       danger: true,
     }))
   ) {
     return false;
   }
-  presetStore.removeWidget(id);
+  presetStore.removeWidgets(widgets.map((w) => w.id));
   return true;
 }
 

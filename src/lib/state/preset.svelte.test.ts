@@ -2,8 +2,8 @@
 // into an existing desk.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { newPreset } from '../model/factory';
-import { findFreeSpot } from '../grid/engine';
-import type { Preset, TabsWidget, Widget } from '../model/preset';
+import { findFreeSpot, type Rect } from '../grid/engine';
+import type { Preset, TabRef, TabsWidget, Widget } from '../model/preset';
 import { tabAt, widgetsOn } from '../model/tabs';
 import { newWidget } from '../widgets/defs';
 
@@ -127,7 +127,7 @@ describe('workspace', () => {
 
     presetStore.removeInput(input.id);
     expect(w.bindings[0]!.sourceIds).toEqual([]);
-    presetStore.removeWidget(w.id);
+    presetStore.removeWidgets([w.id]);
     stop();
     expect(deleted).toEqual([`i/${input.id}`, `w/${w.id}`]);
   });
@@ -167,6 +167,8 @@ describe('frames', () => {
     return { desk: presetStore.current, frame, tab };
   }
   const last = (): Widget => presetStore.current.widgets.at(-1)!;
+  const move = (id: string, rect: Rect, at: TabRef | null) =>
+    presetStore.moveWidgets([{ id, ...rect }], at);
   const changesBy = async (run: () => void) => {
     const { deskChanges } = await import('./changes');
     const deleted: string[] = [];
@@ -196,7 +198,7 @@ describe('frames', () => {
     // A frame always goes on the desk.
     presetStore.addWidget('tabs');
     expect(last().parent).toBeNull();
-    ui.selectedId = null;
+    presetStore.select(null);
     expect(presetStore.addingTo).toBeNull();
   });
 
@@ -204,29 +206,27 @@ describe('frames', () => {
     const { desk, frame, tab } = await deskWithFrame();
     const button = desk.widgets.find((w) => w.type === 'button' && !w.parent)!;
     const cell = { x: 1, y: 1, w: 1, h: 1 };
-    expect(presetStore.moveWidget(button.id, cell, tab)).toBe(true);
+    expect(move(button.id, cell, tab)).toBe(true);
     expect(button).toMatchObject({ ...cell, parent: tab });
     // Out onto the desk where it is free; never onto taken cells, nor off the frame's grid.
     const spot = findFreeSpot({ w: 1, h: 1 }, desk.grid, widgetsOn(desk, null))!;
-    expect(presetStore.moveWidget(button.id, spot, null)).toBe(true);
+    expect(move(button.id, spot, null)).toBe(true);
     expect(button.parent).toBeNull();
     const taken = { x: frame.x, y: frame.y, w: 1, h: 1 };
-    expect(presetStore.moveWidget(button.id, taken, null)).toBe(false);
-    expect(presetStore.moveWidget(button.id, { x: 5, y: 0, w: 2, h: 1 }, tab)).toBe(false);
+    expect(move(button.id, taken, null)).toBe(false);
+    expect(move(button.id, { x: 5, y: 0, w: 2, h: 1 }, tab)).toBe(false);
     // Onto another frame's tab.
     presetStore.addWidget('tabs');
     const other = last() as TabsWidget;
     const there = { widget: other.id, tab: other.props.tabs[0]!.id };
-    expect(presetStore.moveWidget(button.id, cell, there)).toBe(true);
+    expect(move(button.id, cell, there)).toBe(true);
     expect(presetStore.tabOf(button.id)).toEqual(there);
     // A frame never goes on a tab, nor on a tab that is gone.
-    expect(presetStore.moveWidget(other.id, cell, tab)).toBe(false);
+    expect(move(other.id, cell, tab)).toBe(false);
     expect(other.parent).toBeNull();
-    expect(presetStore.moveWidget(button.id, cell, { widget: other.id, tab: 'tb-gone' })).toBe(
-      false,
-    );
+    expect(move(button.id, cell, { widget: other.id, tab: 'tb-gone' })).toBe(false);
     // Put down where it is: nothing changes, nothing is sent.
-    const same = await changesBy(() => presetStore.moveWidget(button.id, cell, there));
+    const same = await changesBy(() => move(button.id, cell, there));
     expect(same.count).toBe(0);
   });
 
@@ -251,15 +251,15 @@ describe('frames', () => {
     presetStore.addWidget('slider');
     const fader = last();
     presetStore.addTab(frame.id);
-    ui.selectedId = frame.id;
+    presetStore.select(frame.id);
     presetStore.addWidget('button');
     const button = last();
-    ui.selectedId = fader.id;
-    const { deleted } = await changesBy(() => presetStore.removeWidget(frame.id));
+    presetStore.select(fader.id);
+    const { deleted } = await changesBy(() => presetStore.removeWidgets([frame.id]));
     expect(deleted.sort()).toEqual([`w/${frame.id}`, `w/${fader.id}`, `w/${button.id}`].sort());
     expect(presetStore.current.widgets.some((w) => w.parent)).toBe(false);
     expect(values[fader.id]).toBeUndefined();
-    expect(ui.selectedId).toBeNull();
+    expect(ui.selected).toEqual([]);
   });
 
   it('duplicates a frame with its tabs; references outside it stay', async () => {
@@ -274,7 +274,7 @@ describe('frames', () => {
     const log = last();
     if (log.type === 'log') log.props = { ...log.props, follow: 'chosen', sources: [fader.id] };
     presetStore.duplicateWidget(frame.id);
-    const copy = desk.widgets.find((w) => w.id === ui.selectedId) as TabsWidget;
+    const copy = presetStore.selection[0] as TabsWidget;
     expect(copy.id).not.toBe(frame.id);
     expect(copy.parent).toBeNull();
     const onCopy = desk.widgets.filter((w) => w.parent?.widget === copy.id);
@@ -344,6 +344,75 @@ describe('frames', () => {
     presetStore.applyRemote(desk.id, next, false);
     expect(desk.widgets.some((w) => w.id === frame.id || w.id === button.id)).toBe(false);
     expect(values[button.id]).toBeUndefined();
-    expect(ui.selectedId).toBeNull();
+    expect(ui.selected).toEqual([]);
+  });
+});
+
+describe('selecting several widgets', () => {
+  async function freshDesk() {
+    await presetStore.init();
+    await presetStore.newDesk('Several');
+    ui.mode = 'edit';
+    return presetStore.current;
+  }
+
+  it('adds and takes out with Shift, and keeps to one grid', async () => {
+    const desk = await freshDesk();
+    const [a, b, c] = desk.widgets;
+    presetStore.select(a!.id);
+    presetStore.select(b!.id, true);
+    presetStore.select(c!.id, true);
+    expect(ui.selected).toEqual([a!.id, b!.id, c!.id]);
+    presetStore.select(b!.id, true);
+    expect(presetStore.selection.map((w) => w.id)).toEqual([a!.id, c!.id]);
+    presetStore.select(b!.id);
+    expect(ui.selected).toEqual([b!.id]);
+    // A widget on a frame's tab starts a selection of its own.
+    presetStore.addWidget('tabs');
+    presetStore.addWidget('button');
+    const onTab = desk.widgets.at(-1)!;
+    presetStore.select(a!.id);
+    presetStore.select(onTab.id, true);
+    expect(ui.selected).toEqual([onTab.id]);
+    // Several selected: ADD puts the next one beside them.
+    presetStore.addWidget('slider');
+    presetStore.select(onTab.id, true);
+    expect(ui.selected).toEqual([desk.widgets.at(-1)!.id, onTab.id]);
+    expect(presetStore.addingTo).toEqual(onTab.parent);
+  });
+
+  it('moves them all, or none', async () => {
+    const desk = await freshDesk();
+    desk.grid = { ...desk.grid, rows: 16 };
+    const [a, b] = desk.widgets;
+    const moved = [a!, b!].map(({ id, x, y, w, h }) => ({ id, x, y: y + 8, w, h }));
+    expect(presetStore.moveWidgets(moved, null)).toBe(true);
+    expect([a!.y, b!.y]).toEqual(moved.map((r) => r.y));
+    // One of them on a widget that stays: none moves.
+    const c = desk.widgets[2]!;
+    const onC = [
+      { ...moved[0]!, x: c.x, y: c.y },
+      { ...moved[1]!, y: 0 },
+    ];
+    expect(presetStore.moveWidgets(onC, null)).toBe(false);
+    expect([a!.y, b!.y]).toEqual(moved.map((r) => r.y));
+    // Nor onto each other.
+    const stacked = [moved[0]!, { ...moved[0]!, id: b!.id }];
+    expect(presetStore.moveWidgets(stacked, null)).toBe(false);
+  });
+
+  it('removes them all, with what is on their frames, naming every deletion', async () => {
+    const desk = await freshDesk();
+    presetStore.addWidget('tabs');
+    const frame = desk.widgets.at(-1)!;
+    presetStore.addWidget('button');
+    const kid = desk.widgets.at(-1)!;
+    const a = desk.widgets[0]!;
+    const { deskChanges } = await import('./changes');
+    const deleted: string[] = [];
+    const stop = deskChanges.on((c) => deleted.push(...(c.deleted ?? [])));
+    presetStore.removeWidgets([a.id, frame.id]);
+    stop();
+    expect(deleted.sort()).toEqual([`w/${a.id}`, `w/${frame.id}`, `w/${kid.id}`].sort());
   });
 });

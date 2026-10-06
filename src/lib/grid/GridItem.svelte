@@ -1,61 +1,44 @@
 <script lang="ts">
-  // One widget on the canvas. In edit mode it can be dragged (body) or resized (handles).
-  // Dragged, it is carried by the desk's drag (drag.svelte.ts): it follows the finger exactly,
-  // onto the desk or a frame's tab, while the grid it would land on shows a snapped ghost.
-  // Resized, it shows its snapped size in place. Invalid drops spring back.
+  // One widget on the canvas. In edit mode it can be dragged (body) or resized (handles), with
+  // the rest of the selection if it is selected. Dragged, it is carried by the desk's drag
+  // (drag.svelte.ts): it follows the finger exactly, onto the desk or a frame's tab, while the
+  // grid it would land on shows a snapped ghost. Resized, it shows its snapped size in place.
+  // Invalid drops spring back.
   import { untrack, type Snippet } from 'svelte';
-  import type { TabRef } from '../model/preset';
-  import { tapHaptic, tickHaptic } from '../platform/haptics';
+  import { tapHaptic } from '../platform/haptics';
   import { flag } from '../skins/anatomy';
   import * as touch from '../state/touch';
   import type { Holder } from './context';
-  import type { DragSession } from './drag.svelte';
-  import {
-    isFree,
-    pxToCells,
-    resizeRect,
-    toPx,
-    type GridSize,
-    type Handle,
-    type Metrics,
-    type Placed,
-    type Rect,
-  } from './engine';
+  import type { DragSession, DragStart } from './drag.svelte';
+  import { toPx, type Handle, type Metrics, type Rect } from './engine';
 
   interface Props {
     id: string;
-    /** The tab it is on (null: the desk). */
-    at: TabRef | null;
     rect: Rect;
-    grid: GridSize;
     metrics: Metrics;
-    /** What else is on its grid. */
-    others: readonly Placed[];
     drag: DragSession;
     editing: boolean;
     selected: boolean;
     /** A frame: what it draws stays usable in edit mode (its tabs, and the widgets on them). */
     container?: boolean;
-    /** Drawn over the other widgets of its grid (the frame holding the selected widget). */
+    /** Drawn over the other widgets of its grid (the frame holding the selected widgets). */
     raised?: boolean;
     /** Live mode: highlighted as the widget shown in the info panel. */
     focused?: boolean;
     /** Edit mode: someone else is editing this widget (a sync peer): shown, and not draggable. */
     holder?: Holder | null;
-    onselect: (id: string) => void;
+    /** A tap: picked alone, or with Shift (`add`) added to the selection or taken out of it. */
+    onselect: (id: string, add: boolean) => void;
     /** Live mode: a pointer went down on this widget. */
     onfocus?: (id: string) => void;
-    /** Resized: its new rect in the same grid (moves are the drag's to put down). */
-    oncommit: (id: string, rect: Rect, parent: TabRef | null) => void;
+    /** Past the tap slop: it starts being moved or resized (GridCanvas works out with what). */
+    onlift: (kind: 'move' | Handle, start: DragStart) => void;
     children: Snippet;
   }
   let {
     id,
-    at,
     rect,
-    grid,
     metrics,
-    others,
     drag,
     editing,
     selected,
@@ -65,32 +48,31 @@
     holder = null,
     onselect,
     onfocus,
-    oncommit,
+    onlift,
     children,
   }: Props = $props();
 
   const HANDLES: Handle[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
   const TAP_SLOP = 5;
+  const ZERO = { x: 0, y: 0 };
 
   interface Gesture {
     pointerId: number;
     kind: 'move' | Handle;
     x0: number;
     y0: number;
+    add: boolean;
     moved: boolean;
   }
   let gesture = $state<Gesture | null>(null);
-  /** While resizing: the snapped size it would take. */
-  let candidate = $state<Rect | null>(null);
 
-  const lifted = $derived(drag.lifted?.id === id);
-  const valid = $derived(
-    lifted ? (drag.drop?.valid ?? true) : candidate ? isFree(candidate, grid, others, id) : true,
-  );
-  const up = $derived(lifted || !!candidate);
-  // Carried, it tracks the finger; resizing, it shows the snapped size.
-  const box = $derived(toPx(candidate ?? rect, metrics));
-  const offset = $derived(lifted ? drag.offset : { x: 0, y: 0 });
+  const lifted = $derived(!!drag.lifted?.ids.includes(id));
+  const moving = $derived(lifted && drag.lifted?.kind === 'move');
+  // Resizing, it shows the size it would take; carried, it tracks the finger.
+  const sized = $derived(lifted && !moving ? drag.drop?.rects.find((r) => r.id === id) : undefined);
+  const box = $derived(toPx(sized ?? rect, metrics));
+  const offset = $derived(moving ? drag.offset : ZERO);
+  const invalid = $derived(lifted && drag.drop?.valid === false);
 
   function start(e: PointerEvent, kind: 'move' | Handle) {
     if (!editing || gesture) return;
@@ -98,57 +80,38 @@
     e.stopPropagation();
     if (drag.lifted) return;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    gesture = { pointerId: e.pointerId, kind, x0: e.clientX, y0: e.clientY, moved: false };
+    gesture = {
+      pointerId: e.pointerId,
+      kind,
+      x0: e.clientX,
+      y0: e.clientY,
+      add: e.shiftKey,
+      moved: false,
+    };
   }
 
   function move(e: PointerEvent) {
-    if (!gesture || e.pointerId !== gesture.pointerId) return;
+    // Once it moved, the drag follows the pointer.
+    if (!gesture || e.pointerId !== gesture.pointerId || gesture.moved) return;
     // Someone else is editing it: a tap still selects it (to see who), a drag does nothing.
     if (holder) return;
-    // Carried: the drag follows the pointer from here.
-    if (gesture.moved && gesture.kind === 'move') return;
-    const dx = e.clientX - gesture.x0;
-    const dy = e.clientY - gesture.y0;
-    if (!gesture.moved && Math.hypot(dx, dy) < TAP_SLOP) return;
-    if (!gesture.moved) tapHaptic('light');
+    const { pointerId, kind, x0, y0, add } = gesture;
+    if (Math.hypot(e.clientX - x0, e.clientY - y0) < TAP_SLOP) return;
+    tapHaptic('light');
     gesture.moved = true;
-    if (gesture.kind === 'move') {
-      const lift = { id, from: at, pointerId: e.pointerId, x0: gesture.x0, y0: gesture.y0 };
-      // Carried means selected: its tab stays shown, and peers see who has it.
-      if (drag.lift({ ...lift, rect: () => rect }, e.clientX, e.clientY)) onselect(id);
-      return;
-    }
-    const { dCols, dRows } = pxToCells(dx, dy, metrics);
-    const next = resizeRect(rect, gesture.kind, dCols, dRows, grid);
-    if (
-      candidate &&
-      (next.x !== candidate.x ||
-        next.y !== candidate.y ||
-        next.w !== candidate.w ||
-        next.h !== candidate.h)
-    ) {
-      tickHaptic();
-    }
-    candidate = next;
+    onlift(kind, { pointerId, x0, y0, x: e.clientX, y: e.clientY, add });
   }
 
   function end(e: PointerEvent) {
     if (!gesture || e.pointerId !== gesture.pointerId) return;
-    if (!gesture.moved) onselect(id);
-    else if (candidate && valid) oncommit(id, candidate, at);
-    reset();
-  }
-
-  /** Back to rest; a cancelled pointer (the browser took it over) commits nothing. */
-  function reset() {
+    if (!gesture.moved) onselect(id, gesture.add);
     gesture = null;
-    candidate = null;
   }
 
   $effect(() => {
-    if (!editing) untrack(reset);
+    if (!editing) untrack(() => (gesture = null));
   });
-  // Gone while carried (deleted, its frame deleted, another desk shown): the drag ends.
+  // Gone while dragged (deleted, its frame deleted, another desk shown): the drag ends.
   $effect(() => {
     const me = id;
     return () => drag.forget(me);
@@ -163,11 +126,11 @@
   class:selected
   class:raised
   class:focused={focused && !editing}
-  class:lifted={up}
-  data-lifted={flag(up)}
+  class:lifted
+  data-lifted={flag(lifted)}
   class:held={editing && !!holder}
   style:--holder={holder?.color}
-  class:invalid={up && !valid}
+  class:invalid
   style:transform="translate3d({box.left + offset.x}px, {box.top + offset.y}px, 0)"
   style:width="{box.width}px"
   style:height="{box.height}px"
@@ -180,7 +143,7 @@
   }}
   onpointermove={move}
   onpointerup={end}
-  onpointercancel={reset}
+  onpointercancel={() => (gesture = null)}
 >
   <div class="content" inert={editing && !container}>
     {@render children()}
