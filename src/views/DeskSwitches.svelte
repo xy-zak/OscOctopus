@@ -25,7 +25,7 @@
     disabled={ui.locked}
     onclick={toggleEditMode}
     title={ui.locked
-      ? 'Locked'
+      ? 'Frozen'
       : editing
         ? 'Back to LIVE: play the widgets (Alt+E)'
         : 'Switch to EDIT: add, move and change widgets (Alt+E)'}

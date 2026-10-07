@@ -5,8 +5,8 @@
 
 <script lang="ts">
   // A switch in the master bar's shape (.mbtn.switch, app.css) that changes on a click: it
-  // shows [■] and fills with the accent while on. PRESENT, and the desk's INFO and EDIT. The
-  // master switches that must be held for a second are HoldSwitch.
+  // shows [■] and fills with the accent while on: the desk's INFO and EDIT. The master
+  // switches that must be held for a second (PRESENT only to stop) are HoldSwitch.
   interface Props {
     on: boolean;
     label: string;

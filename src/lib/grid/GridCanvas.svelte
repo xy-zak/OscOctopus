@@ -43,9 +43,9 @@
     /** A widget clicked (a tap, not a drag): selected as `onselect` does, to be inspected. */
     onpick: (id: string, add: boolean) => void;
     onfocus?: (id: string) => void;
-    /** LOCK: widgets render but ignore all input. */
+    /** FREEZE: widgets render but ignore all input. */
     locked?: boolean;
-    /** A press landed on the desk while locked (to hint how to unlock). */
+    /** A press landed on the desk while frozen (to hint how to unfreeze). */
     onlockedpress?: () => void;
     /** Who else is editing a widget, if anyone (shared desks). */
     holderOf?: (id: string) => Holder | null;
@@ -155,6 +155,7 @@
   class:editing
   style:--auto-c={auto.c}
   style:--auto-ink={auto.ink}
+  style:--label-room="{m.gap / 2}px"
   bind:clientWidth={width}
   bind:clientHeight={height}
   role="presentation"
@@ -194,7 +195,7 @@
         {onfocus}
         onlift={(kind, start) => lift(w, kind, start)}
       >
-        <!-- Not live while editing or LOCKED: widgets then ignore pointer and keyboard. -->
+        <!-- Not live while editing or FROZEN: widgets then ignore pointer and keyboard. -->
         <Widget widget={w} live={!editing && !locked} />
       </GridItem>
     {/each}

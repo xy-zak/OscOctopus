@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Wraps editable content. While LOCKED it becomes a disabled <fieldset>, which natively
-  // disables every input, select and button inside. The app-wide LOCKED banner explains why.
+  // Wraps editable content. While FROZEN it becomes a disabled <fieldset>, which natively
+  // disables every input, select and button inside. The app-wide FROZEN banner explains why.
   import type { Snippet } from 'svelte';
   import { ui } from '../state/ui.svelte';
 

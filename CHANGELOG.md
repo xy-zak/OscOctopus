@@ -39,7 +39,7 @@ Scripts.
     name and that tab opens, to drop it there. Dragging the frame takes what is on it along.
   - Its Inspector renames, reorders, adds and removes tabs, and sets the grid all its tabs share.
     Deleting or duplicating a frame takes what is on its tabs.
-  - Tabs are each person's own, switch in every mode (while LOCKED too), and never while a finger
+  - Tabs are each person's own, switch in every mode (while FROZEN too), and never while a finger
     still holds a widget on the tab. On a shared desk, widgets whose tab someone deleted show on
     the desk, with a warning.
 - **Select several widgets** (EDIT): Shift+click adds a widget to the selection or takes it out.
@@ -54,9 +54,9 @@ Scripts.
   on v12 or older can't join a v13 sync session.
 - **Presenting** (`[ ] PRESENT` at the right end of the master bar, or F11): the desk's
   widgets fill the screen, and on desktop the window goes fullscreen. Only the desk tabs,
-  OSC-IN, OSC-OUT, LOCK and `[■] PRESENT` (click it, or Esc / F11, to stop) stay; the sections, the
+  OSC-IN, OSC-OUT, FREEZE and `[■] PRESENT` (hold it, or Esc / F11, for 1 s to stop) stay; the sections, the
   desk's switches, the info panel and the banners are hidden, and nothing else can navigate away. It
-  survives restarts, like LOCK and OSC-OUT.
+  survives restarts, like FREEZE and OSC-OUT.
 - **Widget skins** (GLOBAL SETTINGS › LOOK › _Widget skin_): how widgets are drawn, apart from
   their colours. TERMINAL is the pixel look so far; GLASS draws clear, rounded panes tinted
   with the widget colour, with pill switches and round knobs; SKETCH draws them in coloured
@@ -104,7 +104,7 @@ Scripts.
   - **Editing:** changes merge per field, and the later change to the same field wins. Nothing
     is deleted by inference. A remote batch deleting many widgets asks first. _Soft locks_ show
     who is editing which widget.
-  - **Offline and LOCK:** edits made offline merge on reconnect. LOCK holds remote edits until
+  - **Offline and FREEZE:** edits made offline merge on reconnect. FREEZE holds remote edits until
     you unlock.
   - **Live values:** values show everywhere, but only the device that was touched sends OSC.
     PAUSE also stops sharing your touches, and one chosen device forwards device input.
@@ -113,6 +113,13 @@ Scripts.
 
 ### Changed
 
+- **Widget titles and values never overlap at small gaps.** They sit on the border as before, but
+  never hang out further than half the gap between widgets: with a small gap (or none) they move
+  onto the widget itself, and its contents make room.
+- **LOCK is now FREEZE** (FROZEN while on; still amber, still Alt+L, still a 1 s hold).
+- **PRESENT stops only after a 1 s hold**, like the other master switches: a click still starts
+  it, but a stray touch can't end a show. Esc and F11 must be held for a second too; a short
+  press says HOLD 1 SEC.
 - **DECIMALS everywhere, instead of a fader's STEP.** A fader, each graph axis and a text
   widget set how precise their numbers are the same way: DECIMALS, where 0 means whole numbers.
   A fader's values are rounded to its decimals and every number is shown with exactly that many
@@ -131,13 +138,13 @@ Scripts.
 - **A desk tab always opens on the desk's CONTROLS**, whichever section was open before.
 - **PAUSE is now OSC-OUT**, next to **OSC-IN**: both are on by default, and turning OSC-OUT
   off pauses all output as before (red, with the OUTPUT PAUSED banner; still Alt+P).
-- **OSC-IN, OSC-OUT and LOCK change only after a 1 s press-and-hold**, on and off alike (LOCK
-  used to lock on a single tap). The new state wipes in while held; a short tap says HOLD 1 SEC.
+- **OSC-IN, OSC-OUT and FREEZE change only after a 1 s press-and-hold**, on and off alike (FREEZE
+  used to freeze on a single tap). The new state wipes in while held; a short tap says HOLD 1 SEC.
   Their shortcuts (Alt+I, Alt+P, Alt+L) must be held for a second too.
 - **Switches fill with the accent colour while on:** OSC-IN, OSC-OUT, PRESENT, and the desk's
-  INFO and EDIT. LOCK still fills amber while locked.
+  INFO and EDIT. FREEZE still fills amber while frozen.
 - **The master bar wraps on narrow screens** instead of running off the edge, so every
-  control (LOCK was cut off on a phone) stays reachable.
+  control (FREEZE was cut off on a phone) stays reachable.
 - **Widget styles are skins:** each widget keeps only its layout; every colour, line, fill and
   animation is in a skin stylesheet, and widget parts are named (see ARCHITECTURE › Widget
   skins). The TERMINAL look is unchanged pixel for pixel.
@@ -167,7 +174,7 @@ Scripts.
 - **The desk grid shows only in EDIT**, and more clearly: every cell is an outlined slot in the
   desk's colour. LIVE has no background grid, just the widgets.
 - **One look for the master bar:** OUT and SYNC are status readouts (a lamp; click to open
-  them), then the switches OSC-IN, OSC-OUT and LOCK, from least to most restrictive. All share
+  them), then the switches OSC-IN, OSC-OUT and FREEZE, from least to most restrictive. All share
   one size and border, and each switch shows `[■]` when on.
 - **Eight themed palettes** in GLOBAL SETTINGS › LOOK. Like SUNSET and UNDERWATER, each is
   inspired by one colour but travels across its neighbouring hues, then adds two contrasting
@@ -191,7 +198,7 @@ Scripts.
   of a desk never overlap, and an edit made during a save is no longer marked as saved.
 - **Nothing is lost when leaving.** Pending edits are written when the window closes, when the
   app goes into the background, and when a desk is closed.
-- **Failures are visible.** A setting that can't be saved (LOCK, PAUSE, theme, open desks) is
+- **Failures are visible.** A setting that can't be saved (FREEZE, PAUSE, theme, open desks) is
   reported in TRAFFIC and as a toast instead of being ignored.
 - **Resource caps.** TCP inputs accept at most 64 clients. Import and export only read or write
   `.json` files. Preset and export file I/O no longer blocks async worker threads.

@@ -25,7 +25,7 @@ import TextInspector from './text/TextInspector.svelte';
 import type { WidgetOf } from './types';
 
 export interface WidgetViews<W extends Widget> {
-  /** The widget itself. Not `live` while editing or LOCKED: it then ignores all input. */
+  /** The widget itself. Not `live` while editing or FROZEN: it then ignores all input. */
   component: Component<{ widget: W; live: boolean }>;
   /** Editor for its props; the Inspector puts label, colour and messages around it. */
   inspector: Component<{ widget: W; onchange: () => void }, object, 'widget'>;

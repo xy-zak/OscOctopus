@@ -1,6 +1,6 @@
 // What a desk's canvas shares with the frames drawn on it (widgets/tabs/Tabs.svelte): the desk,
 // where each of its widgets shows, the selection, the drag that carries widgets between grids,
-// and how pointers on a tab reach the desk (focus, LOCK). A frame draws its shown tab with the
+// and how pointers on a tab reach the desk (focus, FREEZE). A frame draws its shown tab with the
 // canvas component handed over here, so the canvas and the widgets it draws never import each
 // other.
 import { getContext, setContext, type Component } from 'svelte';

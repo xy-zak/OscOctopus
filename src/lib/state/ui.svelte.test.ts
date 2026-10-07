@@ -1,5 +1,5 @@
 // PRESENTING keeps the active desk's widgets on screen: entering shows them live, and nothing
-// but a desk tab can change what is shown until it ends. LOCK ends any edit in progress.
+// but a desk tab can change what is shown until it ends. FREEZE ends any edit in progress.
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   confirmAction,
@@ -63,7 +63,7 @@ describe('presenting', () => {
   });
 });
 
-describe('lock', () => {
+describe('freeze', () => {
   it('leaves edit mode and cancels an open confirmation', async () => {
     Object.assign(ui, { mode: 'edit', selected: ['w1'] });
     const asked = confirmAction({ title: 'Delete', message: 'Sure?' });
@@ -74,7 +74,7 @@ describe('lock', () => {
     expect(ui.mode).toBe('live');
   });
 
-  it('unlocks without touching anything else', () => {
+  it('unfreezes without touching anything else', () => {
     setLocked(true);
     ui.deskView = 'traffic';
     setLocked(false);

@@ -1,8 +1,9 @@
 <script lang="ts">
-  // A master switch that changes only after a deliberate press-and-hold (HOLD_MS), on and off
-  // alike, so a stray touch during a show can't flip it (LOCK, OSC-IN, OSC-OUT). While holding,
-  // the button wipes into its next state in ten pixel columns; a release before HOLD_MS
-  // cancels and flashes a "HOLD 1 SEC" hint so it's clear what to do.
+  // A master switch that changes only after a deliberate press-and-hold (HOLD_MS), so a stray
+  // touch during a show can't flip it: on and off alike (FREEZE, OSC-IN, OSC-OUT), or only off
+  // (`holdOff`: PRESENT turns on with a click). While holding, the button wipes into its next
+  // state in ten pixel columns; a release before HOLD_MS cancels and flashes a "HOLD 1 SEC"
+  // hint so it's clear what to do.
   //
   // Robustness: the button has a fixed width (the label never changes its size, so the
   // pointer can't end up outside it), and the hold is measured from the press time, so a
@@ -11,7 +12,7 @@
   import { tapHaptic } from '../platform/haptics';
   import { switchBox } from './ToggleSwitch.svelte';
 
-  /** Fills from app.css: `accent` (on), `warn` (LOCK's safety state), `alarm` (red outline). */
+  /** Fills from app.css: `accent` (on), `warn` (FREEZE's safety state), `alarm` (red outline). */
   type Tone = 'accent' | 'warn' | 'alarm' | '';
 
   interface Props {
@@ -29,6 +30,8 @@
     title: string;
     /** Bumped whenever someone touches something this switch holds: the button nudges and hints. */
     nudge?: number;
+    /** Only turning off needs the hold; turning on is a click. */
+    holdOff?: boolean;
   }
   let {
     on,
@@ -41,6 +44,7 @@
     blinkOff = false,
     title,
     nudge = 0,
+    holdOff = false,
   }: Props = $props();
 
   const HOLD_MS = 1000;
@@ -48,6 +52,8 @@
   /** How long the next state stays shown while waiting for the change to land. */
   const LAND_MS = 3000;
   let holding = $state(false);
+  /** A press that changes on release, without a hold (`holdOff` while off). */
+  let tapping = false;
   let hint = $state(false);
   let landing = $state(false);
   let pressedAt = 0;
@@ -83,9 +89,13 @@
     onchange(!on);
   }
 
-  /** Starts a hold. */
+  /** Starts a hold (or, when this change needs none, a click). */
   export function press() {
-    if (holding || landing) return;
+    if (holding || tapping || landing) return;
+    if (holdOff && !on) {
+      tapping = true;
+      return;
+    }
     holding = true;
     hint = false;
     pressedAt = performance.now();
@@ -95,6 +105,11 @@
 
   /** Ends a hold: changes the switch if it lasted HOLD_MS, else hints. */
   export function release() {
+    if (tapping) {
+      tapping = false;
+      commit();
+      return;
+    }
     if (!holding) return;
     clearTimeout(timer);
     if (performance.now() - pressedAt >= HOLD_MS) commit();
@@ -108,6 +123,7 @@
   export function cancel() {
     clearTimeout(timer);
     holding = false;
+    tapping = false;
   }
 
   // A switch that goes away must not change anything later.
@@ -133,7 +149,9 @@
   style:--hold="{HOLD_MS}ms"
   role="switch"
   aria-checked={on}
-  aria-label="{label}: press and hold for one second to change"
+  aria-label={holdOff && !on
+    ? label
+    : `${label}: press and hold for one second to ${holdOff ? 'stop' : 'change'}`}
   {title}
   onpointerdown={(e) => {
     if (e.button !== 0) return;
@@ -193,7 +211,7 @@
   .holding .next {
     transition: clip-path var(--hold) steps(10, end);
   }
-  /* Hint after a short tap (or a touch on a locked widget): shake, and say what to do. */
+  /* Hint after a short tap (or a touch on a frozen widget): shake, and say what to do. */
   .hint {
     animation: nudge 360ms steps(6, end);
   }

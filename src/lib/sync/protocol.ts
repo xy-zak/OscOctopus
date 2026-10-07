@@ -57,7 +57,7 @@ export const PresenceSchema = z.object({
   forwarding: z.array(IdSchema).max(64),
   /** Peers this device is connected to, so others can spot missing links. */
   neighbours: z.array(PeerIdSchema).max(64),
-  /** LOCKED here: remote edits wait until unlocked. */
+  /** FROZEN here: remote edits wait until unfrozen. */
   locked: z.boolean(),
 });
 export type Presence = z.infer<typeof PresenceSchema>;

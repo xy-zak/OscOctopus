@@ -74,19 +74,19 @@ export const ui = $state({
     boolean
   >,
   /**
-   * LOCK: everything is frozen for a show: widgets ignore input, no edit mode, network and
+   * FREEZE: everything is frozen for a show: widgets ignore input, no edit mode, network and
    * presets are read-only, desks can't be added or removed. Still usable: viewing, switching
    * views and desk tabs, and OSC-OUT (a safety control).
    */
   locked: false,
   /**
    * PRESENTING: the active desk's widgets fill the screen, live. Only the desk tabs and the
-   * master switches (OSC-IN, OSC-OUT, LOCK, PRESENT to stop) stay; the sections, the desk's
+   * master switches (OSC-IN, OSC-OUT, FREEZE, PRESENT to stop) stay; the sections, the desk's
    * switches, the side panel and the banners are hidden, and nothing can navigate away from
    * the widgets (see `setPresenting`).
    */
   presenting: false,
-  /** Bumped when something locked is touched, so the LOCK button can hint how to unlock. */
+  /** Bumped when something frozen is touched, so the FREEZE button can hint how to unfreeze. */
   lockNudge: 0,
   /** The confirm dialog currently shown, if any. */
   confirm: null as ConfirmRequest | null,
@@ -143,7 +143,7 @@ export function confirmAction(opts: {
   });
 }
 
-/** Locks or unlocks. Locking ends any edit in progress: edit mode and an open confirmation. */
+/** Freezes or unfreezes. Freezing ends any edit in progress: edit mode and an open confirmation. */
 export function setLocked(locked: boolean) {
   ui.locked = locked;
   if (!locked) return;
@@ -152,7 +152,7 @@ export function setLocked(locked: boolean) {
   ui.confirm?.resolve(false);
 }
 
-/** Live ⇄ edit on the desk surface. Refused while LOCKED or PRESENTING. */
+/** Live ⇄ edit on the desk surface. Refused while FROZEN or PRESENTING. */
 export function toggleEditMode() {
   if (ui.locked || ui.presenting) return;
   ui.mode = ui.mode === 'live' ? 'edit' : 'live';

@@ -236,12 +236,12 @@ sit on the desk only, never on a tab.
   Overlaps and "outside the grid" are checked per tab.
 - **The tab shown** is the frame's value: a tab id, written straight into `values` (never
   `emitValue`), so it is this device's own and is never sent or shared. A tab that is gone shows
-  the first. Tabs switch in every mode (LOCK too, like desk tabs), but not while a finger holds a
+  the first. Tabs switch in every mode (FREEZE too, like desk tabs), but not while a finger holds a
   widget on the tab (`touch.holdsAny`), so a held momentary button still sends its release. In
   EDIT the selected widgets' tab is always the one shown (picking another tab selects the
   frame), so nudging, Delete and ADD never act on a widget out of sight.
 - **Drawing.** The desk's canvas (`grid/GridCanvas.svelte`) shares the desk with what it draws
-  (`grid/context.ts`): the placement index, the selection, focus and LOCK, the drag, and
+  (`grid/context.ts`): the placement index, the selection, focus and FREEZE, the drag, and
   `TabCanvas` to draw a tab with. A frame draws its shown tab with it, nested, edited and played
   like the desk. The tab is drawn **beside** the frame's `WidgetFrame`, over its empty
   `tabs.panel` slot (measured with a ResizeObserver), never inside it: skins style a widget's
@@ -315,7 +315,7 @@ on Windows, Linux or Android), and widgets unmount when you leave their desk.
   edit from a sync peer applies at the next START (the Inspector says so), since nothing a peer
   sends is sent on. On a shared desk the other devices show their own, stopped state. A widget
   that goes away stops its run. Runs aren't resumed after a restart.
-- **LOCK** makes its keys inert like every widget's, and leaves a running sequence playing;
+- **FREEZE** makes its keys inert like every widget's, and leaves a running sequence playing;
   OSC-OUT off is the way to silence it.
 
 ## Sync (peer-to-peer shared desks)
@@ -374,7 +374,7 @@ transport that never reads app payloads (Rust) with desk semantics owned by the 
   isn't a local edit.
   - **Anti-entropy:** every 5 s each device sends a digest per shared desk. A mismatch makes
     both sides send their full state. This repairs lost messages and a partial mesh.
-  - **LOCK** defers remote edits until unlocked.
+  - **FREEZE** defers remote edits until unfrozen.
   - **Mass deletes** (more than 10 widgets, or more than half) wait for confirmation. *Keep
     them* re-creates them for everyone.
   - **Remote endpoint changes** are logged in TRAFFIC with before and after values.
@@ -423,15 +423,16 @@ transport that never reads app payloads (Rust) with desk semantics owned by the 
   active section use `--scope`: the desk's colour, or `--fg` for GLOBAL SETTINGS.
 - The master bar and the global banners sit outside the tabs and the frame, because they affect
   every desk. The bar holds readouts (OUT, SYNC: a status lamp, click to open) and then
-  switches from least to most restrictive (OSC-IN, OSC-OUT, LOCK), then PRESENT. A switch shows
-  `[■]` and fills with the accent while on, and has a fixed width; LOCK fills amber, and
+  switches from least to most restrictive (OSC-IN, OSC-OUT, FREEZE), then PRESENT. A switch shows
+  `[■]` and fills with the accent while on, and has a fixed width; FREEZE fills amber, and
   OSC-OUT off (PAUSE) is an unfilled red alarm. All six share one shape, `.mbtn` in `app.css`,
   which the desk's INFO and EDIT switches use too (`DeskSwitches`, at the right end of the
   section bar while the desk's CONTROLS are open; the sections scroll sideways when narrow, the
-  switches never do). PRESENT, INFO and EDIT are `ToggleSwitch`es
-  (one click). OSC-IN, OSC-OUT and LOCK are `HoldSwitch`es: they change only after a 1 s hold,
-  on and off alike (pointer, Space/Enter, or their Alt shortcut, which App holds through the
-  component's `press`/`release`/`cancel`).
+  switches never do). INFO and EDIT are `ToggleSwitch`es (one click). OSC-IN, OSC-OUT and
+  FREEZE are `HoldSwitch`es: they change only after a 1 s hold, on and off alike (pointer,
+  Space/Enter, or their Alt shortcut, which App holds through the component's
+  `press`/`release`/`cancel`). PRESENT is a `HoldSwitch` with `holdOff`: a click starts it, and
+  only a 1 s hold stops it (held Esc or F11 too), so a stray touch can't end a show.
 - **PRESENTING** (`setPresenting` in `state/ui.svelte.ts`) shows the active desk's widgets,
   live, and refuses every other way to navigate until it ends. On desktop the window follows it
   into fullscreen and back (`lib/platform/fullscreen.ts`).
@@ -457,20 +458,20 @@ whose widget ids collide with an open one (a duplicate or re-import) gives it fr
 The open desks and the active one are stored per device (`openDesks`, `activeDesk`).
 `init()` is idempotent, so a webview reload or hot reload can't open a desk twice.
 
-## PAUSE and LOCK
+## PAUSE and FREEZE
 
 - **PAUSE** (the OSC-OUT switch, off) is enforced in Rust (`NetworkManager::set_paused`), not the UI.
   - `send` still encodes each message, but instead of writing to the socket it records a
     `blocked` debug event per output, with the exact bytes, and bumps `stats.blocked`.
   - The flag is checked once per message, so a message is never half-sent across outputs.
   - The UI restores a persisted PAUSE *before* any desk's network starts.
-- **LOCK** is UI state (`ui.locked`), persisted per device. Widgets receive
-  `live = !editing && !locked`, so while locked they ignore pointer and keyboard input
-  entirely, and a capture-phase press on the desk bumps `ui.lockNudge` so the LOCK button hints.
+- **FREEZE** is UI state (`ui.locked`), persisted per device. Widgets receive
+  `live = !editing && !locked`, so while frozen they ignore pointer and keyboard input
+  entirely, and a capture-phase press on the desk bumps `ui.lockNudge` so the FREEZE button hints.
   - `Lockable.svelte` wraps editable views in a disabled `<fieldset>`, which natively disables
     every control inside.
-  - Locking also leaves edit mode and cancels any open confirmation (`setLocked` in
-    `state/ui.svelte.ts`). Locking and unlocking both need the 1 s hold on LOCK
+  - Freezing also leaves edit mode and cancels any open confirmation (`setLocked` in
+    `state/ui.svelte.ts`). Freezing and unfreezing both need the 1 s hold on FREEZE
     (`HoldSwitch`), never a single keystroke.
 
 ## Reconciliation
@@ -568,7 +569,9 @@ write-locked while sockets are bound, never during a DNS lookup (see *Safety gua
   - **The same in every skin** (`lib/skins/base.css`, and `anatomy.test.ts` holds the skins to
     it): the typography (the app's one font and size; the weights and case of titles, values,
     legends, pad numbers and options), where titles and values go (`WidgetFrame`, set into the
-    border by `lib/widgets/labels.ts`), the markers (the fader's scale, drawn by base.css and only
+    border by `lib/widgets/labels.ts`; they hang out of the frame by at most half the desk's gap,
+    `--label-room` from `GridCanvas`, so they move over the widget when the gap is small and never
+    reach a neighbour's), the markers (the fader's scale, drawn by base.css and only
     coloured by a skin, `--slider-tick-c`; the switch's ON/OFF; pad numbers; the list's `▸`;
     the graph's axis labels),
     and the desk's plain background (`--bg`: no skin rule reaches outside its own frames).
@@ -756,7 +759,7 @@ missing.
 - **Nothing is lost when leaving.**
   - Closing a desk flushes it first.
   - Closing the window, or the app going into the background, flushes every desk.
-- **Failures are visible.** A setting that can't be persisted (LOCK, PAUSE, theme, open desks)
+- **Failures are visible.** A setting that can't be persisted (FREEZE, PAUSE, theme, open desks)
   is logged in TRAFFIC and toasted, through `persistSetting`. It is never swallowed.
 - **Files are only ever JSON.** Import and export (`preset_read_file`, `preset_export`,
   `debug_export`) refuse any path that isn't a `.json` file.

@@ -1,9 +1,9 @@
 <script lang="ts">
   // App shell. The layout encodes scope:
   //
-  //   ▓ global banners (LOCKED / PAUSED): the whole app, full width, above everything
+  //   ▓ global banners (FROZEN / PAUSED): the whole app, full width, above everything
   //   ┌ top bar ────────────────────────────────────────────────────────────────────────┐
-  //   │ logo  [DESK A][DESK B][+]     [GLOBAL SETTINGS] │ out · OSC-IN · OSC-OUT · LOCK · PRESENT │
+  //   │ logo  [DESK A][DESK B][+]     [GLOBAL SETTINGS] │ out · OSC-IN · OSC-OUT · FREEZE · PRESENT │
   //   └──────╥──────────────────────────────────────────────────────────────────────────┘
   //   ╔══════╝ frame in the active container's colour ═════════════════════════════════╗
   //   ║ F1 CONTROLS  F2 NETWORK  F3 TRAFFIC  F4 LOOK  F5 SYNC                             ║
@@ -13,7 +13,7 @@
   // Everything inside the frame belongs to the tab it hangs from. NETWORK, TRAFFIC and SYNC exist
   // in both a desk and GLOBAL SETTINGS; the frame's colour (the desk's own, or white) says which.
   //
-  // PRESENTING keeps only the desk tabs and the switches (OSC-IN · OSC-OUT · LOCK · PRESENT) in
+  // PRESENTING keeps only the desk tabs and the switches (OSC-IN · OSC-OUT · FREEZE · PRESENT) in
   // the top bar, exactly where they were, and the frame holds nothing but the desk's widgets.
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { onMount } from 'svelte';
@@ -49,7 +49,6 @@
   import HoldSwitch from './lib/ui/HoldSwitch.svelte';
   import PixelLogo from './lib/ui/PixelLogo.svelte';
   import { measureCharWidth } from './lib/ui/textfit';
-  import ToggleSwitch from './lib/ui/ToggleSwitch.svelte';
   import { errorText } from './lib/util';
   import ContainerTabs from './views/ContainerTabs.svelte';
   import Desk from './views/Desk.svelte';
@@ -122,7 +121,7 @@
   });
 
   // Per-device state that survives restarts: the info panel, the edit panel, OSC-IN, OSC-OUT,
-  // LOCK and PRESENTING. Saved on every change once startup has restored it, never before.
+  // FREEZE and PRESENTING. Saved on every change once startup has restored it, never before.
   function remember<K extends keyof Settings>(key: K, read: () => Settings[K]) {
     $effect(() => {
       const value = read();
@@ -187,6 +186,7 @@
   let inSwitch: ReturnType<typeof HoldSwitch> | undefined = $state();
   let outSwitch: ReturnType<typeof HoldSwitch> | undefined = $state();
   let lockSwitch: ReturnType<typeof HoldSwitch> | undefined = $state();
+  let presentSwitch: ReturnType<typeof HoldSwitch> | undefined = $state();
   /** The switch an Alt shortcut is holding, and that key's code. */
   let held: { sw: ReturnType<typeof HoldSwitch>; code: string } | null = null;
   /** Alt+<key> holds these. */
@@ -196,9 +196,9 @@
     l: lockSwitch,
   });
 
-  // F1…F5: sections of whatever container you're in. F11 presents and back; Esc also stops
-  // presenting. Alt+E edit. Alt+I OSC-IN, Alt+P OSC-OUT and Alt+L LOCK are held like their
-  // switches: one second, on and off alike, never a single keystroke.
+  // F1…F5: sections of whatever container you're in. F11 presents; holding F11 or Esc for one
+  // second stops, like holding PRESENT. Alt+E edit. Alt+I OSC-IN, Alt+P OSC-OUT and Alt+L
+  // FREEZE are held like their switches: one second, on and off alike, never a single keystroke.
   function onkeydown(e: KeyboardEvent) {
     const plain = !e.altKey && !e.ctrlKey && !e.metaKey;
     const f = /^F([1-5])$/.exec(e.key);
@@ -210,8 +210,12 @@
     // An Esc that closes a dialog (before or after this handler) is only for the dialog.
     const stop = e.key === 'Escape' && ui.presenting && !ui.confirm && !e.defaultPrevented;
     if (plain && (e.key === 'F11' || stop)) {
-      setPresenting(!ui.presenting);
       e.preventDefault();
+      if (!ui.presenting) setPresenting(true);
+      else if (presentSwitch && !e.repeat && !held) {
+        held = { sw: presentSwitch, code: e.code };
+        presentSwitch.press();
+      }
       return;
     }
     if (!e.altKey || e.ctrlKey || e.metaKey) return;
@@ -248,14 +252,14 @@
   const syncLamp = $derived(
     !syncSession.joined ? '' : syncTrouble ? 'bad' : syncConnected > 0 ? 'ok' : 'warn',
   );
-  /** Shared desks with remote edits waiting for LOCK to be released. */
+  /** Shared desks with remote edits waiting for FREEZE to be released. */
   const waiting = $derived(Object.values(sharedDesks.view).filter((v) => v.waiting).length);
 </script>
 
 <svelte:window
   {onkeydown}
   onkeyup={(e) => {
-    // Letting go of the key or of Alt ends the hold.
+    // Letting go of the key (or of Alt, for an Alt shortcut) ends the hold.
     if (held && (e.code === held.code || e.key === 'Alt')) {
       held.sw.release();
       held = null;
@@ -269,11 +273,11 @@
 
 <div class="app" style:--scope={scope.c} style:--scope-ink={scope.ink}>
   <!-- Whole-app states: full width, above everything, because they affect every desk. While
-       presenting, the OSC-OUT and LOCK switches say it on their own. -->
+       presenting, the OSC-OUT and FREEZE switches say it on their own. -->
   {#if ui.locked && !ui.presenting}
     <div class="banner locked" role="status">
-      ■ LOCKED · all desks frozen · press and hold LOCK for 1 second to unlock{waiting
-        ? ` · edits from other devices on ${waiting} shared desk(s) are applied on unlock`
+      ■ FROZEN · all desks · press and hold FREEZE for 1 second to unfreeze{waiting
+        ? ` · edits from other devices on ${waiting} shared desk(s) are applied on unfreeze`
         : ''}
     </div>
   {/if}
@@ -288,7 +292,7 @@
     {#if ready}<ContainerTabs />{:else}<span class="tabs-placeholder"></span>{/if}
     <!-- The master bar affects every desk, so it sits outside every tab and frame. Status first
          (click to open it), then the switches, from least to most restrictive: OSC-IN lets
-         incoming OSC in, OSC-OUT outgoing, LOCK freezes everything. PRESENT is last: it changes
+         incoming OSC in, OSC-OUT outgoing, FREEZE stops everything. PRESENT is last: it changes
          the view, not what the app does. All six share one shape (.mbtn, app.css); a switch
          fills with the accent while on. Presenting hides only the status, so the switches never
          move. -->
@@ -316,7 +320,8 @@
         </button>
         <span class="sep" aria-hidden="true"></span>
       {/if}
-      <!-- OSC-IN, OSC-OUT and LOCK change only after a one-second hold, on and off alike. -->
+      <!-- OSC-IN, OSC-OUT and FREEZE change only after a one-second hold, on and off alike;
+           PRESENT turns on with a click, and only a hold stops it. -->
       <HoldSwitch
         bind:this={inSwitch}
         label="OSC-IN"
@@ -341,23 +346,25 @@
       />
       <HoldSwitch
         bind:this={lockSwitch}
-        label="LOCK"
-        onLabel="LOCKED"
+        label="FREEZE"
+        onLabel="FROZEN"
         onTone="warn"
         on={ui.locked}
         onchange={setLocked}
         nudge={ui.lockNudge}
         title={ui.locked
-          ? 'Locked: hold for 1 second to unlock (Alt+L)'
-          : 'Hold for 1 second to lock widgets and settings for a show (Alt+L)'}
+          ? 'Frozen: hold for 1 second to unfreeze (Alt+L)'
+          : 'Hold for 1 second to freeze widgets and settings for a show (Alt+L)'}
       />
-      <ToggleSwitch
+      <HoldSwitch
+        bind:this={presentSwitch}
         label="PRESENT"
         wide
+        holdOff
         on={ui.presenting}
-        onclick={() => setPresenting(!ui.presenting)}
+        onchange={setPresenting}
         title={ui.presenting
-          ? 'Presenting: only this desk’s widgets, full screen. Click to stop (Esc or F11)'
+          ? 'Presenting: only this desk’s widgets, full screen. Hold for 1 second to stop (or hold Esc or F11)'
           : 'PRESENT: only this desk’s widgets, full screen. Desk tabs and these switches stay (F11)'}
       />
     </div>

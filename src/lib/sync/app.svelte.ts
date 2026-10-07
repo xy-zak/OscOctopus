@@ -1,4 +1,4 @@
-// Wires shared desks to the app: the workspace, the session, LOCK and PAUSE, TRAFFIC, the
+// Wires shared desks to the app: the workspace, the session, FREEZE and PAUSE, TRAFFIC, the
 // touch store and the live display. Started from App.svelte once the session has started.
 import { untrack } from 'svelte';
 import { sync as syncIpc } from '../ipc/commands';
@@ -108,7 +108,7 @@ export async function startSharedDesks() {
         known = now;
       });
     });
-    // Remote edits that waited for LOCK to be released.
+    // Remote edits that waited for FREEZE to be released.
     $effect(() => {
       if (!ui.locked) untrack(() => sharedDesks.unlocked());
     });

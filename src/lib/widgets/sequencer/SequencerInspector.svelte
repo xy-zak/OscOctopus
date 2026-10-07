@@ -150,7 +150,7 @@
     One pass takes {seconds(pass.ms)}{pass.floored
       ? ' (a pass never takes less, so it can’t flood the outputs)'
       : ''}. The sequence plays on this device only, timed by the app’s core, in the background too.
-    OSC-OUT off holds its messages back; LOCK leaves it playing.
+    OSC-OUT off holds its messages back; FREEZE leaves it playing.
   </p>
   {#if sequencerStore.edited[widget.id]}
     <p class="warn">

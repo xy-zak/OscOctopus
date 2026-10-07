@@ -5,7 +5,7 @@
   //   PAUSE / PLAY   holds it where it is (keeping the rest of the wait), or goes on.
   // The Rust core times the run (state/sequencer.svelte.ts), so it keeps playing when this
   // component is gone (another tab, another desk) and in the background. A key acts on press,
-  // like a button; while not live (EDIT, LOCK) the keys ignore input.
+  // like a button; while not live (EDIT, FREEZE) the keys ignore input.
   import type { SequencerWidget } from '../../model/preset';
   import { tapHaptic } from '../../platform/haptics';
   import { flag } from '../../skins/anatomy';

@@ -4,7 +4,7 @@
   // it like a folder tab, and shares its colour, so what's inside the frame visibly belongs to
   // that tab. Desks run at the same time; the tab only chooses which one you see.
   //
-  // Adding or removing a desk always asks first (see deskActions.ts). When LOCKED, tabs can
+  // Adding or removing a desk always asks first (see deskActions.ts). When FROZEN, tabs can
   // still be switched (that's performing) but not added or removed. PRESENTING shows the desk
   // tabs only: switching desks is all it is for.
   import { lookStore } from '../lib/state/look.svelte';

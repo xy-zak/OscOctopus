@@ -48,7 +48,7 @@
   const conflicts = $derived(editing && shared ? sharedDesks.conflicts(preset.id) : []);
 
   // The desk's one drag (grid/drag.svelte.ts): its widgets moved and resized on its grids, and
-  // new ones brought in from ADD. Leaving EDIT (LOCK too) puts what is dragged back.
+  // new ones brought in from ADD. Leaving EDIT (FREEZE too) puts what is dragged back.
   const drag = new DragSession({
     accepts: (l, at) =>
       l.kind === 'add'

@@ -375,7 +375,7 @@ Prettier will spread this over more lines; that's fine.
      through `.shots/current/neon/`, then add them with `npm run shots -- save baseline`.
 4. `npm run lint` (Prettier and svelte-check).
 5. In the app, pick the skin in GLOBAL SETTINGS › LOOK and play a desk. EDIT mode (drag a
-   widget: `lifted`) and LOCK should look right too.
+   widget: `lifted`) and FREEZE should look right too.
 
 ## User skins (skin files)
 

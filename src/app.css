@@ -182,8 +182,8 @@ h2::after {
 
 /* ---- master bar: every all-desk control has one shape (App.svelte, HoldSwitch.svelte) -------
    Readouts (OUT, SYNC) show a status lamp and open their settings. Switches (OSC-IN, OSC-OUT,
-   LOCK, PRESENT, and the desk's INFO and EDIT) show [■] and fill with the accent while what they
-   name is on, and have a fixed width (wider for longer labels) so the bar never shifts. LOCK
+   FREEZE, PRESENT, and the desk's INFO and EDIT) show [■] and fill with the accent while what they
+   name is on, and have a fixed width (wider for longer labels) so the bar never shifts. FREEZE
    fills amber instead: it holds the app in a safety state. OSC-OUT off (PAUSE) is the other
    safety state: an unfilled red alarm. */
 .mbtn {

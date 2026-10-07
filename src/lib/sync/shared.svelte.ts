@@ -13,7 +13,7 @@
 //   - every 5 s each device sends a digest of each shared desk. A mismatch makes both sides
 //     send their full state, which repairs lost messages and a partial mesh
 //     (A↔B↔C without A↔C);
-//   - while LOCKED, remote edits are merged into the record but applied only after unlocking.
+//   - while FROZEN, remote edits are merged into the record but applied only after unfreezing.
 //     A remote batch that deletes many widgets waits for confirmation.
 // Records survive restarts (saved with the preset) and are kept even while a desk isn't
 // shared, so sharing it again merges like a reconnect. This class takes its collaborators
@@ -124,7 +124,7 @@ interface Rec {
   /** Deletions made on purpose since the last diff (creation keys). */
   deleted: Set<string>;
   timer: ReturnType<typeof setTimeout> | null;
-  /** Remote changes merged but not applied yet (LOCKED). */
+  /** Remote changes merged but not applied yet (FROZEN). */
   waiting: boolean;
   invalid: string[];
   /** Remote batches, one at a time (a mass-delete question holds the ones behind it). */
@@ -135,7 +135,7 @@ interface Rec {
 
 export interface DeskView {
   shared: boolean;
-  /** Remote changes waiting for unlock. */
+  /** Remote changes waiting for unfreeze. */
   waiting: boolean;
   /** Parts of the record that could not be built (hidden). */
   invalid: string[];
@@ -618,7 +618,7 @@ export class SharedDesks {
     }
   }
 
-  /** Applies the record to the open desk (the merged state wins), unless LOCKED. */
+  /** Applies the record to the open desk (the merged state wins), unless FROZEN. */
   private applyRecord(deskId: string) {
     const rec = this.recs.get(deskId);
     const desk = this.ws.find(deskId);
@@ -638,7 +638,7 @@ export class SharedDesks {
     this.updateView(deskId);
   }
 
-  /** LOCK was released: apply what waited. */
+  /** FREEZE was released: apply what waited. */
   unlocked() {
     for (const [deskId, rec] of this.recs) if (rec.waiting) this.applyRecord(deskId);
   }

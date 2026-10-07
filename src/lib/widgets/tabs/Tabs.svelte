@@ -2,7 +2,7 @@
   // A frame (def.ts): its tabs when it has more than one, and the tab shown below them, drawn by
   // the canvas it sits on (grid/context.ts) and edited there in place, like the desk. Picking a
   // tab only changes what this device shows (`showTab`, never sent or shared). It works in every
-  // mode, LOCKED too like the desk tabs, but never while a finger still holds a widget on the tab.
+  // mode, FROZEN too like the desk tabs, but never while a finger still holds a widget on the tab.
   // Arrow keys step through the tabs (not in EDIT, where they nudge the selected widget).
   //
   // In EDIT the selected widgets' tab is always the one shown, and widgets carried over a tab's

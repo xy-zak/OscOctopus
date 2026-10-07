@@ -96,7 +96,7 @@
     fired = false;
   }
 
-  // Disarm when the arm setting changes or the widget stops being live (edit mode, LOCK).
+  // Disarm when the arm setting changes or the widget stops being live (edit mode, FREEZE).
   $effect(() => {
     void p.arm;
     if (!live) {

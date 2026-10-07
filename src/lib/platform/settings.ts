@@ -36,7 +36,7 @@ export interface Settings {
   activeDesk: string | null;
   /** Whether incoming OSC may drive widgets (the OSC-IN switch). */
   inputEnabled: boolean;
-  /** Survive restarts: a crash mid-show must not unlock the desk or resume output. */
+  /** Survive restarts: a crash mid-show must not unfreeze the desk or resume output. */
   locked: boolean;
   paused: boolean;
   /** A restart mid-show comes back presenting. */

@@ -1,6 +1,6 @@
 // Shared desks end to end: several devices, each with its own workspace, over the in-memory
 // network. Covers sharing and joining, concurrent and offline edits, deletions, a partial
-// mesh, LOCK, mass deletes, network changes, lineage, live values, and a seeded
+// mesh, FREEZE, mass deletes, network changes, lineage, live values, and a seeded
 // convergence test with reordered, duplicated and lost messages and partitions.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { canonical } from '../canonical';
@@ -284,7 +284,7 @@ describe('shared desks', () => {
     expect(shape(c.desk(id))).toBe(shape(a.desk(id)));
   });
 
-  it('while LOCKED, remote edits wait until unlocked', async () => {
+  it('while FROZEN, remote edits wait until unfrozen', async () => {
     const net = new FakeNetwork();
     const [a, b] = await devices(net, A, B);
     const id = await sharedDesk(net, a, [b]);

@@ -57,8 +57,8 @@ it); bump `src-tauri/Cargo.toml` with it (a Rust test checks they match). Change
 The screen always shows **where you are**, by containment:
 
 ```
-▓ LOCKED / PAUSED banners: the whole app, full width
-[■ DESK A ●][■ ⇄ DESK B ●][+]  [GLOBAL SETTINGS] │ ● 3/3 OUT  ● 2 SYNC │ [■] OSC-IN  [■] OSC-OUT  [ ] LOCK  [ ] PRESENT
+▓ FROZEN / PAUSED banners: the whole app, full width
+[■ DESK A ●][■ ⇄ DESK B ●][+]  [GLOBAL SETTINGS] │ ● 3/3 OUT  ● 2 SYNC │ [■] OSC-IN  [■] OSC-OUT  [ ] FREEZE  [ ] PRESENT
 ╔ frame in the active tab's colour ════════════════════════════════════════════════════╗
 ║ F1 CONTROLS  F2 NETWORK  F3 TRAFFIC  F4 LOOK  F5 SYNC              [ ] INFO  [ ] EDIT ║
 ║ …                                                                                     ║
@@ -90,14 +90,15 @@ The screen always shows **where you are**, by containment:
   - **OSC-OUT** (switch, Alt+P, on by default): off, it pauses all outgoing OSC. It turns red and
     the OUTPUT PAUSED banner shows. This is enforced in the Rust core, and held packets are
     logged with their exact bytes.
-  - **LOCK** (switch, Alt+L): freezes widgets and settings (amber while locked). Edits from
-    other devices on shared desks wait until you unlock.
+  - **FREEZE** (switch, Alt+L): freezes widgets and settings (amber while frozen). Edits from
+    other devices on shared desks wait until you unfreeze.
   - **PRESENT** (switch, F11): the active desk's widgets fill the screen (the window goes
-    fullscreen on desktop). Only the desk tabs, OSC-IN, OSC-OUT, LOCK and `[■] PRESENT` stay.
-    Click it, or press Esc or F11, to stop.
-  - Switches show `[■]` and fill with the accent colour when what they name is on (LOCK fills
-    amber). OSC-IN, OSC-OUT and LOCK survive restarts, and so does presenting.
-  - **OSC-IN, OSC-OUT and LOCK change only after a 1 s press-and-hold**, on and off alike, so a
+    fullscreen on desktop). Only the desk tabs, OSC-IN, OSC-OUT, FREEZE and `[■] PRESENT` stay.
+    It turns on with a click; to stop, hold it for 1 s (or hold Esc or F11), so a stray touch
+    can't end a show.
+  - Switches show `[■]` and fill with the accent colour when what they name is on (FREEZE fills
+    amber). OSC-IN, OSC-OUT and FREEZE survive restarts, and so does presenting.
+  - **OSC-IN, OSC-OUT and FREEZE change only after a 1 s press-and-hold**, on and off alike, so a
     stray touch can't flip them mid-show. The new state wipes in while you hold; let go early
     and it says HOLD 1 SEC. Their Alt shortcuts must be held for a second too.
 - **All open desks run at the same time.** A tab only chooses which one you see. **+** adds a desk
@@ -128,7 +129,7 @@ The screen always shows **where you are**, by containment:
   the desk or the ones you pick, up to 200 rows, with the columns you choose (time, widget,
   address, value, where, IP, result, size).
 - **Frame**: one place on the desk with tabs, each holding widgets of its own (each person picks
-  their own tab; it works while LOCKED too). Select a frame, or a widget on it, and ADD puts new
+  their own tab; it works while FROZEN too). Select a frame, or a widget on it, and ADD puts new
   widgets on the tab it shows; everything on it is edited right there. Drag widgets into a frame,
   out of it or into another, and hold one over a tab's name to open that tab. Its Inspector names,
   orders, adds and removes tabs and sets the grid they share.
@@ -164,7 +165,7 @@ The screen always shows **where you are**, by containment:
 - Alt+1…9 opens desk N, Alt+0 opens GLOBAL SETTINGS, and Alt+[ / Alt+] go to the previous / next desk.
 - F1…F5 switch sections inside the current frame.
 - F11 presents (and stops); Esc also stops. While presenting, F1…F5, Alt+0 and Alt+E do nothing.
-- Alt+E edit. Hold for 1 s: Alt+I OSC-IN, Alt+P OSC-OUT (pause), Alt+L lock.
+- Alt+E edit. Hold for 1 s: Alt+I OSC-IN, Alt+P OSC-OUT (pause), Alt+L freeze; while presenting, Esc or F11 stops.
 - In edit mode: Shift+click selects several (they move, resize, nudge and delete together),
   arrows nudge, Del removes, Esc deselects (or puts back what is being dragged).
 
