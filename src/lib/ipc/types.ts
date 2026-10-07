@@ -28,6 +28,7 @@ export type { PeerState } from './bindings/PeerState';
 export type { PeerStats } from './bindings/PeerStats';
 export type { PeerStatus } from './bindings/PeerStatus';
 export type { PresetSummary } from './bindings/PresetSummary';
+export type { ProjectSummary } from './bindings/ProjectSummary';
 export type { Profile } from './bindings/Profile';
 export type { SeqBatch } from './bindings/SeqBatch';
 export type { SeqEnd } from './bindings/SeqEnd';

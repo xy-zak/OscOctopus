@@ -66,10 +66,9 @@ pub fn backups(docs_dir: &Path, desk: &str) -> AppResult<Vec<Backup>> {
 
 /// Keeps the preset as it is now, unless a backup was made less than BACKUP_EVERY ago.
 fn back_up(docs_dir: &Path, presets_dir: &Path, desk: &str) -> AppResult<()> {
-    let current = presets::path_for(presets_dir, desk)?;
-    if !current.exists() {
+    let Some(current) = presets::path_of(presets_dir, desk)? else {
         return Ok(());
-    }
+    };
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_millis() as u64)

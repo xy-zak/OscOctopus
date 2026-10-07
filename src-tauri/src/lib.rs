@@ -3,9 +3,11 @@ pub mod debug;
 pub mod error;
 pub mod files;
 pub mod input;
+pub mod named;
 pub mod net;
 pub mod osc;
 pub mod presets;
+pub mod projects;
 pub mod sequencer;
 pub mod skins;
 pub mod sync;
@@ -55,6 +57,8 @@ pub struct AppState {
     pub presets_dir: PathBuf,
     /// User-made widget skins, one JSON file each (see [`skins`]).
     pub skins_dir: PathBuf,
+    /// Projects: snapshots of the whole setup, saved by hand (see [`projects`]).
+    pub projects_dir: PathBuf,
     /// The profile this instance runs as (see [`PROFILE_ENV`]).
     pub profile: Option<String>,
 }
@@ -120,8 +124,16 @@ pub fn run() {
             }
             let presets_dir = data_dir.join("presets");
             std::fs::create_dir_all(&presets_dir)?;
+            // Files saved before they were named for their desk get its name now.
+            match presets::normalize(&presets_dir) {
+                Ok(0) => {}
+                Ok(n) => log::info!("named {n} preset file(s) for their desks"),
+                Err(e) => log::warn!("could not rename preset files: {e}"),
+            }
             let skins_dir = data_dir.join("skins");
             std::fs::create_dir_all(&skins_dir)?;
+            let projects_dir = data_dir.join("projects");
+            std::fs::create_dir_all(&projects_dir)?;
 
             let debug = Arc::new(DebugHub::new(DEBUG_HISTORY, DEBUG_PENDING));
             let status_handle = app.handle().clone();
@@ -177,6 +189,7 @@ pub fn run() {
                 seq_subscribers,
                 presets_dir,
                 skins_dir,
+                projects_dir,
                 profile,
             });
             Ok(())
@@ -226,6 +239,12 @@ pub fn run() {
             commands::preset_read_file,
             commands::preset_export,
             commands::preset_dir,
+            commands::project_list,
+            commands::project_load,
+            commands::project_save,
+            commands::project_delete,
+            commands::project_read_file,
+            commands::project_export,
             commands::skin_list,
             commands::skin_save,
             commands::skin_delete,

@@ -13,6 +13,7 @@ import type {
   NetworkConfig,
   OscMessage,
   PresetSummary,
+  ProjectSummary,
   SeqBatch,
   SeqPlan,
   SeqProgress,
@@ -150,4 +151,14 @@ export const presets = {
   readFile: (path: string) => invoke<unknown>('preset_read_file', { path }),
   exportTo: (id: string, path: string) => invoke<void>('preset_export', { id, path }),
   dir: () => invoke<string>('preset_dir'),
+};
+
+/** Projects: snapshots of the whole setup, saved by hand (src-tauri/src/projects.rs). */
+export const projects = {
+  list: () => invoke<ProjectSummary[]>('project_list'),
+  load: (id: string) => invoke<unknown>('project_load', { id }),
+  save: (project: unknown) => invoke<ProjectSummary>('project_save', { project }),
+  remove: (id: string) => invoke<void>('project_delete', { id }),
+  readFile: (path: string) => invoke<unknown>('project_read_file', { path }),
+  exportTo: (id: string, path: string) => invoke<void>('project_export', { id, path }),
 };

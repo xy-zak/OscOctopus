@@ -104,6 +104,28 @@ describe('workspace', () => {
     await presetStore.closeDesk(second);
   });
 
+  it('restores a workspace: in place, saved over, opened, closed, in its order', async () => {
+    await presetStore.init();
+    const kept = presetStore.current.id;
+    await presetStore.newDesk('Leaves');
+    const leaves = presetStore.current.id;
+    // A saved desk that is closed now, and the open one as the project had it.
+    const closed = newPreset('Was closed');
+    files.set(closed.id, structuredClone({ ...closed, name: 'Edited since' }));
+    const asSaved = { ...presetStore.snapshot(kept), name: 'As in the project' };
+
+    await presetStore.restoreWorkspace([closed, asSaved], kept);
+
+    expect(presetStore.desks.map((d) => d.id)).toEqual([closed.id, kept]);
+    expect(presetStore.activeId).toBe(kept);
+    expect(presetStore.current.name).toBe('As in the project');
+    expect((files.get(closed.id) as Preset).name).toBe('Was closed'); // saved over
+    expect((files.get(kept) as Preset).name).toBe('As in the project');
+    expect(presetStore.isOpen(leaves)).toBe(false);
+    expect(files.has(leaves)).toBe(true); // closed, still in the LIBRARY
+    await presetStore.closeDesk(closed.id);
+  });
+
   it('closing a desk right after an edit still saves the edit', async () => {
     await presetStore.init();
     await presetStore.newDesk('Second');

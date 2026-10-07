@@ -16,6 +16,7 @@ use crate::net::interfaces::{self, NetInterface};
 use crate::net::{EndpointStatus, NetworkConfig};
 use crate::osc::OscMessage;
 use crate::presets::{self, PresetSummary};
+use crate::projects::{self, ProjectSummary};
 use crate::sequencer::{SeqBatch, SeqPlan, SeqProgress};
 use crate::skins::{self, SkinFile};
 use crate::sync::docs;
@@ -255,6 +256,46 @@ pub async fn preset_export(state: State<'_, AppState>, id: String, path: PathBuf
 #[tauri::command]
 pub fn preset_dir(state: State<'_, AppState>) -> String {
     state.presets_dir.display().to_string()
+}
+
+/// Every saved project (unreadable files listed with their error).
+#[tauri::command]
+pub async fn project_list(state: State<'_, AppState>) -> AppResult<Vec<ProjectSummary>> {
+    let dir = state.projects_dir.clone();
+    blocking(move || projects::list(&dir)).await
+}
+
+#[tauri::command]
+pub async fn project_load(state: State<'_, AppState>, id: String) -> AppResult<Value> {
+    let dir = state.projects_dir.clone();
+    blocking(move || projects::load(&dir, &id)).await
+}
+
+#[tauri::command]
+pub async fn project_save(state: State<'_, AppState>, project: Value) -> AppResult<ProjectSummary> {
+    let dir = state.projects_dir.clone();
+    blocking(move || projects::save(&dir, &project)).await
+}
+
+#[tauri::command]
+pub async fn project_delete(state: State<'_, AppState>, id: String) -> AppResult<()> {
+    let dir = state.projects_dir.clone();
+    blocking(move || projects::delete(&dir, &id)).await
+}
+
+#[tauri::command]
+pub async fn project_read_file(path: PathBuf) -> AppResult<Value> {
+    blocking(move || projects::read_external(&path)).await
+}
+
+#[tauri::command]
+pub async fn project_export(
+    state: State<'_, AppState>,
+    id: String,
+    path: PathBuf,
+) -> AppResult<()> {
+    let dir = state.projects_dir.clone();
+    blocking(move || projects::export(&dir, &id, &path)).await
 }
 
 /// Every saved user skin (unreadable files listed with their error).

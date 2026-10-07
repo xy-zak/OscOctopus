@@ -1,14 +1,39 @@
 <script lang="ts">
-  // GLOBAL SETTINGS › LIBRARY: every saved desk preset on this device, open or not. Open one as a
-  // desk, jump to an open one, delete, create a blank desk, or import a file as a new desk.
+  // GLOBAL SETTINGS › LIBRARY: the projects (snapshots of the whole setup, saved by hand:
+  // state/projects.svelte.ts), and every saved desk preset on this device, open or not. Save,
+  // load, export or import a project; open a desk, jump to an open one, delete, create a blank
+  // desk, or import a file as a new desk.
+  import { onMount } from 'svelte';
+  import { PROJECT_NAME } from '../lib/model/project';
   import { presetStore } from '../lib/state/preset.svelte';
+  import { projectStore } from '../lib/state/projects.svelte';
   import { showDesk, toast } from '../lib/state/ui.svelte';
   import Icon from '../lib/ui/Icon.svelte';
   import Lockable from '../lib/ui/Lockable.svelte';
   import Panel from '../lib/ui/Panel.svelte';
+  import { plural } from '../lib/util';
   import { addDesk, deletePreset, importAsDesk, openDesk } from './deskActions';
+  import {
+    deleteProject,
+    exportProject,
+    importProject,
+    loadProject,
+    saveOverProject,
+    saveProject,
+  } from './projectActions';
 
   let newName = $state('');
+  let projectName = $state('');
+
+  onMount(() => {
+    projectStore
+      .refresh()
+      .catch((e: unknown) => toast(`Could not list projects: ${String(e)}`, 'error'));
+  });
+
+  async function newProject() {
+    if (await saveProject(projectName)) projectName = '';
+  }
 
   const goToDesk = (id: string) => {
     presetStore.activate(id);
@@ -28,6 +53,69 @@
 
 <div class="page scroll">
   <Lockable>
+    <Panel
+      title="Projects · this device"
+      hint="A project is the whole setup at once: the open desks with their networks, which one is shown, and the look (palettes and skins included). It is saved only when you save it. Loading one opens its desks as they were saved."
+    >
+      {#snippet actions()}<span class="faint">{projectStore.summaries.length} saved</span>{/snippet}
+      <ul>
+        {#each projectStore.summaries as p (p.fileName)}
+          <li class:broken={p.error}>
+            <span class="mark">·</span>
+            <div class="info">
+              <span class="name entity-name">{p.name}</span>
+              <span class="faint"
+                >{p.error ? p.fileName : `${plural(p.desks, 'desk')} · ${p.fileName}`}{p.savedAt
+                  ? ` · ${new Date(p.savedAt).toLocaleString()}`
+                  : ''}</span
+              >
+              {#if p.error}<span class="error-text">{p.error}</span>{/if}
+            </div>
+            <div class="row">
+              {#if !p.error}
+                <button class="btn" onclick={() => loadProject(p.id, p.name)}
+                  ><Icon name="upload" /> Load</button
+                >
+                <button
+                  class="btn ghost"
+                  data-tip="Replace it with the desks and look as they are now"
+                  onclick={() => saveOverProject(p.id, p.name)}
+                  ><Icon name="save" /> Save over</button
+                >
+                <button class="btn ghost" onclick={() => exportProject(p.id, p.name)}
+                  ><Icon name="download" /> Export…</button
+                >
+              {/if}
+              <button
+                class="btn icon ghost danger"
+                data-tip="Delete project"
+                aria-label="Delete project {p.name}"
+                onclick={() => deleteProject(p.id, p.name)}><Icon name="trash" /></button
+              >
+            </div>
+          </li>
+        {:else}
+          <li class="empty faint">No projects yet: save the setup as one below.</li>
+        {/each}
+      </ul>
+      <div class="row">
+        <input
+          class="input"
+          placeholder="Project name"
+          maxlength={PROJECT_NAME.max}
+          bind:value={projectName}
+          onkeydown={(e) => e.key === 'Enter' && projectName.trim() && newProject()}
+        />
+        <button
+          class="btn primary"
+          disabled={!projectName.trim()}
+          data-tip="Save the open desks and the look as a new project"
+          onclick={newProject}><Icon name="save" /> Save project</button
+        >
+        <button class="btn" onclick={importProject}><Icon name="upload" /> Import project…</button>
+      </div>
+    </Panel>
+
     <Panel
       title="Saved desk presets · this device"
       hint="■ = open as a desk. Stored in {presetStore.dir}"
@@ -80,6 +168,9 @@
     list-style: none;
     margin: 0;
     padding: 0;
+  }
+  li.empty {
+    display: block;
   }
   li {
     display: grid;

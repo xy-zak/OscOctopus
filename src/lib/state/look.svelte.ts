@@ -92,6 +92,18 @@ class LookStore {
     if (save) await this.save();
   }
 
+  /**
+   * Takes a project's look (lib/model/project.ts): every desk's, and its desks' own (`renamed`
+   * maps a desk that came back under a new id). Other desks keep theirs.
+   */
+  async restore(look: LookSetting, desks: readonly string[], renamed: ReadonlyMap<string, string>) {
+    const next = { ...this.setting.desks };
+    for (const id of desks) delete next[renamed.get(id) ?? id];
+    for (const [id, own] of Object.entries(look.desks)) next[renamed.get(id) ?? id] = { ...own };
+    this.setting = { global: { ...look.global }, desks: next };
+    await this.save();
+  }
+
   /** The desk takes every desk's look again. */
   async resetDesk(deskId: string) {
     if (!this.hasOwn(deskId)) return;

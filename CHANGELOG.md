@@ -9,6 +9,15 @@ Scripts.
 
 ### Added
 
+- **Projects** (GLOBAL SETTINGS › LIBRARY): the whole setup saved at once, by hand: the open
+  desks with their networks, which one is shown, and the look (palettes and skins included).
+  Load one to get it back exactly; it says first which desks it resets and closes (they stay in
+  the LIBRARY). A desk shared with a sync session comes back as an unshared copy, so loading
+  never rewrites it for the others. Save over a project, export it to move a setup to another
+  machine, import one from a file. Desks keep autosaving as before.
+- **Desk files are named for their desk:** `MY-DESK_p-k2j4h5g6f7.json` (the name in capitals,
+  then the id), and follow it when the desk is renamed. Files from before are renamed at
+  startup.
 - **Three new widgets**, drawn in every skin:
   - **Sequencer**: messages played in a loop, each followed by its wait, to the widget's
     outputs, forever or for a number of passes. A wait bar that fills until the next step,

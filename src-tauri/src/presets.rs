@@ -1,4 +1,6 @@
-//! Preset storage. A preset is one JSON file per dashboard in `<app data>/presets/<id>.json`.
+//! Preset storage. A preset is one JSON file per desk in `<app data>/presets/`, named for the
+//! desk: `<NAME>_<id>.json` (named.rs), so the folder reads like the app's tabs. A preset is
+//! found by its id; renaming the desk renames its file on the next save.
 //!
 //! The frontend owns the preset schema (and its migrations); Rust treats presets as opaque
 //! JSON except for the fields it needs to list them and the embedded network config, which
@@ -13,11 +15,14 @@ use serde_json::Value;
 use ts_rs::TS;
 
 use crate::error::{AppError, AppResult};
-use crate::files::{json_files, read_json, require_json, write_atomic};
+use crate::files::{json_files, read_json, require_json};
+use crate::named;
 use crate::net::NetworkConfig;
 
 /// Refuse to read files larger than this; presets are small.
-const MAX_PRESET_BYTES: u64 = 16 * 1024 * 1024;
+pub(crate) const MAX_PRESET_BYTES: u64 = 16 * 1024 * 1024;
+/// The name part of a file whose desk name has no letters or digits.
+const UNNAMED: &str = "DESK";
 
 /// Saves and deletes run one at a time, so the rename of one save can never race another.
 static WRITE_LOCK: Mutex<()> = Mutex::new(());
@@ -50,13 +55,18 @@ pub(crate) fn check_id(id: &str) -> AppResult<()> {
     }
 }
 
-pub(crate) fn path_for(dir: &Path, id: &str) -> AppResult<PathBuf> {
+/// The file that holds preset `id` now, if there is one.
+pub(crate) fn path_of(dir: &Path, id: &str) -> AppResult<Option<PathBuf>> {
     check_id(id)?;
-    Ok(dir.join(format!("{id}.json")))
+    named::path_of(dir, id, MAX_PRESET_BYTES)
+}
+
+fn not_found(id: &str) -> AppError {
+    AppError::Preset(format!("no saved preset '{id}'"))
 }
 
 /// Checks the fields Rust relies on and summarises the preset.
-fn summary(preset: &Value) -> AppResult<PresetSummary> {
+pub(crate) fn summary(preset: &Value) -> AppResult<PresetSummary> {
     let obj = preset
         .as_object()
         .ok_or_else(|| AppError::Preset("preset must be a JSON object".into()))?;
@@ -80,7 +90,7 @@ fn summary(preset: &Value) -> AppResult<PresetSummary> {
             .get("updatedAt")
             .and_then(Value::as_str)
             .map(str::to_string),
-        file_name: format!("{id}.json"),
+        file_name: named::file_name(name, id, UNNAMED),
         error: None,
     })
 }
@@ -110,24 +120,45 @@ pub fn list(dir: &Path) -> AppResult<Vec<PresetSummary>> {
 }
 
 pub fn load(dir: &Path, id: &str) -> AppResult<Value> {
-    read_json(&path_for(dir, id)?, MAX_PRESET_BYTES)
+    let path = path_of(dir, id)?.ok_or_else(|| not_found(id))?;
+    read_json(&path, MAX_PRESET_BYTES)
 }
 
-/// Validates, then writes atomically and durably (see [`write_atomic`]), so a crash mid-write
-/// can never leave a truncated preset behind.
+/// Validates, then writes atomically and durably (`named::write`, which also drops the file of
+/// its old name), so a crash mid-write can never leave a truncated preset behind.
 pub fn save(dir: &Path, preset: &Value) -> AppResult<PresetSummary> {
     let summary = summary(preset)?;
-    let bytes = serde_json::to_vec_pretty(preset)?;
     let _serialised = WRITE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    fs::create_dir_all(dir)?;
-    write_atomic(&path_for(dir, &summary.id)?, &bytes)?;
+    named::write(
+        dir,
+        &summary.id,
+        &summary.name,
+        preset,
+        UNNAMED,
+        MAX_PRESET_BYTES,
+    )?;
     Ok(summary)
 }
 
 pub fn delete(dir: &Path, id: &str) -> AppResult<()> {
+    check_id(id)?;
     let _serialised = WRITE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    fs::remove_file(path_for(dir, id)?)?;
+    let paths = named::paths_of(dir, id, MAX_PRESET_BYTES)?;
+    if paths.is_empty() {
+        return Err(not_found(id));
+    }
+    for path in paths {
+        fs::remove_file(path)?;
+    }
     Ok(())
+}
+
+/// Gives every preset file its desk's name (files saved before names were used); at startup.
+pub fn normalize(dir: &Path) -> AppResult<usize> {
+    let _serialised = WRITE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    named::normalize(dir, UNNAMED, MAX_PRESET_BYTES, |v| {
+        summary(v).ok().map(|s| (s.id, s.name))
+    })
 }
 
 /// Reads a preset from a user-chosen `.json` file (import). Not saved until the frontend has
@@ -146,7 +177,8 @@ pub fn read_external(path: &Path) -> AppResult<Value> {
 /// Copies a saved preset to a user-chosen `.json` file.
 pub fn export(dir: &Path, id: &str, dest: &Path) -> AppResult<()> {
     require_json(dest)?;
-    fs::copy(path_for(dir, id)?, dest)?;
+    let path = path_of(dir, id)?.ok_or_else(|| not_found(id))?;
+    fs::copy(path, dest)?;
     Ok(())
 }
 
@@ -169,8 +201,18 @@ mod tests {
         let saved = save(&dir, &preset).unwrap();
         assert_eq!(
             (saved.id.as_str(), saved.file_name.as_str()),
-            ("abc", "abc.json")
+            ("abc", "STAGE_abc.json")
         );
+        assert!(dir.join("STAGE_abc.json").exists());
+        // Renamed: the file follows the desk's name, and is still found by its id.
+        let renamed = json!({ "id": "abc", "name": "Front of house", "network": { "outputs": [], "inputs": [] } });
+        assert_eq!(
+            save(&dir, &renamed).unwrap().file_name,
+            "FRONT-OF-HOUSE_abc.json"
+        );
+        assert!(!dir.join("STAGE_abc.json").exists());
+        assert_eq!(load(&dir, "abc").unwrap(), renamed);
+        save(&dir, &preset).unwrap();
         fs::write(dir.join("broken.json"), "{ not json").unwrap();
 
         let listed = list(&dir).unwrap();

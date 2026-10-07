@@ -459,6 +459,28 @@ whose widget ids collide with an open one (a duplicate or re-import) gives it fr
 The open desks and the active one are stored per device (`openDesks`, `activeDesk`).
 `init()` is idempotent, so a webview reload or hot reload can't open a desk twice.
 
+- **Files named for people.** Each preset is `<app data>/presets/<NAME>_<id>.json`
+  (`src-tauri/src/named.rs`): the desk's name in capitals, made file-safe, then its id, so the
+  folder reads like the tabs. The id is the truth: a preset is found by its id whatever its file
+  is called (checked inside the file, since `a_b` and `b` end alike), and a save under a new name
+  replaces the old file. Files from before (`<id>.json`) are renamed at startup.
+- **Projects** (`lib/model/project.ts`, `state/projects.svelte.ts`, `src-tauri/src/projects.rs`,
+  GLOBAL SETTINGS › LIBRARY) are snapshots of the whole setup, saved by hand only, next to the
+  autosaved presets in `<app data>/projects/`, named the same way. One holds the open desks in
+  tab order (full presets, networks included), the shown desk, and the look: every desk's and
+  these desks' choices, dark or light, and only the custom palettes and user skins they use.
+  Never this device's own state (sync identity, keys, peers; OSC-IN, OSC-OUT, FREEZE).
+  - Each desk keeps its schemaVersion and migrates on load like any preset; the envelope has its
+    own `version`, refused when newer. Rust checks the desks are valid presets before saving one.
+  - Loading restores it exactly (`restoreWorkspace`), after a confirmation saying what it resets
+    and closes: open desks of the project are replaced in place, the others saved over their
+    presets and opened, and open desks not in it close (their presets stay). Palettes and skins
+    are added or updated, never removed. A desk shared with a sync session (it has a record)
+    comes back as an unshared copy with fresh ids, so a project never rewrites a shared desk for
+    the session.
+  - Import adds a project file to the LIBRARY (a new id if its id is taken); loading is a
+    separate step. Export copies the file.
+
 ## PAUSE and FREEZE
 
 - **PAUSE** (the OSC-OUT switch, off) is enforced in Rust (`NetworkManager::set_paused`), not the UI.

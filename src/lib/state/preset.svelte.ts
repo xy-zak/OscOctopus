@@ -377,9 +377,18 @@ class PresetStore {
    * its network restarts with the imported config, and it is saved.
    */
   async importInto(deskId: string, path: string) {
+    await this.replaceDesk(deskId, migratePreset(await presetIpc.readFile(path)), true);
+  }
+
+  /**
+   * Replaces an open desk's contents, in place: it keeps its id and tab, its network restarts
+   * with the new config, and it is saved. `keepIdentity` keeps its colour and creation date (an
+   * import into it); without, the new contents bring theirs (a project restoring it).
+   */
+  private async replaceDesk(deskId: string, preset: Preset, keepIdentity: boolean) {
     const i = this.desks.findIndex((d) => d.id === deskId);
     if (i < 0) throw new Error('desk is not open');
-    let incoming = migratePreset(await presetIpc.readFile(path));
+    let incoming = preset;
     const others = new Set(
       this.desks.filter((d) => d.id !== deskId).flatMap((d) => d.widgets.map((w) => w.id)),
     );
@@ -389,8 +398,7 @@ class PresetStore {
     const replaced: Preset = {
       ...incoming,
       id: old.id,
-      color: old.color, // the desk keeps its identity
-      createdAt: old.createdAt,
+      ...(keepIdentity ? { color: old.color, createdAt: old.createdAt } : {}),
       updatedAt: new Date().toISOString(),
     };
     this.desks[i] = replaced;
@@ -402,6 +410,34 @@ class PresetStore {
     await networkStore.apply(deskId, this.snapshot(deskId).network);
     this.changed(deskId, { deleted: removedKeys(old, replaced) });
     await this.autosave.save(deskId);
+  }
+
+  /**
+   * Makes `desks` the workspace, in this order (a project being loaded): a desk already open is
+   * replaced in place, the others are saved over their presets (the file of the same id) and
+   * opened, and the open desks not among them close (their presets stay in the LIBRARY).
+   */
+  async restoreWorkspace(desks: readonly Preset[], activeId: string | null) {
+    if (desks.length === 0) throw new Error('a project holds at least one desk');
+    for (const d of desks) PresetSchema.parse(d);
+    const ids = desks.map((d) => d.id);
+    for (const d of desks) {
+      if (this.isOpen(d.id)) {
+        await this.replaceDesk(d.id, structuredClone(d), false);
+      } else {
+        const p = structuredClone(d);
+        await presetIpc.save(p);
+        const opened = this.register(p);
+        await networkStore.apply(opened.id, this.snapshot(opened.id).network);
+      }
+    }
+    for (const d of [...this.desks]) if (!ids.includes(d.id)) await this.closeDesk(d.id);
+    this.desks.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
+    await this.refreshList();
+    const shown = activeId && this.isOpen(activeId) ? activeId : ids[0]!;
+    if (shown === this.activeId) endEdit();
+    else this.activate(shown);
+    await this.persistOpen();
   }
 
   async exportTo(path: string) {
