@@ -43,12 +43,14 @@
       <tbody>
         {#each rows as r (r.desk.id + r.cfg.id)}
           {@const s = r.status}
-          <tr
-            class="clickable"
-            onclick={() => openDeskNetwork(r.desk.id)}
-            data-tip="Edit in {r.desk.name} › Network"
-          >
-            <td class="desk">{r.desk.name}</td>
+          <tr>
+            <td>
+              <button
+                class="link entity-name"
+                data-tip="Edit it in {r.desk.name} › NETWORK"
+                onclick={() => openDeskNetwork(r.desk.id)}>{r.desk.name}</button
+              >
+            </td>
             <td class="faint">{r.kind === 'out' ? '↑' : '↓'} {r.cfg.transport.toUpperCase()}</td>
             <td>{r.cfg.name}</td>
             <td><span class="pill {toneOf(s?.state)}">{s?.state ?? 'not applied'}</span></td>
@@ -112,16 +114,6 @@
     padding: 4px 1ch;
     border-bottom: 1px solid var(--line);
     white-space: nowrap;
-  }
-  .clickable {
-    cursor: pointer;
-  }
-  .clickable:hover td {
-    background: var(--bg-3);
-  }
-  .desk {
-    font-weight: 700;
-    text-transform: uppercase;
   }
   .addr {
     overflow: hidden;

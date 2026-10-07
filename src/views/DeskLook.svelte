@@ -85,7 +85,8 @@
           class="btn ghost"
           disabled={!lookStore.hasOwn(p.id)}
           data-tip="Palette, active colour and skin of all desks"
-          onclick={() => lookStore.resetDesk(p.id)}>Same as all desks</button
+          onclick={() => lookStore.resetDesk(p.id)}
+          ><Icon name="refresh" /> Same as all desks</button
         >
       {/snippet}
       <div class="look">

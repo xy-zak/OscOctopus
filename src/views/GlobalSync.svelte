@@ -5,7 +5,7 @@
   // encrypted and only admit devices that know the session key.
   import type { PeerStatus } from '../lib/ipc/types';
   import { presetStore } from '../lib/state/preset.svelte';
-  import { showDesk } from '../lib/state/ui.svelte';
+  import { confirmAction, showDesk } from '../lib/state/ui.svelte';
   import { sharedDesks } from '../lib/sync/app.svelte';
   import { missingLinks } from '../lib/sync/locks';
   import { syncSession } from '../lib/sync/session.svelte';
@@ -114,6 +114,36 @@
     return [...byKey.values()].sort((a, b) => a.name.localeCompare(b.name));
   });
   const openHere = (id: string) => presetStore.isOpen(id) && sharedDesks.view[id]?.shared;
+  // Leaving, forgetting the key and blocking a device each lose something: they ask first.
+  async function leave() {
+    const ok = await confirmAction({
+      title: 'Leave session',
+      message: `Leave “${s?.session ?? ''}”? Shared desks stop syncing until you join again.`,
+      confirmLabel: 'Leave session',
+      danger: true,
+    });
+    if (ok) void syncSession.leave();
+  }
+  async function forget() {
+    const ok = await confirmAction({
+      title: 'Forget key',
+      message: `Forget the key of “${syncSession.remembered}” on this device? Joining it again needs the key.`,
+      confirmLabel: 'Forget key',
+      danger: true,
+    });
+    if (ok) void syncSession.forget();
+  }
+  async function block(p: PeerStatus) {
+    if (!p.peerId) return;
+    const ok = await confirmAction({
+      title: 'Block device',
+      message: `Refuse ${p.name || p.address} from now on? It is listed under Blocked devices, to unblock.`,
+      confirmLabel: 'Block device',
+      danger: true,
+    });
+    if (ok) void syncSession.block(p.peerId);
+  }
+
   function goTo(id: string) {
     presetStore.activate(id);
     showDesk('controls');
@@ -185,7 +215,7 @@
           {/if}
         </div>
         <div class="actions">
-          <button class="btn danger" disabled={syncSession.busy} onclick={() => syncSession.leave()}
+          <button class="btn danger" disabled={syncSession.busy} onclick={leave}
             ><Icon name="signout" /> Leave session</button
           >
           {#if syncSession.remembered}
@@ -237,7 +267,7 @@
             Remember the key on this device
           </label>
           {#if syncSession.remembered}
-            <button class="btn ghost" onclick={() => syncSession.forget()}
+            <button class="btn ghost danger" onclick={forget}
               >Forget “{syncSession.remembered}”</button
             >
           {/if}
@@ -261,7 +291,7 @@
                 >
               </span>
               {#if openHere(d.id)}
-                <button class="btn ghost" onclick={() => goTo(d.id)}>Show</button>
+                <button class="link" onclick={() => goTo(d.id)}>SHOW</button>
               {:else if sharedDesks.joining[d.id]}
                 <span class="faint">opening…</span>
               {:else}
@@ -413,10 +443,9 @@
               <td>
                 {#if p.peerId}
                   <button
-                    class="btn ghost"
+                    class="btn ghost danger"
                     data-tip="Refuse this device from now on"
-                    onclick={() => p.peerId && syncSession.block(p.peerId)}
-                    ><Icon name="ban" /> Block</button
+                    onclick={() => block(p)}><Icon name="ban" /> Block</button
                   >
                 {/if}
               </td>

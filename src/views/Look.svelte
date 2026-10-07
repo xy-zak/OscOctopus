@@ -17,6 +17,9 @@
   import SkinPicker from './SkinPicker.svelte';
   import { deleteSkin, exportSkin, importSkinFile, PALETTES_FULL } from './lookActions';
 
+  /** The hidden file picker behind Import skin… (a real button opens it, so it can be focused). */
+  let skinFile = $state<HTMLInputElement>();
+
   /** What the editor has open: a custom palette's id, a new one, or nothing. */
   let editing = $state<string | 'new' | null>(null);
   const editingPalette = $derived(
@@ -83,7 +86,7 @@
             class="btn ghost"
             aria-label="Export {skin.name}"
             data-tip="Save {skin.name} as a file, to use on another device or share"
-            onclick={() => exportSkin(skin.id)}><Icon name="download" /> Export</button
+            onclick={() => exportSkin(skin.id)}><Icon name="download" /> Export…</button
           >
           <button
             class="btn ghost danger"
@@ -93,23 +96,27 @@
         {/snippet}
       </SkinPicker>
       <div class="new">
-        <label class="btn" data-tip="A skin file exported on another device, or shared with you."
-          ><Icon name="upload" /> Import skin…<input
-            type="file"
-            accept=".json,application/json"
-            hidden
-            onchange={(e) => {
-              const input = e.currentTarget;
-              const file = input.files?.[0];
-              input.value = '';
-              if (file) void importSkinFile(file);
-            }}
-          /></label
+        <button
+          class="btn"
+          data-tip="A skin file exported on another device, or shared with you."
+          onclick={() => skinFile?.click()}><Icon name="upload" /> Import skin…</button
         >
+        <input
+          bind:this={skinFile}
+          type="file"
+          accept=".json,application/json"
+          hidden
+          onchange={(e) => {
+            const input = e.currentTarget;
+            const file = input.files?.[0];
+            input.value = '';
+            if (file) void importSkinFile(file);
+          }}
+        />
       </div>
       {#each skinStore.problems as p (p.id)}
         <div class="problem">
-          <span class="warn">Can't use the skin file {p.id}: {p.error}</span>
+          <span class="error-text">Can't use the skin file {p.id}: {p.error}</span>
           <button class="btn ghost danger" onclick={() => deleteSkin(p.id, p.id)}
             ><Icon name="trash" /> Delete</button
           >
@@ -126,8 +133,5 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 1ch 2ch;
-  }
-  .warn {
-    color: var(--warn);
   }
 </style>

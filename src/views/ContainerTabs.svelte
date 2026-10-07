@@ -130,13 +130,13 @@
           <button
             role="menuitem"
             onclick={() => fromMenu(() => addDesk(`Desk ${presetStore.desks.length + 1}`))}
-            ><Icon name="file" /> NEW BLANK DESK</button
+            ><Icon name="file" /> New blank desk</button
           >
           <button role="menuitem" onclick={() => fromMenu(duplicateDesk)}
-            ><Icon name="copy" /> DUPLICATE “{presetStore.current.name}”</button
+            ><Icon name="copy" /> Duplicate “{presetStore.current.name}”</button
           >
           {#if closedPresets.length}
-            <span class="sep faint">── OPEN SAVED ──</span>
+            <span class="sep field-label">Open saved</span>
             {#each closedPresets as s (s.id)}
               <button role="menuitem" onclick={() => fromMenu(() => openDesk(s.id, s.name))}
                 >▸ {s.name}</button
@@ -330,6 +330,7 @@
     inset: 0;
     z-index: 59;
   }
+  /* Menu items read like buttons: upper-cased, names included. */
   .menu button {
     display: flex;
     gap: 1ch;
@@ -337,6 +338,7 @@
     border: 0;
     background: none;
     text-align: left;
+    text-transform: uppercase;
     white-space: nowrap;
   }
   .menu button:hover,

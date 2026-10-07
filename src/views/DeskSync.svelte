@@ -5,7 +5,7 @@
   import { sync as syncIpc } from '../lib/ipc/commands';
   import type { Backup } from '../lib/ipc/types';
   import { presetStore } from '../lib/state/preset.svelte';
-  import { showGlobal } from '../lib/state/ui.svelte';
+  import { confirmAction, showGlobal } from '../lib/state/ui.svelte';
   import { sharedDesks } from '../lib/sync/app.svelte';
   import { forwardingClashes, viewersOf } from '../lib/sync/locks';
   import { syncSession } from '../lib/sync/session.svelte';
@@ -46,6 +46,16 @@
     );
   });
 
+  async function stopSharing() {
+    const ok = await confirmAction({
+      title: 'Stop sharing',
+      message: `Stop sharing “${desk.name}”? It stays here, but edits no longer reach the others.`,
+      confirmLabel: 'Stop sharing',
+      danger: true,
+    });
+    if (ok) await runAction('Stop sharing', () => sharedDesks.unshare(desk.id));
+  }
+
   const restore = (b: Backup) => runAction('Restore', () => presetStore.importFile(b.path));
 </script>
 
@@ -70,8 +80,10 @@
             ><Icon name="share" /> Share with session</button
           >
           {#if !syncSession.joined}
-            <button class="btn ghost" onclick={() => showGlobal('sync')}
-              >Join a session first (GLOBAL SETTINGS › SYNC)</button
+            <span class="faint"
+              >Join a session first: <button class="link" onclick={() => showGlobal('sync')}
+                >GLOBAL SETTINGS › SYNC</button
+              ></span
             >
           {/if}
         </div>
@@ -88,8 +100,7 @@
           <button
             class="btn danger"
             data-tip="It keeps its history: sharing it again merges with the others like a reconnect"
-            onclick={() => runAction('Stop sharing', () => sharedDesks.unshare(desk.id))}
-            >Stop sharing</button
+            onclick={stopSharing}>Stop sharing</button
           >
         </div>
       {/if}

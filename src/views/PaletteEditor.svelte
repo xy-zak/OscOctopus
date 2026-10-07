@@ -144,7 +144,7 @@
           {#if overridden[i]}
             <button
               type="button"
-              class="btn ghost reset"
+              class="btn sm icon ghost"
               data-tip="{nameOf(i)}: back to the generated colour"
               onclick={() => reset(i)}><Icon name="refresh" /></button
             >
@@ -155,22 +155,24 @@
       {/each}
     </div>
 
+    <!-- Danger on the far left; Cancel, then the primary action, on the right. -->
     <div class="actions">
-      <button class="btn primary" disabled={!nameOk || full} onclick={save}
-        ><Icon name="save" /> {isNew ? 'Save & use' : 'Save'}</button
-      >
-      <button class="btn" onclick={onclose}>Cancel</button>
+      {#if !isNew}
+        <button class="btn danger" onclick={remove}><Icon name="trash" /> Delete</button>
+      {/if}
       {#if manual > 0}
         <button class="btn ghost" onclick={resetAll}
           ><Icon name="refresh" /> Reset {manual} picked</button
         >
       {/if}
-      {#if !isNew}
-        <button class="btn danger delete" onclick={remove}><Icon name="trash" /> Delete</button>
-      {/if}
+      <span class="push"></span>
+      <button class="btn" onclick={onclose}>Cancel</button>
+      <button class="btn primary" disabled={!nameOk || full} onclick={save}
+        ><Icon name="save" /> {isNew ? 'Save & use' : 'Save'}</button
+      >
     </div>
     {#if full}
-      <p class="warn">{PALETTES_FULL}</p>
+      <p class="warn-text">{PALETTES_FULL}</p>
     {/if}
   </Panel>
 </div>
@@ -223,10 +225,6 @@
     border-right-color: var(--ink);
     pointer-events: none;
   }
-  .reset {
-    height: 22px;
-    padding: 0;
-  }
   .tag {
     height: 22px;
     line-height: 22px;
@@ -237,13 +235,10 @@
     flex-wrap: wrap;
     gap: 1ch;
   }
-  .delete {
-    margin-left: auto;
+  .push {
+    flex: 1;
   }
   p {
     margin: 0;
-  }
-  .warn {
-    color: var(--warn);
   }
 </style>

@@ -109,9 +109,10 @@
               : undefined}
           />
           <button
-            class="btn icon ghost"
-            data-tip="Remove message"
-            onclick={() => removeBinding(b.id)}><Icon name="close" /></button
+            class="btn icon ghost danger"
+            data-tip="Delete message"
+            aria-label="Delete message"
+            onclick={() => removeBinding(b.id)}><Icon name="trash" /></button
           >
         </div>
         {#if addrErr}<span class="err">{addrErr}</span>{/if}
@@ -240,9 +241,10 @@
               <ConstArgFields arg={a} {onchange} />
             {/if}
             <button
-              class="btn icon ghost"
-              data-tip="Remove argument"
-              onclick={() => (b.args.splice(i, 1), onchange())}><Icon name="close" /></button
+              class="btn icon ghost danger"
+              data-tip="Delete argument"
+              aria-label="Delete argument"
+              onclick={() => (b.args.splice(i, 1), onchange())}><Icon name="trash" /></button
             >
           </div>
         {/each}
@@ -254,7 +256,7 @@
   {:else}
     <p class="faint">No messages: this widget sends and receives nothing.</p>
   {/each}
-  <button class="btn add-binding" onclick={addBinding}><Icon name="plus" /> Message</button>
+  <button class="btn ghost add-binding" onclick={addBinding}><Icon name="plus" /> Message</button>
 </section>
 
 <style>

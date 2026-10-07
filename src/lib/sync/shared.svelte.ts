@@ -556,13 +556,13 @@ export class SharedDesks {
       const label = (key: string) => desk.widgets.find((w) => `w/${w.id}` === key)?.label || key;
       const names = doomed.map(label);
       const del = await this.env.confirm({
-        title: 'Delete widgets?',
+        title: 'Delete widgets',
         message: `${this.env.peerName(peer)} deleted ${doomed.length} of ${count} widgets on “${desk.name}”.`,
         details: [
           ...names.slice(0, 8),
           ...(names.length > 8 ? [`and ${names.length - 8} more`] : []),
         ],
-        confirmLabel: 'Delete them',
+        confirmLabel: 'Delete widgets',
         cancelLabel: 'Keep them',
         danger: true,
       });

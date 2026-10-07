@@ -52,20 +52,23 @@
       <button
         class="btn icon ghost"
         data-tip="Move up"
+        aria-label="Move up"
         disabled={i === 0}
         onclick={() => move(i, -1)}>▲</button
       >
       <button
         class="btn icon ghost"
         data-tip="Move down"
+        aria-label="Move down"
         disabled={i === options.length - 1}
         onclick={() => move(i, 1)}>▼</button
       >
       <button
-        class="btn icon ghost"
-        data-tip="Remove option"
+        class="btn icon ghost danger"
+        data-tip="Delete option"
+        aria-label="Delete option"
         disabled={options.length <= LIMITS.listOptions.min}
-        onclick={() => remove(i)}><Icon name="close" /></button
+        onclick={() => remove(i)}><Icon name="trash" /></button
       >
     </div>
   {/each}

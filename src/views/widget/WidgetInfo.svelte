@@ -109,7 +109,7 @@
       summary={activitySummary}
     >
       {#snippet actions()}
-        <button class="btn ghost" onclick={() => showDesk('traffic')}>Traffic</button>
+        <button class="link" onclick={() => showDesk('traffic')}>TRAFFIC</button>
       {/snippet}
       <WidgetActivity widgetId={widget.id} />
     </Collapsible>

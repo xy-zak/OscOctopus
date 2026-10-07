@@ -37,30 +37,33 @@
         }}
       />
       <button
-        class="btn icon"
-        data-tip="Earlier"
+        class="btn icon ghost"
+        data-tip="Move up"
+        aria-label="Move up"
         disabled={i === 0}
-        onclick={() => presetStore.moveTab(widget.id, tab.id, -1)}>‹</button
+        onclick={() => presetStore.moveTab(widget.id, tab.id, -1)}>▲</button
       >
       <button
-        class="btn icon"
-        data-tip="Later"
+        class="btn icon ghost"
+        data-tip="Move down"
+        aria-label="Move down"
         disabled={i === widget.props.tabs.length - 1}
-        onclick={() => presetStore.moveTab(widget.id, tab.id, 1)}>›</button
+        onclick={() => presetStore.moveTab(widget.id, tab.id, 1)}>▼</button
       >
       <button
-        class="btn icon danger"
-        data-tip="Remove this tab"
+        class="btn icon ghost danger"
+        data-tip="Delete tab"
+        aria-label="Delete tab"
         disabled={widget.props.tabs.length <= 1}
         onclick={() => removeTab(widget.id, tab.id)}><Icon name="trash" /></button
       >
     </div>
   {/each}
   <button
-    class="btn add"
+    class="btn ghost add"
     disabled={full}
     data-tip={full ? TOO_MANY_TABS : undefined}
-    onclick={() => presetStore.addTab(widget.id)}><Icon name="plus" /> Add a tab</button
+    onclick={() => presetStore.addTab(widget.id)}><Icon name="plus" /> Tab</button
   >
 
   <div class="grid3">

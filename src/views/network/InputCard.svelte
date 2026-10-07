@@ -22,10 +22,17 @@
 
 <div class="card endpoint" class:off={!input.enabled}>
   <div class="head">
-    <Toggle bind:checked={input.enabled} label="Enabled" {onchange} />
+    <label class="on"
+      ><Toggle bind:checked={input.enabled} label="Enabled" {onchange} /><span class="field-label"
+        >On</span
+      ></label
+    >
     <input class="input name" bind:value={input.name} {onchange} aria-label="Input name" />
-    <button class="btn icon ghost danger" data-tip="Delete" onclick={onremove}
-      ><Icon name="trash" /></button
+    <button
+      class="btn icon ghost danger"
+      data-tip="Delete input"
+      aria-label="Delete input"
+      onclick={onremove}><Icon name="trash" /></button
     >
   </div>
 
@@ -112,6 +119,11 @@
     display: flex;
     align-items: center;
     gap: 8px;
+  }
+  .on {
+    display: flex;
+    align-items: center;
+    gap: 0.5ch;
   }
   .name {
     font-weight: 600;

@@ -72,12 +72,16 @@
     {#snippet actions()}
       <fieldset class="plain" disabled={locked}>
         <button
-          class="btn icon"
+          class="btn icon ghost"
           data-tip="Duplicate"
+          aria-label="Duplicate widget"
           onclick={() => presetStore.duplicateWidget(widget.id)}><Icon name="copy" /></button
         >
-        <button class="btn icon danger" data-tip="Delete" onclick={() => removeWidgets([widget.id])}
-          ><Icon name="trash" /></button
+        <button
+          class="btn icon ghost danger"
+          data-tip="Delete widget (Del)"
+          aria-label="Delete widget"
+          onclick={() => removeWidgets([widget.id])}><Icon name="trash" /></button
         >
       </fieldset>
     {/snippet}
@@ -178,7 +182,7 @@
     summary={activitySummary}
   >
     {#snippet actions()}
-      <button class="btn ghost" onclick={() => showDesk('traffic')}>Traffic</button>
+      <button class="link" onclick={() => showDesk('traffic')}>TRAFFIC</button>
     {/snippet}
     <WidgetActivity widgetId={widget.id} />
   </Collapsible>

@@ -1,6 +1,6 @@
-// Removing widgets or a frame's tab, asking first when more than one widget would go (several
-// selected, or what is on a frame's tabs; the confirmation texts live here, once). Shared by the
-// desk (Delete), the side panels and the frame's own Inspector. Like views/deskActions.ts, but in
+// Deleting widgets or a frame's tab. A widget is work: deleting one always asks first, and so
+// does a tab with widgets on it (the confirmation texts live here, once; docs/ARCHITECTURE.md ›
+// Design rules). Shared by the desk (Del), the side panels and the frame's own Inspector. Like views/deskActions.ts, but in
 // lib: the frame's Inspector uses them too.
 import { childrenOf, tabAt, widgetsOn } from '../../model/tabs';
 import { presetStore } from '../../state/preset.svelte';
@@ -16,7 +16,7 @@ function forEveryone(what: string): string[] {
     : [];
 }
 
-/** Removes widgets (a frame with everything on its tabs); asks first when more than one goes. */
+/** Deletes widgets (a frame with everything on its tabs), after asking. */
 export async function removeWidgets(ids: readonly string[]): Promise<boolean> {
   const widgets = ids.flatMap((id) => presetStore.widget(id) ?? []);
   const [first] = widgets;
@@ -25,16 +25,15 @@ export async function removeWidgets(ids: readonly string[]): Promise<boolean> {
   const onTabs = inside
     ? ` and the ${plural(inside, 'widget')} on ${widgets.length > 1 ? 'their frames’' : 'its'} tabs`
     : '';
+  const several = widgets.length > 1;
   if (
-    widgets.length + inside > 1 &&
     !(await confirmAction({
-      title: widgets.length > 1 ? 'Delete widgets' : 'Delete frame',
-      message:
-        widgets.length > 1
-          ? `Delete these ${plural(widgets.length, 'widget')}${onTabs}?`
-          : `Delete “${widgetName(first)}”${onTabs}?`,
-      details: forEveryone(widgets.length > 1 ? 'they are deleted' : 'it is deleted'),
-      confirmLabel: 'Delete',
+      title: several ? 'Delete widgets' : 'Delete widget',
+      message: several
+        ? `Delete these ${plural(widgets.length, 'widget')}${onTabs}?`
+        : `Delete “${widgetName(first)}”${onTabs}?`,
+      details: forEveryone(several ? 'they are deleted' : 'it is deleted'),
+      confirmLabel: several ? 'Delete widgets' : 'Delete widget',
       danger: true,
     }))
   ) {
@@ -44,7 +43,7 @@ export async function removeWidgets(ids: readonly string[]): Promise<boolean> {
   return true;
 }
 
-/** Removes a tab of a frame; one with widgets on it asks first. */
+/** Deletes a tab of a frame; one with widgets on it asks first. */
 export async function removeTab(widgetId: string, tabId: string): Promise<boolean> {
   const ref = { widget: widgetId, tab: tabId };
   const at = tabAt(presetStore.current, ref);
@@ -53,10 +52,10 @@ export async function removeTab(widgetId: string, tabId: string): Promise<boolea
   if (
     on > 0 &&
     !(await confirmAction({
-      title: 'Remove tab',
-      message: `Remove the tab “${at.tab.name}” and the ${plural(on, 'widget')} on it?`,
-      details: forEveryone('it is removed'),
-      confirmLabel: 'Remove',
+      title: 'Delete tab',
+      message: `Delete the tab “${at.tab.name}” and the ${plural(on, 'widget')} on it?`,
+      details: forEveryone('it is deleted'),
+      confirmLabel: 'Delete tab',
       danger: true,
     }))
   ) {

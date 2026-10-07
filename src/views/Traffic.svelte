@@ -8,9 +8,9 @@
   import { networkStore } from '../lib/state/network.svelte';
   import { inputStore, type Outcome } from '../lib/state/input.svelte';
   import { presetStore } from '../lib/state/preset.svelte';
-  import { toast } from '../lib/state/ui.svelte';
+  import { confirmAction, toast } from '../lib/state/ui.svelte';
   import Segmented from '../lib/ui/Segmented.svelte';
-  import Toggle from '../lib/ui/Toggle.svelte';
+  import ToggleSwitch from '../lib/ui/ToggleSwitch.svelte';
   import VirtualList from '../lib/ui/VirtualList.svelte';
   import { errorText } from '../lib/util';
 
@@ -111,6 +111,19 @@
       .join(' · ');
   }
 
+  /** Empties the list (after asking): what it held is gone, unless it was exported. */
+  async function clearLog() {
+    const ok = await confirmAction({
+      title: 'Clear traffic',
+      message: `Clear the ${debugStore.events.length} events kept? Export them first to keep them.`,
+      confirmLabel: 'Clear traffic',
+      danger: true,
+    });
+    if (!ok) return;
+    selected = null;
+    debugStore.clear();
+  }
+
   async function exportLog() {
     try {
       const path = await save({
@@ -142,18 +155,25 @@
 
 <div class="debug">
   <div class="toolbar">
-    <button
-      class="btn"
-      class:primary={debugStore.paused}
+    <ToggleSwitch
+      label="Pause"
+      on={debugStore.paused}
+      tip={debugStore.paused
+        ? 'The list is paused: new events are kept and shown when it resumes'
+        : 'Pause the list to read it; new events are kept meanwhile'}
       onclick={() => debugStore.setPaused(!debugStore.paused)}
-    >
-      {#if debugStore.paused}<Icon name="play" /> Resume{#if debugStore.heldCount}
-          ({debugStore.heldCount} new){/if}{:else}<Icon name="pause" /> Pause{/if}
-    </button>
-    <button class="btn" onclick={() => ((selected = null), debugStore.clear())}
-      ><Icon name="trash" /> Clear</button
-    >
-    <button class="btn" onclick={exportLog}><Icon name="download" /> Export</button>
+    />
+    {#if debugStore.paused && debugStore.heldCount}<span class="faint"
+        >{debugStore.heldCount} new</span
+      >{/if}
+    <ToggleSwitch
+      label="Follow"
+      on={follow}
+      tip="Keep the newest event in view"
+      onclick={() => (follow = !follow)}
+    />
+    <button class="btn danger" onclick={clearLog}><Icon name="trash" /> Clear</button>
+    <button class="btn" onclick={exportLog}><Icon name="download" /> Export…</button>
     <Segmented
       size="sm"
       options={[
@@ -181,7 +201,6 @@
       {#each endpoints as ep (ep.key)}<option value={ep.key}>{ep.name}</option>{/each}
     </select>
     <input class="input search" placeholder="Filter address / args / error…" bind:value={search} />
-    <span class="follow"><Toggle bind:checked={follow} label="Follow newest" /> FOLLOW</span>
   </div>
 
   <div class="counters mono">
@@ -362,12 +381,6 @@
   .search {
     flex: 1;
     min-width: 160px;
-  }
-  .follow {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--fg-dim);
   }
   .counters {
     display: flex;

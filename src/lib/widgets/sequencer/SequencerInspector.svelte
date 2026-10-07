@@ -96,20 +96,23 @@
         <button
           class="btn icon ghost"
           data-tip="Move up"
+          aria-label="Move up"
           disabled={i === 0}
           onclick={() => move(i, -1)}>▲</button
         >
         <button
           class="btn icon ghost"
           data-tip="Move down"
+          aria-label="Move down"
           disabled={i === steps.length - 1}
           onclick={() => move(i, 1)}>▼</button
         >
         <button
-          class="btn icon ghost"
-          data-tip="Remove step"
+          class="btn icon ghost danger"
+          data-tip="Delete step"
+          aria-label="Delete step"
           disabled={steps.length <= LIMITS.seqSteps.min}
-          onclick={() => remove(i)}><Icon name="close" /></button
+          onclick={() => remove(i)}><Icon name="trash" /></button
         >
       </div>
       {#if err}<span class="err">{err}</span>{/if}
@@ -117,9 +120,10 @@
         <div class="arg">
           <ConstArgFields arg={a} {onchange} />
           <button
-            class="btn icon ghost"
-            data-tip="Remove argument"
-            onclick={() => (s.args.splice(j, 1), onchange())}><Icon name="close" /></button
+            class="btn icon ghost danger"
+            data-tip="Delete argument"
+            aria-label="Delete argument"
+            onclick={() => (s.args.splice(j, 1), onchange())}><Icon name="trash" /></button
           >
         </div>
       {/each}

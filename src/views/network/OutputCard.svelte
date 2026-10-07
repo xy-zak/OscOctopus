@@ -68,11 +68,18 @@
 
 <div class="card endpoint" class:off={!output.enabled}>
   <div class="head">
-    <Toggle bind:checked={output.enabled} label="Enabled" {onchange} />
+    <label class="on"
+      ><Toggle bind:checked={output.enabled} label="Enabled" {onchange} /><span class="field-label"
+        >On</span
+      ></label
+    >
     <input class="input name" bind:value={output.name} {onchange} aria-label="Output name" />
     <button
       class="btn icon ghost danger"
-      data-tip={usedBy ? `Delete (used by ${usedBy} message${usedBy > 1 ? 's' : ''})` : 'Delete'}
+      data-tip={usedBy
+        ? `Delete output (used by ${usedBy} message${usedBy > 1 ? 's' : ''})`
+        : 'Delete output'}
+      aria-label="Delete output"
       onclick={onremove}><Icon name="trash" /></button
     >
   </div>
@@ -201,6 +208,11 @@
     display: flex;
     align-items: center;
     gap: 8px;
+  }
+  .on {
+    display: flex;
+    align-items: center;
+    gap: 0.5ch;
   }
   .name {
     font-weight: 600;

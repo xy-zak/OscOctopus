@@ -36,7 +36,7 @@ export const deletePalette = (id: string, name: string) =>
             `Desks using it switch to ${PALETTES[DEFAULT_PALETTE].name} (or the palette for all desks).`,
           ]
         : undefined,
-      confirmLabel: 'Delete',
+      confirmLabel: 'Delete palette',
       danger: true,
     },
     async () => {
@@ -69,7 +69,7 @@ export const deleteSkin = (id: string, name: string) =>
             `Desks wearing it go back to ${BUILTIN_SKINS[DEFAULT_SKIN].name} (or the skin for all desks).`,
           ]
         : undefined,
-      confirmLabel: 'Delete',
+      confirmLabel: 'Delete skin',
       danger: true,
     },
     async () => {

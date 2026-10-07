@@ -39,8 +39,9 @@
   >
     {#snippet actions()}
       <button
-        class="btn icon danger"
-        data-tip="Delete them"
+        class="btn icon ghost danger"
+        data-tip="Delete these widgets (Del)"
+        aria-label="Delete these widgets"
         onclick={() => removeWidgets(widgets.map((w) => w.id))}><Icon name="trash" /></button
       >
     {/snippet}

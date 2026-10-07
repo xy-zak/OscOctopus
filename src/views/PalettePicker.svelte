@@ -62,7 +62,7 @@
       {#if custom && onedit}
         <button
           type="button"
-          class="btn ghost edit"
+          class="btn sm ghost edit"
           class:open={editing === id}
           aria-label="Edit {palette.name}"
           data-tip="Edit {palette.name}"
@@ -106,7 +106,6 @@
   .edit {
     flex: none;
     width: 9ch;
-    height: 24px;
   }
   .edit.open {
     border-color: var(--accent);

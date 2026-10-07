@@ -317,7 +317,7 @@ describe('shared desks', () => {
     for (const w of doomed) a.removeWidget(id, w);
     await pump(net, [a, b]);
 
-    expect(b.asked[0]?.title).toBe('Delete widgets?');
+    expect(b.asked[0]?.title).toBe('Delete widgets');
     for (const d of [a, b]) {
       const ids = d.desk(id).widgets.map((w) => w.id);
       for (const w of doomed) expect(ids).toContain(w);

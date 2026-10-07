@@ -47,7 +47,7 @@ export function duplicateDesk() {
         `Its ${endpointsOf(src)} start immediately, and it is saved as a new preset.`,
         PORT_CLASH,
       ],
-      confirmLabel: 'Duplicate',
+      confirmLabel: 'Duplicate desk',
     },
     () => presetStore.duplicateDesk(name),
   );
