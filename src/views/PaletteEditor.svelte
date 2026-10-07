@@ -226,8 +226,8 @@
     pointer-events: none;
   }
   .tag {
-    height: 22px;
-    line-height: 22px;
+    height: var(--control-h-sm);
+    line-height: var(--control-h-sm);
     text-align: center;
   }
   .actions {

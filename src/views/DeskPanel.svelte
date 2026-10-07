@@ -91,8 +91,8 @@
                   presetStore.showTab(w.id, tab.id);
                   presetStore.select(w.id);
                 }}
-                ><span class="faint">›</span><span class="name">{tab.name}</span><span class="faint"
-                  >{plural(on.length, 'widget')}</span
+                ><span class="faint">›</span><span class="name entity-name">{tab.name}</span><span
+                  class="faint">{plural(on.length, 'widget')}</span
                 ></button
               >
             </li>
@@ -151,6 +151,5 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    text-transform: uppercase;
   }
 </style>

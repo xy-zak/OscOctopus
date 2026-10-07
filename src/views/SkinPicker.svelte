@@ -55,7 +55,7 @@
     </div>
   {/if}
   {#each rows as skin, n (skin.id)}
-    {#if skin.user && !rows[n - 1]?.user}<div class="group faint">YOURS</div>{/if}
+    {#if skin.user && !rows[n - 1]?.user}<div class="group field-label">Yours</div>{/if}
     <div class="row">
       <Choice
         on={chosen === skin.id}

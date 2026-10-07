@@ -115,7 +115,7 @@
           onclick={() => remove(i)}><Icon name="trash" /></button
         >
       </div>
-      {#if err}<span class="err">{err}</span>{/if}
+      {#if err}<span class="error-text">{err}</span>{/if}
       {#each s.args as a, j (j)}
         <div class="arg">
           <ConstArgFields arg={a} {onchange} />
@@ -204,8 +204,5 @@
   }
   .add {
     align-self: flex-start;
-  }
-  .err {
-    color: var(--danger);
   }
 </style>

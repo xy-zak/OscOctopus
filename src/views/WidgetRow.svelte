@@ -23,7 +23,7 @@
   >
     <span class="sw" style:background={colorVars(colorOf(presetStore.current, widget)).c}></span>
     <span class="type faint">{DEFS[widget.type].label.padEnd(LABEL_WIDTH)}</span>
-    <span class="name">{widget.label}</span>
+    <span class="name entity-name">{widget.label}</span>
     <span class="faint">{widget.x},{widget.y} {widget.w}×{widget.h}</span>
   </button>
 </li>
@@ -58,6 +58,5 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    text-transform: uppercase;
   }
 </style>

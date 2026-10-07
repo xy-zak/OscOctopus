@@ -95,8 +95,8 @@
         <span class="name">{d.name}</span>
         {#each viewersOf(syncSession.presence, d.id) as peer (peer)}
           <span
-            class="viewer"
-            style:color={colorVars(syncSession.peers[peer]?.color ?? 0).c}
+            class="viewer tinted"
+            style:--tint={colorVars(syncSession.peers[peer]?.color ?? 0).c}
             data-tip="{syncSession.peerName(peer)} is on this desk">●</span
           >
         {/each}
@@ -263,7 +263,7 @@
     color: var(--danger);
   }
   .dirty {
-    color: var(--warn);
+    color: var(--fg-dim);
   }
   /* Shared desk: ⇄, dimmed when no session is joined. Dots: peers on this desk. */
   .shared {

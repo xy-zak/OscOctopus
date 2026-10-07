@@ -119,7 +119,7 @@
             extras={[
               {
                 value: null,
-                label: 'AUTO',
+                label: 'Auto',
                 title: 'AUTO: the desk’s colour, or its frame’s',
                 color: colorVars(autoColorOn(presetStore.current, presetStore.tabOf(widget.id))).c,
               },
@@ -236,9 +236,6 @@
     display: flex;
     align-items: center;
     gap: 8px;
-  }
-  .inspector :global(.axis-label) {
-    color: var(--fg-dim);
   }
   .inspector :global(:where(p)) {
     margin: 0;

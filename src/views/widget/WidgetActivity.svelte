@@ -71,7 +71,7 @@
   }
   .held {
     padding: 0 0.5ch;
-    background: var(--warn);
+    background: var(--danger);
     color: var(--bg);
     font-weight: 700;
   }

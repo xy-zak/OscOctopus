@@ -85,7 +85,9 @@
       </div>
       {#if inputStore.tripped[widget.id]}
         <p class="tripped">
-          <span class="bad">Forwarding stopped: received values kept coming back (a loop?).</span>
+          <span class="error-text"
+            >Forwarding stopped: received values kept coming back (a loop?).</span
+          >
           <button class="btn ghost" onclick={() => rearmForward(widget.id)}>Re-arm</button>
         </p>
       {/if}
@@ -129,9 +131,6 @@
     align-items: center;
     gap: 1ch;
   }
-  .bad {
-    color: var(--danger);
-  }
   /* A prompt line showing the live value. */
   .value {
     --c-text: var(--c);
@@ -144,7 +143,7 @@
     overflow: hidden;
   }
   :global(:root[data-mode='light']) .value {
-    --c-text: color-mix(in srgb, var(--c) 50%, #000);
+    --c-text: color-mix(in srgb, var(--c) 55%, #000);
   }
   .cursor {
     margin-left: 0.5ch;

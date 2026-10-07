@@ -24,7 +24,7 @@
 
   const saveState = $derived.by(() => {
     if (presetStore.saving) return { cls: 'off', text: 'saving' };
-    if (presetStore.saveError) return { cls: 'bad', text: presetStore.saveError };
+    if (presetStore.saveError) return { cls: 'bad', text: 'not saved' };
     if (presetStore.dirty) return { cls: 'off', text: 'unsaved changes' };
     return {
       cls: 'ok',
@@ -71,6 +71,7 @@
           ><Icon name="upload" /> Import into this desk…</button
         >
       </div>
+      {#if presetStore.saveError}<p class="error-text">{presetStore.saveError}</p>{/if}
       <p class="faint">
         id {p.id} · created {new Date(p.createdAt).toLocaleString()} · schema v{p.schemaVersion}
       </p>

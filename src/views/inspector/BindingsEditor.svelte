@@ -115,7 +115,7 @@
             onclick={() => removeBinding(b.id)}><Icon name="trash" /></button
           >
         </div>
-        {#if addrErr}<span class="err">{addrErr}</span>{/if}
+        {#if addrErr}<span class="error-text">{addrErr}</span>{/if}
       </div>
 
       <!-- OUT: where it goes when the widget changes. -->
@@ -123,7 +123,7 @@
         <div class="part way">
           <Toggle bind:checked={b.send} label="Send this message to outputs" {onchange} />
           <span
-            class="way-label has-tip"
+            class="way-label field-label has-tip"
             class:off={!b.send}
             data-tip="Sent to the chosen outputs when the widget changes">OUT</span
           >
@@ -150,7 +150,7 @@
             onchange={(on) => setReceive(b, on)}
           />
           <span
-            class="way-label has-tip"
+            class="way-label field-label has-tip"
             class:off={!b.receive}
             data-tip="Received from the chosen inputs (or as replies on an output): it sets the widget"
             >IN</span
@@ -169,7 +169,7 @@
         </div>
         {#if b.receive}
           {#if inProblem}
-            <span class="err">Not receiving: {inProblem}</span>
+            <span class="error-text">Not receiving: {inProblem}</span>
           {/if}
           {#if !receiveOnly}
             <div class="way">
@@ -179,18 +179,18 @@
                 {onchange}
               />
               <span
-                class="way-label has-tip"
+                class="way-label field-label has-tip"
                 class:off={!b.forward || !!fwdProblem}
                 data-tip="Received values are re-sent to the outputs (never back to their sender). Only for bridging: a device that echoes can loop, and forwarding stops if it does. Off, received values only move the widget."
                 >FORWARD</span
               >
               <span class="faint">{b.forward && !fwdProblem ? 're-sent to outputs' : 'off'}</span>
             </div>
-            {#if fwdProblem}<span class="err">Never forwarded: {fwdProblem}.</span>{/if}
+            {#if fwdProblem}<span class="error-text">Never forwarded: {fwdProblem}.</span>{/if}
           {/if}
           {#if inputStore.tripped[widget.id]}
             <div class="row">
-              <span class="err">Forwarding stopped: values kept coming back (a loop?).</span>
+              <span class="error-text">Forwarding stopped: values kept coming back (a loop?).</span>
               <button class="btn ghost" onclick={() => rearmForward(widget.id)}>Re-arm</button>
             </div>
           {/if}
@@ -287,19 +287,12 @@
   .add-binding {
     align-self: flex-start;
   }
-  .err {
-    color: var(--danger);
-  }
   /* One direction of a message: [■] OUT  chips…  /  [■] IN  chips… */
   .way {
     display: grid;
     grid-template-columns: auto 8ch minmax(0, 1fr);
     align-items: center;
     gap: 6px;
-  }
-  .way-label {
-    font-weight: 700;
-    color: var(--fg);
   }
   .way-label.off {
     color: var(--fg-faint);

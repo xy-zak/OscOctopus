@@ -74,7 +74,7 @@
     border-left: 1px solid var(--line);
   }
   .sm button {
-    height: 22px;
+    height: var(--control-h-sm);
     padding: 0 0.5ch;
   }
   button.on {

@@ -109,10 +109,12 @@
     {#if shared}
       <Panel title="On this desk">
         <div class="row">
-          <span class="label">Devices here</span>
+          <span class="field-label">Devices here</span>
           <span>
             {#each viewers as peer (peer)}
-              <span class="peer" style:color={colorVars(syncSession.peers[peer]?.color ?? 0).c}
+              <span
+                class="peer tinted"
+                style:--tint={colorVars(syncSession.peers[peer]?.color ?? 0).c}
                 >● {syncSession.peerName(peer)}</span
               >
             {:else}
@@ -175,18 +177,11 @@
     align-items: center;
     gap: 1ch;
   }
-  .label {
-    color: var(--fg-dim);
-    text-transform: uppercase;
-  }
   .peer {
     margin-right: 1ch;
   }
   .check {
     color: var(--fg-dim);
-  }
-  .warn-text {
-    color: var(--warn);
   }
   .list {
     list-style: none;

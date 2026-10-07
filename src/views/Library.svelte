@@ -39,13 +39,13 @@
           <li class:open class:broken={s.error}>
             <span class="mark">{open ? '■' : '·'}</span>
             <div class="info">
-              <span class="name">{s.name}</span>
+              <span class="name entity-name">{s.name}</span>
               <span class="faint"
                 >{s.fileName}{s.updatedAt
                   ? ` · ${new Date(s.updatedAt).toLocaleString()}`
                   : ''}</span
               >
-              {#if s.error}<span class="err">{s.error}</span>{/if}
+              {#if s.error}<span class="error-text">{s.error}</span>{/if}
             </div>
             <div class="row">
               {#if open}
@@ -100,13 +100,6 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
-  }
-  .name {
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-  .err {
-    color: var(--danger);
   }
   .row {
     display: flex;

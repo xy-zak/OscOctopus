@@ -17,7 +17,7 @@
       {#if status.remote}<span class="faint">→</span><span class="mono">{status.remote}</span>{/if}
     </div>
     {#if status.detail}
-      <div class="detail mono" class:error={status.state === 'error'}>{status.detail}</div>
+      <div class={status.state === 'error' ? 'error-text' : 'detail'}>{status.detail}</div>
     {/if}
     <div class="stats mono faint">
       tx {status.stats.txPackets} pkt / {formatBytes(status.stats.txBytes)}
@@ -49,11 +49,5 @@
   .detail {
     color: var(--fg-dim);
     overflow-wrap: anywhere;
-  }
-  .detail.error {
-    color: var(--danger);
-  }
-  .bad {
-    color: var(--danger);
   }
 </style>

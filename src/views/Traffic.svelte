@@ -245,7 +245,8 @@
               <span class="time">{t.clock}<span class="faint">{t.micros}</span></span>
               <span class="badge {b.cls}">{b.text}</span>
               <span class="ep"
-                >{#if scope === undefined && e.desk}<span class="faint">{deskName(e.desk)}/</span
+                >{#if scope === undefined && e.desk}<span class="faint upper"
+                    >{deskName(e.desk)}/</span
                   >{/if}{e.endpointName || e.endpointId || '—'}</span
               >
               <span class="remote faint">{e.remote ?? ''}</span>
@@ -270,24 +271,27 @@
           <button class="btn ghost" onclick={() => copyJson(e)}>Copy JSON</button>
         </div>
         <dl class="mono">
-          <dt>time</dt>
+          <dt class="field-label">time</dt>
           <dd>{new Date(e.tsMicros / 1000).toISOString()} (+{formatTime(e.tsMicros).micros} µs)</dd>
-          <dt>kind</dt>
+          <dt class="field-label">kind</dt>
           <dd>
             {e.kind}{e.direction ? ` · ${e.direction}` : ''}{e.transport ? ` · ${e.transport}` : ''}
           </dd>
-          <dt>endpoint</dt>
+          <dt class="field-label">endpoint</dt>
           <dd>{e.endpointName} <span class="faint">{e.endpointId}</span></dd>
-          {#if e.desk}<dt>desk</dt>
-            <dd>{deskName(e.desk)} <span class="faint">{e.desk}</span></dd>{/if}
-          {#if e.blocked}<dt>held</dt>
-            <dd class="held">output was paused: these bytes were NOT sent</dd>{/if}
-          {#if e.local}<dt>local</dt>
+          {#if e.desk}<dt class="field-label">desk</dt>
+            <dd>
+              <span class="entity-name">{deskName(e.desk)}</span>
+              <span class="faint">{e.desk}</span>
+            </dd>{/if}
+          {#if e.blocked}<dt class="field-label">held</dt>
+            <dd class="bad">output was paused: these bytes were NOT sent</dd>{/if}
+          {#if e.local}<dt class="field-label">local</dt>
             <dd>{e.local}</dd>{/if}
-          {#if e.remote}<dt>remote</dt>
+          {#if e.remote}<dt class="field-label">remote</dt>
             <dd>{e.remote}</dd>{/if}
           {#if e.kind === 'packet'}
-            <dt>size</dt>
+            <dt class="field-label">size</dt>
             <dd>
               {e.bytes.length} B OSC{e.wireLen !== null && e.wireLen !== e.bytes.length
                 ? ` · ${e.wireLen} B on the wire (framed)`
@@ -296,29 +300,30 @@
                   : ''}
             </dd>
           {/if}
-          {#if e.source}<dt>widget</dt>
+          {#if e.source}<dt class="field-label">widget</dt>
             <dd>
               {presetStore.findWidget(e.source)?.widget.label ?? 'removed widget'}
               <span class="faint">{e.source}</span>
             </dd>{/if}
-          {#if e.message}<dt>note</dt>
+          {#if e.message}<dt class="field-label">note</dt>
             <dd>{e.message}</dd>{/if}
-          {#if e.direction === 'in' && inputNote(e)}<dt>input</dt>
+          {#if e.direction === 'in' && inputNote(e)}<dt class="field-label">input</dt>
             <dd>{inputNote(e)}</dd>{/if}
-          {#if e.error}<dt>error</dt>
-            <dd class="bad">{e.error}</dd>{/if}
-          {#if e.decodeError}<dt>decode</dt>
-            <dd class="bad">{e.decodeError}</dd>{/if}
+          {#if e.error}<dt class="field-label">error</dt>
+            <dd class="error-text">{e.error}</dd>{/if}
+          {#if e.decodeError}<dt class="field-label">decode</dt>
+            <dd class="error-text">{e.decodeError}</dd>{/if}
         </dl>
 
         {#if e.decoded?.kind === 'message'}
           <h2>Decoded</h2>
           <div class="decoded mono">
             <div>
-              <span class="faint">address</span> <span class="addr">{e.decoded.address}</span>
+              <span class="field-label">address</span> <span class="addr">{e.decoded.address}</span>
             </div>
             <div>
-              <span class="faint">typetags</span> <span class="tags">{e.decoded.typetags}</span>
+              <span class="field-label">typetags</span>
+              <span class="tags">{e.decoded.typetags}</span>
             </div>
             {#each e.decoded.args as a, i (i)}
               <div>
@@ -390,8 +395,9 @@
     color: var(--fg-dim);
     border-bottom: 1px solid var(--line);
   }
-  .bad {
-    color: var(--danger) !important;
+  /* The row's text can be other colours; a failure always reads red. */
+  .row .bad {
+    color: var(--danger);
   }
   .split {
     flex: 1;
@@ -497,12 +503,10 @@
     color: var(--info);
     background: color-mix(in srgb, var(--info) 14%, transparent);
   }
+  /* Held (OSC-OUT off) is red everywhere, like the OSC-OUT alarm. */
   .badge.blocked {
     color: var(--bg);
-    background: var(--warn);
-  }
-  .held {
-    color: var(--warn);
+    background: var(--danger);
   }
   .badge.info {
     color: var(--fg-dim);
@@ -547,9 +551,6 @@
     gap: 4px 12px;
     margin: 0;
   }
-  dt {
-    color: var(--fg-faint);
-  }
   dd {
     margin: 0;
     overflow-wrap: anywhere;
@@ -565,8 +566,12 @@
     white-space: pre;
     overflow-x: auto;
   }
+  /* A desk's name before an endpoint's: a name, in the capitals names are shown in. */
+  .upper {
+    text-transform: uppercase;
+  }
   .ascii {
-    color: var(--warn);
+    color: var(--fg-dim);
   }
   .addr {
     color: var(--accent-text);

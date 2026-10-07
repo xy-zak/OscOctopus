@@ -200,7 +200,7 @@
       {#if s?.session}
         <div class="grid">
           <Field label="Session">
-            <span class="readout strong">{s.session}</span>
+            <span class="readout entity-name">{s.session}</span>
           </Field>
           <Field label="Devices connected">
             <span class="readout">{connectedCount}</span>
@@ -286,7 +286,7 @@
           {#each sessionDesks as d (d.id + d.doc)}
             <li>
               <span>
-                <span class="strong">{d.name}</span>
+                <span class="entity-name">{d.name}</span>
                 <span class="faint">· {d.peers.map((p) => syncSession.peerName(p)).join(', ')}</span
                 >
               </span>
@@ -420,7 +420,7 @@
             <tr>
               <td>
                 {#if p.name}
-                  <span class="dot" style:color={colorVars(p.color ?? 0).c}>●</span>
+                  <span class="dot tinted" style:--tint={colorVars(p.color ?? 0).c}>●</span>
                   {p.name}
                 {:else}
                   <span class="faint"
@@ -495,9 +495,6 @@
   .readout {
     line-height: var(--control-h);
   }
-  .strong {
-    font-weight: 700;
-  }
   .key-row {
     display: flex;
     gap: 1ch;
@@ -505,7 +502,6 @@
   }
   .key {
     font-weight: 700;
-    letter-spacing: 0.05em;
     user-select: all;
   }
   .check {
@@ -552,12 +548,6 @@
   }
   .dot {
     margin-right: 0.5ch;
-  }
-  .error-text {
-    color: var(--danger);
-  }
-  .warn-text {
-    color: var(--warn);
   }
   p {
     margin: 8px 0 0;

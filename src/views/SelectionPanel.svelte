@@ -50,7 +50,7 @@
   {#if held.length}
     <div class="held" role="status">
       {#each held as line (line)}<span>● {line}</span>{/each}
-      <span>Editing elsewhere: take it over in its Inspector to move them.</span>
+      <span>Editing elsewhere: take it over in INSPECT to move them.</span>
     </div>
   {/if}
   <ul class="list">

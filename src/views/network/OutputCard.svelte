@@ -183,7 +183,7 @@
       </Field>
     {/if}
   </div>
-  {#if warning}<p class="warn">{warning}</p>{/if}
+  {#if warning}<p class="warn-text">{warning}</p>{/if}
   {#if ownInput}
     <p class="faint">
       Sends into this app's own input “{ownInput}”. Those packets show in TRAFFIC but never drive
@@ -214,19 +214,10 @@
     align-items: center;
     gap: 0.5ch;
   }
-  .name {
-    font-weight: 600;
-  }
   .fields {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
-  }
-  .warn {
-    margin: 0;
-    padding: 8px 10px;
-    color: var(--warn);
-    background: color-mix(in srgb, var(--warn) 10%, transparent);
   }
   .id {
     margin: 0;

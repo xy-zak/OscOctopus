@@ -48,7 +48,7 @@
           <span class="pill warn">applying</span>
         {:else if apply.error}
           <span class="pill bad">apply failed</span>
-          <span class="mono err">{apply.error}</span>
+          <span class="error-text">{apply.error}</span>
         {:else if lastApplied}
           <span class="pill ok">applied</span><span class="faint">at {lastApplied}</span>
         {/if}
@@ -121,10 +121,6 @@
     align-items: center;
     gap: 8px;
     min-width: 0;
-  }
-  .err {
-    color: var(--danger);
-    overflow-wrap: anywhere;
   }
   .columns {
     display: grid;

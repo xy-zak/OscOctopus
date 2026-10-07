@@ -369,6 +369,18 @@ select.input option {
   font-weight: 700;
   text-transform: uppercase;
 }
+/* A value that is a failure, inline (a count of errors, an event that failed): no icon. */
+.bad {
+  color: var(--danger);
+}
+/* A palette colour as text (`--tint`: a peer's colour): darkened in light mode, like
+   --accent-text, so it stays readable on paper. */
+.tinted {
+  color: var(--tint);
+}
+:root[data-mode='light'] .tinted {
+  color: color-mix(in srgb, var(--tint) 55%, #000);
+}
 .error-text,
 .warn-text {
   margin: 0;

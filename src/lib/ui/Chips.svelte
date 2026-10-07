@@ -61,7 +61,7 @@
     display: inline-flex;
     align-items: center;
     gap: 1ch;
-    height: 24px;
+    height: var(--control-h-sm);
     padding: 0 1ch;
     border: 1px solid var(--line-strong);
     background: var(--bg);

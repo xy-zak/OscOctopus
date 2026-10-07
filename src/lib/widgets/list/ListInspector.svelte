@@ -39,8 +39,8 @@
     />
   </Field>
   <div class="options-head">
-    <span class="axis-label">Label</span><span
-      class="axis-label has-tip"
+    <span class="field-label">Label</span><span
+      class="field-label has-tip"
       data-tip={'Sends {index, label, value}; numeric-looking values are sent as numbers.'}
       >Value</span
     >

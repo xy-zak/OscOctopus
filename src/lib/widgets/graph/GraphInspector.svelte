@@ -13,23 +13,25 @@
 <section>
   <!-- One column per axis: each has its own name, range, decimals, default and curve. -->
   <div class="axes">
-    <span></span><span class="axis-head">X</span><span class="axis-head">Y</span>
-    <span class="axis-label">Name</span>
+    <span></span><span class="field-label axis-head">X</span><span class="field-label axis-head"
+      >Y</span
+    >
+    <span class="field-label">Name</span>
     <input class="input" bind:value={widget.props.x.label} oninput={onchange} />
     <input class="input" bind:value={widget.props.y.label} oninput={onchange} />
-    <span class="axis-label">Min</span>
+    <span class="field-label">Min</span>
     <NumberInput bind:value={widget.props.x.min} {onchange} />
     <NumberInput bind:value={widget.props.y.min} {onchange} />
-    <span class="axis-label">Max</span>
+    <span class="field-label">Max</span>
     <NumberInput bind:value={widget.props.x.max} {onchange} />
     <NumberInput bind:value={widget.props.y.max} {onchange} />
-    <span class="axis-label has-tip" data-tip="0 = whole numbers">Decimals</span>
+    <span class="field-label has-tip" data-tip="0 = whole numbers">Decimals</span>
     <NumberInput bind:value={widget.props.x.decimals} integer {...LIMITS.decimals} {onchange} />
     <NumberInput bind:value={widget.props.y.decimals} integer {...LIMITS.decimals} {onchange} />
-    <span class="axis-label has-tip" data-tip="Double-tap resets">Default</span>
+    <span class="field-label has-tip" data-tip="Double-tap resets">Default</span>
     <NumberInput bind:value={widget.props.x.defaultValue} {onchange} />
     <NumberInput bind:value={widget.props.y.defaultValue} {onchange} />
-    <span class="axis-label">Curve</span>
+    <span class="field-label">Curve</span>
     <CurveField bind:value={widget.props.x.curve} {onchange} />
     <CurveField bind:value={widget.props.y.curve} {onchange} />
   </div>
@@ -50,8 +52,6 @@
     align-items: center;
   }
   .axis-head {
-    font-weight: 700;
     text-align: center;
-    color: var(--fg-dim);
   }
 </style>

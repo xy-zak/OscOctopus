@@ -54,7 +54,7 @@
     </div>
   {/if}
   {#each rows as { id, palette, custom }, n (id)}
-    {#if custom && !rows[n - 1]?.custom}<div class="group faint">CUSTOM</div>{/if}
+    {#if custom && !rows[n - 1]?.custom}<div class="group field-label">Custom</div>{/if}
     <div class="row">
       <Choice on={chosen === id} name={palette.name} tip={palette.note} onpick={() => pick(id)}>
         {@render strip(palette, chosen === id)}

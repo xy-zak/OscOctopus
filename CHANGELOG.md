@@ -113,6 +113,28 @@ Scripts.
 
 ### Changed
 
+- **One design language around the widgets** (docs/ARCHITECTURE.md › Design rules), applied to
+  every tab, section, panel, page and dialog:
+  - **Tooltips work on touch.** Hover with a mouse, focus with the keyboard, or press and hold a
+    moment with a finger. Explanations moved into them, so panels show only what is happening:
+    status, errors, warnings, values. A label with a tooltip has a dotted underline.
+  - **ADD / INSPECT are tabs** joined to the side panel, not a two-way switch that looked like a
+    setting. INSPECT for the desk now has the Inspector's shape: GRID and WIDGETS fold away.
+  - **Deleting looks and asks the same everywhere:** a red trash button and "Delete …", and it
+    asks first whenever work is lost, including a single widget (by button or Del), Clear
+    traffic, Leave session, Stop sharing, Forget key and Block device. Removing a desk (it stays
+    in the LIBRARY) keeps its ✕.
+  - **TRAFFIC's PAUSE and FOLLOW are switches**, like INFO and EDIT. Going somewhere else is
+    always a link in capitals (TRAFFIC, GLOBAL SETTINGS › SYNC); GLOBAL › NETWORK's rows link
+    their desk instead of being clickable.
+  - **Colours mean one thing each:** the desk's colour only says _this desk_; held messages
+    (OSC-OUT off) are red everywhere; unsaved and saving are no longer amber; peers' colours
+    stay readable in light mode.
+  - **Text roles:** one label style (fields, axes, toggles, TRAFFIC's details), names in bold
+    capitals, errors with ✕ and warnings with ⚠. Every control dims the same way when disabled,
+    so FROZEN pages visibly freeze.
+  - DESK › NETWORK uses panels like GLOBAL › NETWORK, every settings page has the same width,
+    and the palette editor's buttons are Delete on the left, Cancel and Save on the right.
 - **Widget titles and values never overlap at small gaps.** They sit on the border as before, but
   never hang out further than half the gap between widgets: with a small gap (or none) they move
   onto the widget itself, and its contents make room.

@@ -79,7 +79,7 @@
     const holder = selection.map((w) => holderOf(w.id)).find(Boolean);
     if (holder) {
       const what = selection.length > 1 ? 'one of these widgets' : 'this widget';
-      toast(`${holder.name} is editing ${what}: take it over in the Inspector first`);
+      toast(`${holder.name} is editing ${what}: take it over in INSPECT first`);
       return;
     }
     if (e.key === 'Delete' || e.key === 'Backspace') {

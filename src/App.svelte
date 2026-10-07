@@ -329,8 +329,8 @@
         on={inputStore.enabled}
         onchange={(on) => inputStore.setEnabled(on)}
         tip={inputStore.enabled
-          ? 'OSC-IN is on: incoming OSC drives widgets whose messages receive. Hold to ignore all input (Alt+I)'
-          : 'OSC-IN is off: incoming OSC is ignored (still shown in TRAFFIC). Hold to let it drive widgets (Alt+I)'}
+          ? 'OSC-IN is on: incoming OSC drives widgets whose messages receive. Hold 1 s to ignore all input (Alt+I)'
+          : 'OSC-IN is off: incoming OSC is ignored (still shown in TRAFFIC). Hold 1 s to let it drive widgets (Alt+I)'}
       />
       <!-- OSC-OUT off is PAUSE: nothing leaves the app. Off is a safety state, so it is red. -->
       <HoldSwitch
@@ -342,8 +342,8 @@
         on={!networkStore.paused}
         onchange={(on) => networkStore.setPaused(!on)}
         tip={networkStore.paused
-          ? 'OSC-OUT is off: output of all desks is paused, nothing is sent. Hold to resume (Alt+P)'
-          : 'OSC-OUT is on: every desk sends. Hold to pause all outgoing OSC (Alt+P)'}
+          ? 'OSC-OUT is off: output of all desks is paused, nothing is sent. Hold 1 s to resume (Alt+P)'
+          : 'OSC-OUT is on: every desk sends. Hold 1 s to pause all outgoing OSC (Alt+P)'}
       />
       <HoldSwitch
         bind:this={lockSwitch}
@@ -354,8 +354,8 @@
         onchange={setLocked}
         nudge={ui.lockNudge}
         tip={ui.locked
-          ? 'Frozen: hold for 1 second to unfreeze (Alt+L)'
-          : 'Hold for 1 second to freeze widgets and settings for a show (Alt+L)'}
+          ? 'Frozen: hold 1 s to unfreeze (Alt+L)'
+          : 'Hold 1 s to freeze widgets and settings for a show (Alt+L)'}
       />
       <HoldSwitch
         bind:this={presentSwitch}
@@ -365,7 +365,7 @@
         on={ui.presenting}
         onchange={setPresenting}
         tip={ui.presenting
-          ? 'Presenting: only this desk’s widgets, full screen. Hold for 1 second to stop (or hold Esc or F11)'
+          ? 'Presenting: only this desk’s widgets, full screen. Hold 1 s to stop (or hold Esc or F11)'
           : 'PRESENT: only this desk’s widgets, full screen. Desk tabs and these switches stay (F11)'}
       />
     </div>

@@ -62,8 +62,8 @@
     gap: 4px;
   }
   .sw {
-    width: 22px;
-    height: 22px;
+    width: var(--control-h-sm);
+    height: var(--control-h-sm);
     padding: 0;
     border: 0;
     background: var(--sw);
@@ -90,11 +90,12 @@
     display: inline-flex;
     align-items: center;
     gap: 0.75ch;
-    height: 22px;
+    height: var(--control-h-sm);
     padding: 0 1ch;
     border: 1px solid var(--line-strong);
     background: var(--bg);
     color: var(--fg-dim);
+    text-transform: uppercase;
   }
   .extra.on {
     background: var(--fg);

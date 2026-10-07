@@ -125,9 +125,6 @@
     align-items: center;
     gap: 0.5ch;
   }
-  .name {
-    font-weight: 600;
-  }
   .fields {
     display: grid;
     grid-template-columns: 1fr 1fr;

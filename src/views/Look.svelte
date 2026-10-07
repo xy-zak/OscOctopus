@@ -37,8 +37,8 @@
     >
       <Segmented
         options={[
-          { value: 'dark', label: '■ DARK' },
-          { value: 'light', label: '□ LIGHT' },
+          { value: 'dark', label: '■ Dark' },
+          { value: 'light', label: '□ Light' },
         ]}
         value={appearance.theme.mode}
         onchange={(mode) => appearance.set({ mode })}
