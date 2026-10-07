@@ -405,19 +405,16 @@
     color: var(--fg-faint);
   }
 
-  /* ---- frame tabs: drawn like the list's options, the tab shown like its current option; an
-     empty tab says so like an empty log (above). ---- */
-  .frame[data-base='led'] [data-part='tabs.tab'] {
-    border-bottom: 2px dotted color-mix(in srgb, var(--led-ink) 35%, transparent);
-    background: var(--led-panel);
-    color: var(--fg-dim);
+  /* ---- frame tabs: base.css's folder tabs (a line under them, the tab shown joined to its
+     panel), in the panel's lit ink. ---- */
+  .frame[data-base='led'] {
+    --tabs-line: var(--led-ink);
+    --tabs-line-off: color-mix(in srgb, var(--led-ink) 35%, transparent);
+  }
+  .frame[data-base='led'] [data-part='tabs.text'] {
     transition: color 120ms steps(2);
   }
-  .frame[data-base='led'][data-live] [data-part='tabs.tab']:not([data-current]):hover {
-    color: var(--fg);
-  }
-  .frame[data-base='led'] [data-part='tabs.tab'][data-current] {
-    border-bottom-color: var(--led-ink);
-    color: var(--fg);
+  .frame[data-base='led'] [data-part='tabs.text'][data-current] {
+    background: var(--led-panel);
   }
 }

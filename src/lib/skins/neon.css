@@ -455,26 +455,19 @@
     color: var(--fg-faint);
   }
 
-  /* ---- frame tabs: drawn like the list's options, the tab shown like its current option; an
-     empty tab says so like an empty log (above). ---- */
-  .frame[data-base='neon'] [data-part='tabs.tab'] {
-    border: 1px solid color-mix(in srgb, var(--c) 40%, transparent);
-    border-radius: 5px;
-    color: var(--fg-dim);
+  /* ---- frame tabs: base.css's folder tabs (a line under them, the tab shown joined to its
+     panel), rounded tubes, the tab shown glowing. ---- */
+  .frame[data-base='neon'] {
+    --tabs-radius: 5px;
+  }
+  .frame[data-base='neon'] [data-part='tabs.text'] {
     transition:
       border-color 140ms ease,
       box-shadow 140ms ease,
       color 140ms ease;
   }
-  .frame[data-base='neon'][data-live] [data-part='tabs.tab']:not([data-current]):hover {
-    color: var(--fg);
-    border-color: color-mix(in srgb, var(--c) 70%, transparent);
-  }
-  .frame[data-base='neon'] [data-part='tabs.tab'][data-current] {
-    border-color: var(--c);
-    color: var(--fg);
+  .frame[data-base='neon'] [data-part='tabs.text'][data-current] {
     box-shadow:
-      inset 0 0 0 1px var(--c),
       0 0 calc(0.6 * var(--n-bloom)) var(--n-glow),
       inset 0 0 calc(0.6 * var(--n-bloom)) var(--n-glow);
   }

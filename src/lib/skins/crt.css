@@ -425,23 +425,16 @@
     color: var(--fg-faint);
   }
 
-  /* ---- frame tabs: drawn like the list's options, the tab shown like its current option; an
-     empty tab says so like an empty log (above). ---- */
-  .frame[data-base='crt'] [data-part='tabs.tab'] {
-    border-radius: 4px;
-    background: color-mix(in srgb, var(--c) 10%, transparent);
-    color: var(--fg-dim);
-    transition: color 160ms ease;
-  }
-  .frame[data-base='crt'][data-live] [data-part='tabs.tab']:not([data-current]):hover {
-    color: var(--fg);
-  }
-  .frame[data-base='crt'] [data-part='tabs.tab'][data-current] {
-    background: var(--crt-scan), color-mix(in srgb, var(--c) 32%, transparent);
-    color: var(--fg);
-    box-shadow: 0 0 6px color-mix(in srgb, var(--c) 30%, transparent);
+  /* ---- frame tabs: base.css's folder tabs (a line under them, the tab shown joined to its
+     panel), rounded, the tab shown lit with scanlines, names glowing. ---- */
+  .frame[data-base='crt'] {
+    --tabs-radius: 4px;
   }
   .frame[data-base='crt'] [data-part='tabs.text'] {
     text-shadow: 0 0 5px color-mix(in srgb, currentColor 45%, transparent);
+    transition: color 160ms ease;
+  }
+  .frame[data-base='crt'] [data-part='tabs.text'][data-current] {
+    background: var(--crt-scan), color-mix(in srgb, var(--c) 22%, transparent);
   }
 }

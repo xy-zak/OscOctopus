@@ -423,27 +423,13 @@
     color: var(--fg-faint);
   }
 
-  /* ---- frame tabs: drawn like the list's options, the tab shown like its current option; an
-     empty tab says so like an empty log (above). ---- */
-  .frame[data-base='sketch'] [data-part='tabs.tab'] {
-    color: var(--fg-dim);
-    transition: color 120ms ease;
-  }
-  .frame[data-base='sketch'][data-live] [data-part='tabs.tab']:not([data-current]):hover {
-    color: var(--fg);
-  }
-  .frame[data-base='sketch'] [data-part='tabs.tab'][data-current] {
-    color: var(--fg);
-  }
-  .frame[data-base='sketch'] [data-part='tabs.tab'][data-current]::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--sk-line);
-    -webkit-mask-box-image: url('../../assets/skins/sketch/rect.svg') 20 / 10px round;
-    pointer-events: none;
+  /* ---- frame tabs: base.css's folder tabs (a line under them, the tab shown joined to its
+     panel), in pencil, names haloed like all its text. ---- */
+  .frame[data-base='sketch'] {
+    --tabs-line: var(--sk-line);
   }
   .frame[data-base='sketch'] [data-part='tabs.text'] {
     text-shadow: var(--sk-halo);
+    transition: color 120ms ease;
   }
 }

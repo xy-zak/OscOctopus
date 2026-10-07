@@ -379,17 +379,12 @@
     color: var(--fg-faint);
   }
 
-  /* ---- frame tabs: drawn like the list's options, the tab shown like its current option; an
-     empty tab says so like an empty log (above). ---- */
-  .frame[data-base='terminal'] [data-part='tabs.tab'] {
-    background: var(--c-solid);
-    color: color-mix(in srgb, var(--c-ink) 65%, var(--c-solid));
+  /* ---- frame tabs: base.css's folder tabs (a line under them, the tab shown joined to its
+     panel), in the widget's colour. ---- */
+  .frame[data-base='terminal'] [data-part='tabs.text'] {
     transition: color var(--t-ui) steps(2);
   }
-  .frame[data-base='terminal'][data-live] [data-part='tabs.tab']:not([data-current]):hover {
-    color: var(--c-ink);
-  }
-  .frame[data-base='terminal'] [data-part='tabs.tab'][data-current] {
-    color: var(--c-ink);
+  .frame[data-base='terminal'] [data-part='tabs.text'][data-current] {
+    background: color-mix(in srgb, var(--c) 18%, transparent);
   }
 }

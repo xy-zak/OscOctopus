@@ -157,7 +157,7 @@
                 onpointerdown={(e) => e.stopPropagation()}
                 onclick={() => pick(i)}
                 ><span class="text" data-part="tabs.text" data-current={flag(tab === shown)}
-                  >{tab.name}</span
+                  ><span class="name">{tab.name}</span></span
                 ></button
               >
             {/each}
@@ -200,30 +200,50 @@
     flex-direction: column;
     gap: var(--tabs-gap, 2px);
   }
+  /* Folder tabs, like the app's (skins/base.css paints them): each tab is a cell holding its
+     box and, after it, the gap; the line runs along the cells' feet and on to the end
+     (::after), and the tab shown leaves it out under its box. */
   .list {
     flex: none;
     display: flex;
-    gap: var(--tabs-gap, 2px);
     height: var(--tabs-list-h, var(--lh));
     overflow-x: auto;
     overflow-y: hidden;
     touch-action: pan-x;
     scrollbar-width: none;
   }
+  .list::after {
+    content: '';
+    flex: 1 0 1ch;
+  }
   .tab {
     position: relative;
     flex: 0 1 auto;
     min-width: 0;
     display: flex;
-    align-items: center;
-    padding: 0 1ch;
+    align-items: flex-end;
+    padding: 0 var(--tabs-gap, 2px) 0 0;
     white-space: nowrap;
-    overflow: hidden;
   }
   .tab.switchable {
     cursor: pointer;
   }
+  /* The box: a tab not shown is lower and stands on the line (a skin's fill must not cover
+     it); the tab shown reaches from the top down through it. */
   .text {
+    min-width: 0;
+    height: calc(100% - 3px - var(--tabs-line-w, 1px));
+    margin-bottom: var(--tabs-line-w, 1px);
+    display: flex;
+    align-items: center;
+    padding: 0 1ch;
+    overflow: hidden;
+  }
+  .text[data-current] {
+    height: 100%;
+    margin-bottom: 0;
+  }
+  .name {
     overflow: hidden;
     text-overflow: ellipsis;
   }

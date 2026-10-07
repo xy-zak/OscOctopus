@@ -736,6 +736,7 @@ master bar) follows these rules. A new view picks from them instead of styling i
   | Container | desk tabs, GLOBAL SETTINGS (`ContainerTabs`): folder tabs in the desk's colour | joins the frame, full border, 700 |
   | Section | F1–F5 (`App`), a neutral bar | reverse video in `--scope`, 700 |
   | Pane | ADD / INSPECT (`PaneTabs`): small neutral folder tabs | joins the panel, `--fg` 700 |
+  | Frame (a widget) | a frame's tabs (`widgets/tabs`, `skins/base.css`): folder tabs in the frame's colour, in every skin | joins the tab below, 700 |
   | Group | stacked, never tabs: `Panel`s on a page, `Collapsible`s in a side panel | |
   | Sub-group | `h2` inside a group | |
 

@@ -248,6 +248,18 @@ export const TOKENS = {
   '--log-row-h': { label: 'Log row height', default: 'var(--lh)' },
   '--tabs-list-h': { label: 'Frame tab height', default: 'var(--lh)' },
   '--tabs-gap': { label: 'Gap between frame tabs', default: '2px' },
+  // Frame tabs are folder tabs like the app's own (skins/base.css): a line runs under them and
+  // the tab shown joins the panel. A skin colours and shapes them with these.
+  '--tabs-line': { label: 'Frame tab line', default: 'var(--c)', paint: true },
+  '--tabs-line-off': {
+    label: 'Outline of a tab not shown',
+    default: 'color-mix(in srgb, var(--tabs-line, var(--c)) 40%, transparent)',
+    paint: true,
+  },
+  '--tabs-line-w': { label: 'Frame tab line width', default: '1px' },
+  '--tabs-radius': { label: 'Frame tab corner radius', default: '0px' },
+  '--tabs-ink': { label: 'Frame tab name', default: 'var(--fg-dim)', paint: true },
+  '--tabs-ink-current': { label: 'Shown frame tab name', default: 'var(--fg)', paint: true },
 } as const satisfies Record<string, { label: string; default: string; paint?: true }>;
 
 export type Token = keyof typeof TOKENS;

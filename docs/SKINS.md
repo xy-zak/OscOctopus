@@ -135,7 +135,11 @@ Geometry a skin may change, set on the frame (defaults in `TOKENS` in anatomy.ts
   `--seq-steps-h`, `--seq-step-gap`;
 - text: `--text-c` (its text colour: base.css draws reverse video and tints from it);
 - log: `--log-row-h`;
-- frame: `--tabs-list-h` (the tab strip's height), `--tabs-gap`.
+- frame: `--tabs-list-h` (the tab strip's height), `--tabs-gap`. Its tabs are folder tabs like
+  the app's, drawn by base.css (a line under them; the tab shown joins its panel), shaped and
+  coloured with `--tabs-line`, `--tabs-line-off` (a tab not shown), `--tabs-line-w`,
+  `--tabs-radius`, `--tabs-ink` and `--tabs-ink-current`. A skin may fill the box (`tabs.text`),
+  never the cell (`tabs.tab`: its foot is the line).
 
 Components use these in their own layout, so changing a token moves the part *and* keeps
 pointer maths right. For example, the switch measures its thumb to work out the drag travel.

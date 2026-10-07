@@ -342,18 +342,19 @@
     color: var(--fg-faint);
   }
 
-  /* ---- frame tabs: drawn like the list's options, the tab shown like its current option; an
-     empty tab says so like an empty log (above). ---- */
-  .frame[data-base='brutalist'] [data-part='tabs.tab'] {
-    border: 2px solid var(--br-line);
+  /* ---- frame tabs: base.css's folder tabs (a line under them, the tab shown joined to its
+     panel), in thick black, the tab shown solid in the widget's colour. ---- */
+  .frame[data-base='brutalist'] {
+    --tabs-line: var(--br-line);
+    --tabs-line-off: var(--br-line);
+    --tabs-line-w: 2px;
+    --tabs-ink: var(--fg);
+    --tabs-ink-current: var(--br-ink);
+  }
+  .frame[data-base='brutalist'] [data-part='tabs.text'] {
     background: var(--w-bg);
-    color: var(--fg);
   }
-  .frame[data-base='brutalist'][data-live] [data-part='tabs.tab']:not([data-current]):hover {
-    background: color-mix(in srgb, var(--c) 25%, var(--w-bg));
-  }
-  .frame[data-base='brutalist'] [data-part='tabs.tab'][data-current] {
+  .frame[data-base='brutalist'] [data-part='tabs.text'][data-current] {
     background: var(--c);
-    color: var(--br-ink);
   }
 }

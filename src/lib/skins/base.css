@@ -50,6 +50,39 @@
     background: none;
   }
 
+  /* ---- frame tabs: folder tabs, the same in every skin as in the app around them
+     (docs/ARCHITECTURE.md › Design rules): a line in the frame's colour runs under them, a tab
+     not shown is a lower box outlined faintly, the tab shown reaches up, outlined, and leaves
+     the line out under it, so it joins the tab below. No opaque cover: the panel shows through,
+     whatever the skin paints there. Skins shape and colour them with the --tabs-* tokens, and may
+     fill the box (tabs.text), never the cell (tabs.tab: its foot is the line). ---- */
+  [data-part='frame'] [data-part='tabs.list']::after,
+  [data-part='frame'] [data-part='tabs.tab'] {
+    background: linear-gradient(var(--tabs-line, var(--c)), var(--tabs-line, var(--c))) left
+      bottom / 100% var(--tabs-line-w, 1px) no-repeat;
+  }
+  /* The tab shown: the line only under the gap after its box. */
+  [data-part='frame'] [data-part='tabs.tab'][data-current] {
+    background-position: right bottom;
+    background-size: var(--tabs-gap, 2px) var(--tabs-line-w, 1px);
+  }
+  [data-part='frame'] [data-part='tabs.text'] {
+    border: var(--tabs-line-w, 1px) solid
+      var(--tabs-line-off, color-mix(in srgb, var(--tabs-line, var(--c)) 40%, transparent));
+    border-bottom: 0;
+    border-radius: var(--tabs-radius, 0px) var(--tabs-radius, 0px) 0 0;
+    color: var(--tabs-ink, var(--fg-dim));
+  }
+  [data-part='frame'] [data-part='tabs.text'][data-current] {
+    border-color: var(--tabs-line, var(--c));
+    color: var(--tabs-ink-current, var(--fg));
+  }
+  [data-part='frame'][data-live]
+    [data-part='tabs.tab']:not([data-current]):hover
+    [data-part='tabs.text'] {
+    color: var(--tabs-ink-current, var(--fg));
+  }
+
   /* ---- typography: the app's font everywhere; titles bold capitals, and bold for what must
      read at a glance (the value's marks, the current option) ---- */
   [data-part='frame'] [data-part='frame.title'] {
