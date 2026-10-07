@@ -50,7 +50,7 @@ import { inputStore } from './input.svelte';
 import { lookStore } from './look.svelte';
 import { networkStore } from './network.svelte';
 import { persistSetting } from './persist';
-import { toast, ui } from './ui.svelte';
+import { endEdit, toast, ui } from './ui.svelte';
 import { values } from './values.svelte';
 
 const AUTOSAVE_MS = 600;
@@ -180,7 +180,8 @@ class PresetStore {
   activate(id: string) {
     if (!this.isOpen(id) || id === this.activeId) return;
     this.activeId = id;
-    ui.selected = [];
+    // Another desk's CONTROLS open LIVE, like coming back to a section (ui.svelte.ts › endEdit).
+    endEdit();
     ui.focusedId = null;
     void this.persistOpen();
   }

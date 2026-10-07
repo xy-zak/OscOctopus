@@ -411,7 +411,8 @@ transport that never reads app payloads (Rust) with desk semantics owned by the 
 - `ui.view` picks the **container**: `desk` (the active desk) or `global` (GLOBAL SETTINGS).
 - The container's **sections** are `ui.deskView`: `controls | network | traffic | look |
   sync`, or `ui.globalView`: `network | traffic | library | look | sync` (F1–F5 in both). A desk
-  tab always opens on its `controls`. Ids are the lower-case labels, and
+  tab always opens on its `controls`, LIVE: going to any other section or desk ends an edit
+  (`endEdit`), so CONTROLS are never found still in EDIT. Ids are the lower-case labels, and
   `DESK_SECTIONS` / `GLOBAL_SECTIONS` (`state/ui.svelte.ts`) define their labels, hints and
   F-key order once. NETWORK, TRAFFIC and SYNC exist at both levels, so the frame colour (the desk's
   own, or white for GLOBAL SETTINGS) carries the scope.

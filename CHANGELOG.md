@@ -157,7 +157,8 @@ Scripts.
   gone. The built-in palettes' accents are their last colours (RAINBOW, NEON and PASTEL now
   highlight in pink); GREYSCALE's is white, after its nine greys.
 - **DESK › PRESET is now DESK › LOOK** (still F4): the desk's name, colour, preset file and look.
-- **A desk tab always opens on the desk's CONTROLS**, whichever section was open before.
+- **A desk tab always opens on the desk's CONTROLS, LIVE**, whichever section was open before:
+  leaving CONTROLS (another section, GLOBAL SETTINGS or another desk) ends EDIT.
 - **PAUSE is now OSC-OUT**, next to **OSC-IN**: both are on by default, and turning OSC-OUT
   off pauses all output as before (red, with the OUTPUT PAUSED banner; still Alt+P).
 - **OSC-IN, OSC-OUT and FREEZE change only after a 1 s press-and-hold**, on and off alike (FREEZE

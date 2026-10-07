@@ -25,6 +25,41 @@ beforeEach(() => {
   });
 });
 
+describe('coming back to CONTROLS', () => {
+  it('is LIVE after any other section, desk or global', () => {
+    toggleEditMode();
+    ui.selected = ['w1'];
+    showDesk('traffic');
+    expect(ui).toMatchObject({ mode: 'live', selected: [] });
+    showDesk('controls');
+    expect(ui).toMatchObject({ deskView: 'controls', mode: 'live' });
+
+    toggleEditMode();
+    showSectionAt(1);
+    showSectionAt(0);
+    expect(ui).toMatchObject({ deskView: 'controls', mode: 'live' });
+
+    toggleEditMode();
+    showGlobal('sync');
+    showDesk();
+    expect(ui).toMatchObject({ view: 'desk', deskView: 'controls', mode: 'live' });
+  });
+
+  it('keeps an edit while CONTROLS stay on screen', () => {
+    toggleEditMode();
+    ui.selected = ['w1'];
+    showDesk('controls');
+    showSectionAt(0);
+    expect(ui).toMatchObject({ mode: 'edit', selected: ['w1'] });
+  });
+
+  it('still enters EDIT from another section (Alt+E)', () => {
+    showDesk('traffic');
+    toggleEditMode();
+    expect(ui).toMatchObject({ deskView: 'controls', mode: 'edit' });
+  });
+});
+
 describe('presenting', () => {
   it('shows the active desk’s controls, live, from anywhere', () => {
     Object.assign(ui, { view: 'global', deskView: 'network', mode: 'edit', selected: ['w1'] });

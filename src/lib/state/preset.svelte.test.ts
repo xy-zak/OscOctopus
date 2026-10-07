@@ -93,6 +93,17 @@ describe('workspace', () => {
     expect((files.get(deskId) as Preset).name).toBe('Imported desk'); // saved
   });
 
+  it('opens another desk’s CONTROLS LIVE, ending an edit', async () => {
+    await presetStore.init();
+    const first = presetStore.current.id;
+    await presetStore.newDesk('Second');
+    const second = presetStore.current.id;
+    Object.assign(ui, { view: 'desk', deskView: 'controls', mode: 'edit', selected: ['w1'] });
+    presetStore.activate(first);
+    expect(ui).toMatchObject({ mode: 'live', selected: [] });
+    await presetStore.closeDesk(second);
+  });
+
   it('closing a desk right after an edit still saves the edit', async () => {
     await presetStore.init();
     await presetStore.newDesk('Second');

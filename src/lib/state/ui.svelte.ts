@@ -179,18 +179,35 @@ export function setPresenting(on: boolean) {
   ui.selected = [];
 }
 
+/**
+ * Leaves EDIT (and its selection). Going anywhere else ends an edit, so a desk's CONTROLS are
+ * always LIVE when you come back to them, or switch to another desk's (`presetStore.activate`).
+ */
+export function endEdit() {
+  ui.mode = 'live';
+  ui.selected = [];
+}
+
+const currentSectionOf = (view: View) => (view === 'desk' ? ui.deskView : ui.globalView);
+
+/** Shows a section; an edit ends unless it is the one already shown. */
+function show(view: View, section: DeskView | GlobalView) {
+  if (view !== ui.view || section !== currentSectionOf(view)) endEdit();
+  ui.view = view;
+  if (view === 'desk') ui.deskView = section as DeskView;
+  else ui.globalView = section as GlobalView;
+}
+
 /** Go to a section of the active desk. Only CONTROLS while PRESENTING. */
 export function showDesk(section: DeskView = ui.deskView) {
   if (ui.presenting && section !== 'controls') return;
-  ui.view = 'desk';
-  ui.deskView = section;
+  show('desk', section);
 }
 
 /** Go to a GLOBAL SETTINGS section. Refused while PRESENTING. */
 export function showGlobal(section: GlobalView = ui.globalView) {
   if (ui.presenting) return;
-  ui.view = 'global';
-  ui.globalView = section;
+  show('global', section);
 }
 
 /** The sections of the container on screen. */
@@ -206,11 +223,6 @@ export function currentSection(): DeskView | GlobalView {
 /** Shows section `i` (F1 = 0) of the container on screen. Refused while PRESENTING. */
 export function showSectionAt(i: number) {
   if (ui.presenting) return;
-  if (ui.view === 'desk') {
-    const s = DESK_SECTIONS[i];
-    if (s) ui.deskView = s.id;
-  } else {
-    const s = GLOBAL_SECTIONS[i];
-    if (s) ui.globalView = s.id;
-  }
+  const s = (ui.view === 'desk' ? DESK_SECTIONS : GLOBAL_SECTIONS)[i];
+  if (s) show(ui.view, s.id);
 }
