@@ -126,6 +126,20 @@ describe('workspace', () => {
     await presetStore.closeDesk(closed.id);
   });
 
+  it('renames a desk; a blank or unchanged name changes nothing', async () => {
+    await presetStore.init();
+    const id = presetStore.current.id;
+    const before = presetStore.current.name;
+    expect(presetStore.rename(id, '   ')).toBe(false);
+    expect(presetStore.rename(id, before)).toBe(false);
+    expect(presetStore.rename(id, '  Front of house ')).toBe(true);
+    expect(presetStore.current.name).toBe('Front of house');
+    await presetStore.flushAll();
+    expect((files.get(id) as Preset).name).toBe('Front of house');
+    presetStore.rename(id, before);
+    await presetStore.flushAll();
+  });
+
   it('closing a desk right after an edit still saves the edit', async () => {
     await presetStore.init();
     await presetStore.newDesk('Second');

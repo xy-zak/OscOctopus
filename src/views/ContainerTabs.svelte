@@ -4,8 +4,9 @@
   // it like a folder tab, and shares its colour, so what's inside the frame visibly belongs to
   // that tab. Desks run at the same time; the tab only chooses which one you see.
   //
-  // Adding or removing a desk always asks first (see deskActions.ts). When FROZEN, tabs can
-  // still be switched (that's performing) but not added or removed. PRESENTING shows the desk
+  // Adding or removing a desk always asks first (see deskActions.ts). Double-clicking a desk tab
+  // renames it in place (Enter or leaving keeps it, Esc cancels). When FROZEN, tabs can still be
+  // switched (that's performing) but not added, removed or renamed. PRESENTING shows the desk
   // tabs only: switching desks is all it is for.
   import { lookStore } from '../lib/state/look.svelte';
   import { networkStore } from '../lib/state/network.svelte';
@@ -20,6 +21,25 @@
   import { addDesk, duplicateDesk, openDesk, removeDesk } from './deskActions';
 
   let menuOpen = $state(false);
+  /** The desk whose tab is being renamed. */
+  let renaming = $state<string | null>(null);
+
+  function startRename(id: string) {
+    if (managing) renaming = id;
+  }
+
+  /** Ends a rename, keeping `name` unless cancelled (a blank name keeps the old one). */
+  function endRename(id: string, name: string | null) {
+    if (renaming !== id) return;
+    renaming = null;
+    if (name !== null) presetStore.rename(id, name);
+  }
+
+  /** The name field takes focus with its text selected, ready to type over. */
+  function focusSelect(el: HTMLInputElement) {
+    el.focus();
+    el.select();
+  }
   /** Whether desks can be added and removed here. */
   const managing = $derived(!ui.locked && !ui.presenting);
 
@@ -77,35 +97,58 @@
     {@const c = swatchOf(lookStore.forDesk(d.id).palette, d.color)}
     {@const on = ui.view === 'desk' && d.id === presetStore.activeId}
     <div class="tab desk" class:on role="presentation" style:--tc={c.c} style:--tc-ink={c.ink}>
-      <button
-        class="pick"
-        role="tab"
-        aria-selected={on}
-        data-tip="Desk {i + 1}: {d.name} (Alt+{i + 1})"
-        onclick={() => pick(d.id)}
-      >
-        <span class="chip" aria-hidden="true"></span>
-        {#if sharedDesks.view[d.id]?.shared}<span
-            class="shared"
-            data-tip={syncSession.joined
-              ? 'Shared with the session'
-              : 'Shared (not syncing: no session joined)'}
-            class:off={!syncSession.joined}>⇄</span
-          >{/if}
-        <span class="name">{d.name}</span>
-        {#each viewersOf(syncSession.presence, d.id) as peer (peer)}
-          <span
-            class="viewer tinted"
-            style:--tint={colorVars(syncSession.peers[peer]?.color ?? 0).c}
-            data-tip="{syncSession.peerName(peer)} is on this desk">●</span
-          >
-        {/each}
-        <span class="dot {h}" data-tip="Network: {h}">●</span>{#if presetStore.isDirty(d.id)}<span
-            class="dirty"
-            data-tip="Unsaved (autosaving)">+</span
-          >{/if}
-      </button>
-      {#if managing && presetStore.desks.length > 1}
+      {#if renaming === d.id}
+        <span class="pick">
+          <span class="chip" aria-hidden="true"></span>
+          <input
+            class="rename"
+            aria-label="Desk name"
+            maxlength="64"
+            value={d.name}
+            use:focusSelect
+            onkeydown={(e) => {
+              if (e.key === 'Enter') endRename(d.id, e.currentTarget.value);
+              else if (e.key === 'Escape') endRename(d.id, null);
+              else return;
+              e.preventDefault();
+            }}
+            onblur={(e) => endRename(d.id, e.currentTarget.value)}
+          />
+        </span>
+      {:else}
+        <button
+          class="pick"
+          role="tab"
+          aria-selected={on}
+          data-tip="Desk {i + 1}: {d.name} (Alt+{i + 1}){managing
+            ? ' · double-click to rename'
+            : ''}"
+          onclick={() => pick(d.id)}
+          ondblclick={() => startRename(d.id)}
+        >
+          <span class="chip" aria-hidden="true"></span>
+          {#if sharedDesks.view[d.id]?.shared}<span
+              class="shared"
+              data-tip={syncSession.joined
+                ? 'Shared with the session'
+                : 'Shared (not syncing: no session joined)'}
+              class:off={!syncSession.joined}>⇄</span
+            >{/if}
+          <span class="name">{d.name}</span>
+          {#each viewersOf(syncSession.presence, d.id) as peer (peer)}
+            <span
+              class="viewer tinted"
+              style:--tint={colorVars(syncSession.peers[peer]?.color ?? 0).c}
+              data-tip="{syncSession.peerName(peer)} is on this desk">●</span
+            >
+          {/each}
+          <span class="dot {h}" data-tip="Network: {h}">●</span>{#if presetStore.isDirty(d.id)}<span
+              class="dirty"
+              data-tip="Unsaved (autosaving)">+</span
+            >{/if}
+        </button>
+      {/if}
+      {#if managing && presetStore.desks.length > 1 && renaming !== d.id}
         <button
           class="x"
           data-tip="Remove desk"
@@ -246,6 +289,16 @@
     overflow: hidden;
     text-overflow: ellipsis;
     text-transform: uppercase;
+  }
+  /* The name being typed: as written (not upper-cased), on the tab's own colour line. */
+  .rename {
+    width: 22ch;
+    height: 22px;
+    padding: 0 0.5ch;
+    border: 1px solid var(--tc);
+    background: var(--bg);
+    font-weight: 400;
+    outline: none;
   }
   .long {
     margin-left: 1ch;

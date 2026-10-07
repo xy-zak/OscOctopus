@@ -259,6 +259,19 @@ class PresetStore {
     deskChanges.emit({ deskId, origin: opts.origin ?? 'local', deleted: opts.deleted });
   }
 
+  /**
+   * Renames a desk (its tab, DESK › LOOK); a blank name changes nothing. Its file follows on the
+   * next save (src-tauri/src/named.rs). Resolves whether it changed.
+   */
+  rename(id: string, name: string): boolean {
+    const desk = this.desks.find((d) => d.id === id);
+    const next = name.trim();
+    if (!desk || !next || next === desk.name) return false;
+    desk.name = next;
+    this.changed(id);
+    return true;
+  }
+
   /** Marks the active desk changed (see `changed`). */
   touch(opts: { network?: boolean; deleted?: string[] } = {}) {
     this.changed(this.current.id, opts);

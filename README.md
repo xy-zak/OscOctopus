@@ -66,7 +66,8 @@ The screen always shows **where you are**, by containment:
 
 - **The top tabs pick a container.** It's either one of your **desks** or **GLOBAL SETTINGS**. The
   active tab flows into the frame below it. Everything inside the frame belongs to that tab and
-  nothing else. A desk tab always opens on the desk's CONTROLS, LIVE: leaving them ends EDIT.
+  nothing else. A desk tab always opens on the desk's CONTROLS, LIVE: leaving them ends EDIT. Double-click a
+  desk tab to rename the desk.
 - **Every desk has an identity colour.** It is used for its tab and its frame, so you always know
   which desk you are in. GLOBAL SETTINGS is neutral white: it belongs to no desk.
 - **Sections sit inside the frame.** NETWORK, TRAFFIC and SYNC exist at both levels. The frame colour tells you which one you're in: the desk's own colour, or white for GLOBAL SETTINGS.

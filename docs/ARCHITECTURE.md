@@ -416,7 +416,8 @@ transport that never reads app payloads (Rust) with desk semantics owned by the 
   `DESK_SECTIONS` / `GLOBAL_SECTIONS` (`state/ui.svelte.ts`) define their labels, hints and
   F-key order once. NETWORK, TRAFFIC and SYNC exist at both levels, so the frame colour (the desk's
   own, or white for GLOBAL SETTINGS) carries the scope.
-- `ContainerTabs.svelte` renders the top row: desk tabs in each desk's identity colour
+- `ContainerTabs.svelte` renders the top row (double-click a desk tab to rename it in place,
+  `presetStore.rename`; not while FROZEN or presenting): desk tabs in each desk's identity colour
   (`preset.color`, schema v5), then GLOBAL SETTINGS, set apart.
 - `App.svelte` renders the frame. The header paints the frame's top line along its bottom edge,
   and the active tab's background covers it, so tab and frame join like a folder tab. This uses

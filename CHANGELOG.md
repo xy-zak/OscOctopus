@@ -15,6 +15,7 @@ Scripts.
   the LIBRARY). A desk shared with a sync session comes back as an unshared copy, so loading
   never rewrites it for the others. Save over a project, export it to move a setup to another
   machine, import one from a file. Desks keep autosaving as before.
+- **Rename a desk from its tab:** double-click it, type, Enter (Esc cancels). Not while FROZEN.
 - **Desk files are named for their desk:** `MY-DESK_p-k2j4h5g6f7.json` (the name in capitals,
   then the id), and follow it when the desk is renamed. Files from before are renamed at
   startup.
