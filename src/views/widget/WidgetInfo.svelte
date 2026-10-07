@@ -60,11 +60,11 @@
   >
     {#snippet actions()}
       {#if widget && !ui.locked}
-        <button class="btn icon ghost" title="Edit this widget" onclick={() => edit(widget)}
+        <button class="btn icon ghost" data-tip="Edit this widget" onclick={() => edit(widget)}
           ><Icon name="pencil" /></button
         >
       {/if}
-      <button class="btn icon ghost" title="Hide panel" onclick={() => (ui.infoOpen = false)}
+      <button class="btn icon ghost" data-tip="Hide panel" onclick={() => (ui.infoOpen = false)}
         ><Icon name="close" /></button
       >
     {/snippet}

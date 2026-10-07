@@ -45,6 +45,7 @@
   import { applySkinSheets } from './lib/skins/sheets';
   import { cssText, lookVars } from './lib/theme/look';
   import { swatchOf } from './lib/theme/palettes';
+  import Tooltip from './lib/ui/Tooltip.svelte';
   import ConfirmDialog from './lib/ui/ConfirmDialog.svelte';
   import HoldSwitch from './lib/ui/HoldSwitch.svelte';
   import PixelLogo from './lib/ui/PixelLogo.svelte';
@@ -288,7 +289,7 @@
   {/if}
 
   <header class="top">
-    {#if !ui.presenting}<span class="brand" title="OscOctopus"><PixelLogo /></span>{/if}
+    {#if !ui.presenting}<span class="brand" data-tip="OscOctopus"><PixelLogo /></span>{/if}
     {#if ready}<ContainerTabs />{:else}<span class="tabs-placeholder"></span>{/if}
     <!-- The master bar affects every desk, so it sits outside every tab and frame. Status first
          (click to open it), then the switches, from least to most restrictive: OSC-IN lets
@@ -301,7 +302,7 @@
         <button
           class="mbtn"
           onclick={() => showGlobal('network')}
-          title="Outputs ready / enabled across all desks · messages per second. Click for NETWORK"
+          data-tip="Outputs ready / enabled across all desks · messages per second. Click for NETWORK"
         >
           <span class="lamp {outLamp}">●</span>{readyOutputs}/{outputs.length} OUT<span class="rate"
             >{txRate.toFixed(0)}/s</span
@@ -310,7 +311,7 @@
         <button
           class="mbtn"
           onclick={() => showGlobal('sync')}
-          title={syncSession.joined
+          data-tip={syncSession.joined
             ? `Session “${syncSession.status?.session}”: ${syncConnected} device(s) connected. Click for SYNC`
             : 'Not sharing: click to join a session with other devices (GLOBAL SETTINGS › SYNC)'}
         >
@@ -327,7 +328,7 @@
         label="OSC-IN"
         on={inputStore.enabled}
         onchange={(on) => inputStore.setEnabled(on)}
-        title={inputStore.enabled
+        tip={inputStore.enabled
           ? 'OSC-IN is on: incoming OSC drives widgets whose messages receive. Hold to ignore all input (Alt+I)'
           : 'OSC-IN is off: incoming OSC is ignored (still shown in TRAFFIC). Hold to let it drive widgets (Alt+I)'}
       />
@@ -340,7 +341,7 @@
         blinkOff
         on={!networkStore.paused}
         onchange={(on) => networkStore.setPaused(!on)}
-        title={networkStore.paused
+        tip={networkStore.paused
           ? 'OSC-OUT is off: output of all desks is paused, nothing is sent. Hold to resume (Alt+P)'
           : 'OSC-OUT is on: every desk sends. Hold to pause all outgoing OSC (Alt+P)'}
       />
@@ -352,7 +353,7 @@
         on={ui.locked}
         onchange={setLocked}
         nudge={ui.lockNudge}
-        title={ui.locked
+        tip={ui.locked
           ? 'Frozen: hold for 1 second to unfreeze (Alt+L)'
           : 'Hold for 1 second to freeze widgets and settings for a show (Alt+L)'}
       />
@@ -363,7 +364,7 @@
         holdOff
         on={ui.presenting}
         onchange={setPresenting}
-        title={ui.presenting
+        tip={ui.presenting
           ? 'Presenting: only this desk’s widgets, full screen. Hold for 1 second to stop (or hold Esc or F11)'
           : 'PRESENT: only this desk’s widgets, full screen. Desk tabs and these switches stay (F11)'}
       />
@@ -379,7 +380,7 @@
             <button
               class="section"
               class:on={currentSection() === s.id}
-              title="{s.hint} (F{i + 1})"
+              data-tip="{s.hint} (F{i + 1})"
               onclick={() => showSectionAt(i)}
               ><span class="fkey">F{i + 1}</span><span class="section-label">{s.label}</span
               >{#if bad > 0}<span class="badge">{bad}!</span>{/if}</button
@@ -427,6 +428,7 @@
   </section>
 
   <ConfirmDialog />
+  <Tooltip />
 
   {#if ui.toast}
     {#key ui.toast.id}

@@ -37,7 +37,12 @@
 
 <div class="desk-look scroll">
   <Lockable>
-    <Panel title="Desk preset" active tone="var(--scope)">
+    <Panel
+      title="Desk preset"
+      hint="The desk as a file: it saves automatically, and Export… makes a copy to use elsewhere."
+      active
+      tone="var(--scope)"
+    >
       {#snippet actions()}<span class="pill {saveState.cls}">{saveState.text}</span>{/snippet}
       <div class="grid">
         <Field label="Name" wide>
@@ -69,16 +74,19 @@
         >
       </div>
       <p class="faint">
-        Saves automatically. id {p.id} · created {new Date(p.createdAt).toLocaleString()} · schema v{p.schemaVersion}
+        id {p.id} · created {new Date(p.createdAt).toLocaleString()} · schema v{p.schemaVersion}
       </p>
     </Panel>
 
-    <Panel title="Look · this desk">
+    <Panel
+      title="Look · this desk"
+      hint="ALL DESKS follows GLOBAL SETTINGS › LOOK. Just on this device: a desk shared with others looks the way each of them chose, and an exported preset carries none of it. The desk colour and the widgets' colours are in the preset."
+    >
       {#snippet actions()}
         <button
           class="btn ghost"
           disabled={!lookStore.hasOwn(p.id)}
-          title="Palette, active colour and skin of all desks"
+          data-tip="Palette, active colour and skin of all desks"
           onclick={() => lookStore.resetDesk(p.id)}>Same as all desks</button
         >
       {/snippet}
@@ -94,11 +102,10 @@
         </Field>
       </div>
       <p class="faint">
-        ALL DESKS follows <button class="link" onclick={() => showGlobal('look')}
-          >GLOBAL SETTINGS › LOOK</button
-        >, where palettes and skins are made, imported and deleted. Just on this device: a desk
-        shared with others looks the way each of them chose, and an exported preset carries none of
-        it. The desk colour and the widgets' colours are in the preset.
+        Palettes and skins are made, imported and deleted in <button
+          class="link"
+          onclick={() => showGlobal('look')}>GLOBAL SETTINGS › LOOK</button
+        >.
       </p>
     </Panel>
 

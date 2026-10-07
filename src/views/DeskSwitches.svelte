@@ -14,7 +14,7 @@
       label="INFO"
       on={ui.infoOpen}
       onclick={() => (ui.infoOpen = !ui.infoOpen)}
-      title={ui.infoOpen
+      tip={ui.infoOpen
         ? 'Hide the widget info panel'
         : 'Show the widget info panel (value, messages, activity)'}
     />
@@ -24,7 +24,7 @@
     on={editing}
     disabled={ui.locked}
     onclick={toggleEditMode}
-    title={ui.locked
+    tip={ui.locked
       ? 'Frozen'
       : editing
         ? 'Back to LIVE: play the widgets (Alt+E)'

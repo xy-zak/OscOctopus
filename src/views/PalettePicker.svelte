@@ -46,7 +46,7 @@
       <Choice
         on={chosen === null}
         name="ALL DESKS"
-        title="The palette of every desk (GLOBAL SETTINGS › LOOK): {all.name}"
+        tip="The palette of every desk (GLOBAL SETTINGS › LOOK): {all.name}"
         onpick={() => pick(null)}
       >
         {@render strip(all, chosen === null)}
@@ -56,7 +56,7 @@
   {#each rows as { id, palette, custom }, n (id)}
     {#if custom && !rows[n - 1]?.custom}<div class="group faint">CUSTOM</div>{/if}
     <div class="row">
-      <Choice on={chosen === id} name={palette.name} title={palette.note} onpick={() => pick(id)}>
+      <Choice on={chosen === id} name={palette.name} tip={palette.note} onpick={() => pick(id)}>
         {@render strip(palette, chosen === id)}
       </Choice>
       {#if custom && onedit}
@@ -65,7 +65,7 @@
           class="btn ghost edit"
           class:open={editing === id}
           aria-label="Edit {palette.name}"
-          title="Edit {palette.name}"
+          data-tip="Edit {palette.name}"
           onclick={() => onedit(id)}><Icon name="pencil" /> Edit</button
         >
       {:else if editable}

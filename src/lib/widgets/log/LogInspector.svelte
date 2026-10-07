@@ -43,7 +43,11 @@
   <Field label="Keeps" hint="The newest messages, up to {LIMITS.logRows.max}">
     <NumberInput bind:value={widget.props.rows} integer {...LIMITS.logRows} {onchange} />
   </Field>
-  <Field label="Shows" wide>
+  <Field
+    label="Shows"
+    hint="What the widgets sent (→) and received (←) on this device, newest first, and notes about them (•). It isn’t shared with other devices: each shows its own."
+    wide
+  >
     <Chips
       items={columns}
       picked={widget.props.columns}
@@ -52,8 +56,4 @@
       missingTitle="Not a column; click to remove"
     />
   </Field>
-  <p class="faint">
-    What the widgets sent (→) and received (←) on this device, newest first, and notes about them
-    (•). It isn’t shared with other devices: each shows its own.
-  </p>
 </section>

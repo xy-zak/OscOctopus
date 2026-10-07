@@ -24,10 +24,26 @@
   );
   const used = $derived(placeholdersOf(parseMarkup(p.source)));
   const shows = $derived(used.some((name) => offered.includes(name)));
+  /** The markup, as the Text field's tooltip. */
+  const marks = $derived(
+    [
+      '# Heading',
+      '- item',
+      '**bold**',
+      '==reverse==',
+      '{3:colour}',
+      '\\* as itself',
+      ...offered.map((c) => `{${c}}`),
+    ].join('   '),
+  );
 </script>
 
 <section>
-  <Field label="Shows" wide>
+  <Field
+    label="Shows"
+    hint={'Text: as written. OSC in: the value of a received message; choose it in MESSAGES (turn IN on and pick where it comes from). Monitor: another widget’s live value. Both fill {value}.'}
+    wide
+  >
     <Segmented
       options={[
         { value: 'text', label: 'Text', title: 'The text as written' },
@@ -60,14 +76,9 @@
         <NumberInput bind:value={widget.props.decimals} integer {...LIMITS.decimals} {onchange} />
       </Field>
     </div>
-  {:else if p.mode === 'osc'}
-    <p class="faint">
-      Choose the message in MESSAGES: turn IN on and pick where it comes from. Its value fills
-      {'{value}'}.
-    </p>
   {/if}
 
-  <Field label="Text" wide>
+  <Field label="Text" hint={marks} wide>
     <textarea
       class="input mono source"
       rows="6"
@@ -76,15 +87,8 @@
       bind:value={widget.props.source}
       oninput={onchange}></textarea>
   </Field>
-  <p class="faint marks">
-    <span># Heading</span><span>- item</span><span>**bold**</span><span>==reverse==</span><span
-      >{'{3:colour}'}</span
-    ><span>\* as itself</span>{#if offered.length}<span
-        >{offered.map((c) => `{${c}}`).join(' ')}</span
-      >{/if}
-  </p>
   {#if p.mode !== 'text' && !shows}
-    <p class="warn">
+    <p class="warn-text">
       The text has no {'{value}'}{offered.length > 1 ? ' or channel' : ''}: nothing the
       {p.mode === 'osc' ? 'message receives' : 'widget does'} will show.
     </p>
@@ -139,13 +143,5 @@
     height: auto;
     padding: 4px 1ch;
     resize: vertical;
-  }
-  .marks {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0 2ch;
-  }
-  .warn {
-    color: var(--warn);
   }
 </style>

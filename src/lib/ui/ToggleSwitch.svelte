@@ -10,13 +10,13 @@
   interface Props {
     on: boolean;
     label: string;
-    title: string;
+    tip: string;
     onclick: () => void;
     /** For a longer label (.mbtn.switch.wide). */
     wide?: boolean;
     disabled?: boolean;
   }
-  let { on, label, title, onclick, wide = false, disabled = false }: Props = $props();
+  let { on, label, tip, onclick, wide = false, disabled = false }: Props = $props();
 </script>
 
 <button
@@ -27,7 +27,7 @@
   role="switch"
   aria-checked={on}
   {disabled}
-  {title}
+  data-tip={tip}
   {onclick}><span class="box">{switchBox(on)}</span>{label}</button
 >
 

@@ -37,14 +37,14 @@
       type="button"
       class="chip"
       class:on={picked.includes(it.id)}
-      title={it.title}
+      data-tip={it.title}
       onclick={() => toggle(it.id)}
     >
       {#if it.lamp !== undefined}<span class="lamp {it.lamp}"></span>{/if}{it.name}
     </button>
   {/each}
   {#each missing as id (id)}
-    <button type="button" class="chip on missing" title={missingTitle} onclick={() => toggle(id)}
+    <button type="button" class="chip on missing" data-tip={missingTitle} onclick={() => toggle(id)}
       >missing: {id}</button
     >
   {/each}

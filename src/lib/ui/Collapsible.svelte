@@ -19,13 +19,7 @@
 
 <div class="fold" class:open>
   <div class="bar">
-    <button
-      class="toggle"
-      aria-expanded={open}
-      aria-controls={id}
-      title={open ? `Fold ${title}` : `Show ${title}`}
-      onclick={() => ontoggle(!open)}
-    >
+    <button class="toggle" aria-expanded={open} aria-controls={id} onclick={() => ontoggle(!open)}>
       <span class="caret" aria-hidden="true">{open ? '▾' : '▸'}</span>
       <span class="title">{title}</span>
       {#if !open && summary}<span class="summary">{summary}</span>{/if}

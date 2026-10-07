@@ -26,7 +26,7 @@
       type="button"
       class="btn ghost"
       disabled={shown === DEFAULT_ACTIVE}
-      title="Back to the default green"
+      data-tip="Back to the default green"
       onclick={() => lookStore.choose(null, 'active', DEFAULT_ACTIVE)}
       ><Icon name="refresh" /> Green</button
     >
@@ -35,7 +35,7 @@
       type="button"
       class="btn ghost"
       disabled={lookStore.chosen(desk, 'active') === null}
-      title="The active colour of every desk (GLOBAL SETTINGS › LOOK)"
+      data-tip="The active colour of every desk (GLOBAL SETTINGS › LOOK)"
       onclick={() => lookStore.choose(desk, 'active', null)}
       ><Icon name="refresh" /> All desks</button
     >

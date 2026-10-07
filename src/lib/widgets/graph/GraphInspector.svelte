@@ -23,10 +23,10 @@
     <span class="axis-label">Max</span>
     <NumberInput bind:value={widget.props.x.max} {onchange} />
     <NumberInput bind:value={widget.props.y.max} {onchange} />
-    <span class="axis-label" title="0 = whole numbers">Decimals</span>
+    <span class="axis-label has-tip" data-tip="0 = whole numbers">Decimals</span>
     <NumberInput bind:value={widget.props.x.decimals} integer {...LIMITS.decimals} {onchange} />
     <NumberInput bind:value={widget.props.y.decimals} integer {...LIMITS.decimals} {onchange} />
-    <span class="axis-label" title="Double-tap resets">Default</span>
+    <span class="axis-label has-tip" data-tip="Double-tap resets">Default</span>
     <NumberInput bind:value={widget.props.x.defaultValue} {onchange} />
     <NumberInput bind:value={widget.props.y.defaultValue} {onchange} />
     <span class="axis-label">Curve</span>

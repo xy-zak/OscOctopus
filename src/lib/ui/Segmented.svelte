@@ -23,7 +23,7 @@
       type="button"
       role="radio"
       aria-checked={o.value === value}
-      title={o.title}
+      data-tip={o.title}
       class:on={o.value === value}
       onclick={() => {
         if (o.value === value) return;

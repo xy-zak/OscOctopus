@@ -45,7 +45,7 @@
       <Choice
         on={chosen === null}
         name="ALL DESKS"
-        title="The skin of every desk (GLOBAL SETTINGS › LOOK): {all.name}"
+        tip="The skin of every desk (GLOBAL SETTINGS › LOOK): {all.name}"
         nameWidth="17ch"
         padY="6px"
         onpick={() => lookStore.choose(desk, 'skin', null)}
@@ -60,7 +60,7 @@
       <Choice
         on={chosen === skin.id}
         name={skin.name}
-        title={skin.note}
+        tip={skin.note}
         nameWidth="17ch"
         padY="6px"
         onpick={() => lookStore.choose(desk, 'skin', skin.id)}

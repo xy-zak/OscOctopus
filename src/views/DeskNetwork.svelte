@@ -65,7 +65,7 @@
           <h2>Outputs</h2>
           <button
             class="btn icon"
-            title="Add output"
+            data-tip="Add output"
             aria-label="Add output"
             onclick={() => presetStore.addOutput()}><Icon name="plus" /></button
           >
@@ -87,7 +87,7 @@
           <h2>Inputs</h2>
           <button
             class="btn icon"
-            title="Add input"
+            data-tip="Add input"
             aria-label="Add input"
             onclick={() => presetStore.addInput()}><Icon name="plus" /></button
           >

@@ -21,9 +21,9 @@
   const VALUELESS: readonly ConstArgType[] = ['T', 'F', 'N', 'I'];
 </script>
 
-<select class="input" title="Argument type" bind:value={arg.type} {onchange}>
+<select class="input" data-tip="Argument type" bind:value={arg.type} {onchange}>
   {#each TYPES as t (t.value)}<option value={t.value}>{t.label}</option>{/each}
 </select>
 {#if !VALUELESS.includes(arg.type)}
-  <input class="input mono" title="Argument value" bind:value={arg.value} oninput={onchange} />
+  <input class="input mono" data-tip="Argument value" bind:value={arg.value} oninput={onchange} />
 {/if}

@@ -13,7 +13,6 @@
   role="switch"
   aria-checked={checked}
   aria-label={label}
-  title={label}
   class="toggle"
   class:on={checked}
   onclick={() => {

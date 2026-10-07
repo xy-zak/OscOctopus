@@ -1,10 +1,11 @@
 <script lang="ts">
   // A TUI box: 1px frame with the title set into the top border and optional actions set into
-  // the top-right of the border.
+  // the top-right of the border. A `hint` explains the box: the title's tooltip.
   import type { Snippet } from 'svelte';
 
   interface Props {
     title: string;
+    hint?: string;
     actions?: Snippet;
     children: Snippet;
     active?: boolean;
@@ -12,12 +13,12 @@
     tone?: string;
     dim?: boolean;
   }
-  let { title, actions, children, active = false, tone, dim = false }: Props = $props();
+  let { title, hint, actions, children, active = false, tone, dim = false }: Props = $props();
 </script>
 
 <section class="panel" class:active class:dim class:toned={!!tone} style:--tone={tone}>
   <header>
-    <span class="title">{title}</span>
+    <span class="title"><span class:has-tip={!!hint} data-tip={hint}>{title}</span></span>
     {#if actions}<span class="actions">{@render actions()}</span>{/if}
   </header>
   <div class="content">{@render children()}</div>

@@ -9,7 +9,7 @@
     max?: number;
     integer?: boolean;
     placeholder?: string;
-    title?: string;
+    tip?: string;
     onchange?: (value: number) => void | boolean;
   }
   let {
@@ -18,7 +18,7 @@
     max = Infinity,
     integer = false,
     placeholder,
-    title,
+    tip,
     onchange,
   }: Props = $props();
 
@@ -54,7 +54,9 @@
   class:invalid={!valid}
   inputmode={integer && min >= 0 ? 'numeric' : 'decimal'}
   {placeholder}
-  title={valid ? title : `Must be ${integer ? 'an integer' : 'a number'} between ${min} and ${max}`}
+  data-tip={valid
+    ? tip
+    : `Must be ${integer ? 'an integer' : 'a number'} between ${min} and ${max}`}
   bind:value={text}
   onfocus={() => (focused = true)}
   onblur={() => {

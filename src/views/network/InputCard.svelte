@@ -24,7 +24,7 @@
   <div class="head">
     <Toggle bind:checked={input.enabled} label="Enabled" {onchange} />
     <input class="input name" bind:value={input.name} {onchange} aria-label="Input name" />
-    <button class="btn icon ghost danger" title="Delete" onclick={onremove}
+    <button class="btn icon ghost danger" data-tip="Delete" onclick={onremove}
       ><Icon name="trash" /></button
     >
   </div>

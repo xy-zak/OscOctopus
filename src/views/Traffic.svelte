@@ -188,13 +188,15 @@
     <span>{filtered.length} shown / {debugStore.events.length} kept</span>
     <span>last seq {debugStore.lastSeq}</span>
     <span
+      class="has-tip"
       class:bad={debugStore.totalDropped > 0}
-      title="Events Rust discarded because the UI could not keep up"
+      data-tip="Events Rust discarded because the UI could not keep up"
       >dropped {debugStore.totalDropped}</span
     >
     <span
+      class="has-tip"
       class:bad={debugStore.unexplainedGaps > 0}
-      title="Sequence numbers missing without a reported drop (should always be 0)"
+      data-tip="Sequence numbers missing without a reported drop (should always be 0)"
       >gaps {debugStore.unexplainedGaps}</span
     >
     <span>{totalRates.tx.toFixed(0)}↑ {totalRates.rx.toFixed(0)}↓ msg/s</span>

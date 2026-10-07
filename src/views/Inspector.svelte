@@ -73,10 +73,10 @@
       <fieldset class="plain" disabled={locked}>
         <button
           class="btn icon"
-          title="Duplicate"
+          data-tip="Duplicate"
           onclick={() => presetStore.duplicateWidget(widget.id)}><Icon name="copy" /></button
         >
-        <button class="btn icon danger" title="Delete" onclick={() => removeWidgets([widget.id])}
+        <button class="btn icon danger" data-tip="Delete" onclick={() => removeWidgets([widget.id])}
           ><Icon name="trash" /></button
         >
       </fieldset>
@@ -132,7 +132,7 @@
               ><Toggle bind:checked={widget.show.title} onchange={touch} /> Title</label
             >
             {#if readout}
-              <label class="row" title={readout}
+              <label class="row"
                 ><Toggle bind:checked={widget.show.value} onchange={touch} /> Value
                 <span class="faint">({readout.toLowerCase()})</span></label
               >
@@ -232,9 +232,6 @@
     display: flex;
     align-items: center;
     gap: 8px;
-  }
-  .inspector :global(.wide-note) {
-    grid-column: 1 / -1;
   }
   .inspector :global(.axis-label) {
     color: var(--fg-dim);

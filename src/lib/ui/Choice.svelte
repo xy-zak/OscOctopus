@@ -7,7 +7,7 @@
   interface Props {
     on: boolean;
     name: string;
-    title?: string;
+    tip?: string;
     onpick: () => void;
     /** The name column's width, so every picture in the list starts at the same place. */
     nameWidth?: string;
@@ -16,7 +16,7 @@
     /** The picture, after the name. */
     children: Snippet;
   }
-  let { on, name, title, onpick, nameWidth = '12ch', padY = '3px', children }: Props = $props();
+  let { on, name, tip, onpick, nameWidth = '12ch', padY = '3px', children }: Props = $props();
 </script>
 
 <button
@@ -25,7 +25,7 @@
   aria-checked={on}
   class="choice"
   class:on
-  {title}
+  data-tip={tip}
   style:--name-w={nameWidth}
   style:--pad-y={padY}
   onclick={() => !on && onpick()}

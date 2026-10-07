@@ -1,20 +1,22 @@
 <script lang="ts">
   // The top line of the side panel in both modes (the Inspector in EDIT, the info panel in
-  // LIVE): the widget's type in reverse video, its label and id, and the panel's actions.
+  // LIVE): the widget's type in reverse video, its label and id, and the panel's actions. A
+  // `hint` explains the panel: the tooltip of its type tag.
   import type { Snippet } from 'svelte';
 
   interface Props {
     kind: string;
+    hint?: string;
     label?: string;
     id?: string;
     actions?: Snippet;
   }
-  let { kind, label, id, actions }: Props = $props();
+  let { kind, hint, label, id, actions }: Props = $props();
 </script>
 
 <header>
   <div class="head">
-    <span class="kind">{kind}</span>
+    <span class="kind" class:has-tip={!!hint} data-tip={hint}>{kind}</span>
     {#if label}<span class="label">{label}</span>{/if}
     {#if id}<span class="id faint">{id}</span>{/if}
   </div>

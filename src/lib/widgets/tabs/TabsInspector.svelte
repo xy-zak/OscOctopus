@@ -38,19 +38,19 @@
       />
       <button
         class="btn icon"
-        title="Earlier"
+        data-tip="Earlier"
         disabled={i === 0}
         onclick={() => presetStore.moveTab(widget.id, tab.id, -1)}>‹</button
       >
       <button
         class="btn icon"
-        title="Later"
+        data-tip="Later"
         disabled={i === widget.props.tabs.length - 1}
         onclick={() => presetStore.moveTab(widget.id, tab.id, 1)}>›</button
       >
       <button
         class="btn icon danger"
-        title="Remove this tab"
+        data-tip="Remove this tab"
         disabled={widget.props.tabs.length <= 1}
         onclick={() => removeTab(widget.id, tab.id)}><Icon name="trash" /></button
       >
@@ -59,12 +59,15 @@
   <button
     class="btn add"
     disabled={full}
-    title={full ? TOO_MANY_TABS : undefined}
+    data-tip={full ? TOO_MANY_TABS : undefined}
     onclick={() => presetStore.addTab(widget.id)}><Icon name="plus" /> Add a tab</button
   >
 
   <div class="grid3">
-    <Field label="Cols">
+    <Field
+      label="Cols"
+      hint="One grid for all its tabs. Select the frame, or a widget on it, and ADD puts new widgets on the tab shown; drag widgets in and out, and hold one over a tab’s name to open it. Tabs show only on this device: everyone picks their own."
+    >
       <NumberInput
         value={grid.cols}
         integer
@@ -88,11 +91,6 @@
       />
     </Field>
   </div>
-  <p class="faint">
-    One grid for all its tabs. Select the frame, or a widget on it, and ADD puts new widgets on the
-    tab shown; drag widgets in and out, and hold one over a tab’s name to open it. Tabs show only on
-    this device: everyone picks their own.
-  </p>
 </section>
 
 <style>
@@ -116,8 +114,5 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 1ch;
-  }
-  p {
-    margin: 0;
   }
 </style>

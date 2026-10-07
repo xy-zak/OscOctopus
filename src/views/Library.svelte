@@ -28,7 +28,10 @@
 
 <div class="library scroll">
   <Lockable>
-    <Panel title="Saved desk presets · this device">
+    <Panel
+      title="Saved desk presets · this device"
+      hint="■ = open as a desk. Stored in {presetStore.dir}"
+    >
       {#snippet actions()}<span class="faint">{presetStore.summaries.length} saved</span>{/snippet}
       <ul>
         {#each presetStore.summaries as s (s.fileName)}
@@ -52,7 +55,7 @@
               {/if}
               <button
                 class="btn icon ghost danger"
-                title="Delete preset"
+                data-tip="Delete preset"
                 onclick={() => deletePreset(s.id, s.name)}><Icon name="trash" /></button
               >
             </div>
@@ -68,7 +71,6 @@
           ><Icon name="upload" /> Import as new desk…</button
         >
       </div>
-      <p class="faint">■ = open as a desk · stored in {presetStore.dir}</p>
     </Panel>
   </Lockable>
 </div>
@@ -124,8 +126,5 @@
   .row .input {
     flex: 1;
     min-width: 20ch;
-  }
-  p {
-    margin: 0;
   }
 </style>

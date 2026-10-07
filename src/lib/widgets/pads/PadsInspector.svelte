@@ -14,7 +14,10 @@
 </script>
 
 <section class="grid2">
-  <Field label="Rows">
+  <Field
+    label="Rows"
+    hint={`Numbered 1–${widget.props.rows * widget.props.cols} from the top-left. Each hit sends {number, row, col, on}.`}
+  >
     <NumberInput bind:value={widget.props.rows} integer {...LIMITS.padsSide} {onchange} />
   </Field>
   <Field label="Columns">
@@ -31,8 +34,4 @@
       {onchange}
     />
   </Field>
-  <p class="faint wide-note">
-    Numbered 1–{widget.props.rows * widget.props.cols} from the top-left. Each hit sends
-    {'{'}number, row, col, on{'}'}.
-  </p>
 </section>

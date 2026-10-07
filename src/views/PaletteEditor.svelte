@@ -101,7 +101,11 @@
 </script>
 
 <div bind:this={root}>
-  <Panel title={isNew ? 'New palette' : `Edit palette · ${start.name}`} active>
+  <Panel
+    title={isNew ? 'New palette' : `Edit palette · ${start.name}`}
+    hint="Colours 0–8 run lightest to darkest, drifting towards yellow in the lights and violet in the darks; SRC is the source itself. A is the accent: it marks highlights and selection wherever the palette is worn, and widgets can use it as a tenth colour. It is made from the source's opposite hue, to stand apart. Click any colour to pick your own; ↻ puts it back."
+    active
+  >
     <div class="top">
       <Field label="Name" hint="Up to {LIMITS.paletteName.max} characters">
         <input
@@ -129,7 +133,7 @@
             <input
               type="color"
               aria-label="{nameOf(i)}{overridden[i] ? ' (picked by hand)' : ''}"
-              title={overridden[i]
+              data-tip={overridden[i]
                 ? `${nameOf(i)}: picked by hand`
                 : `${nameOf(i)}: click to pick your own`}
               value={c}
@@ -141,7 +145,7 @@
             <button
               type="button"
               class="btn ghost reset"
-              title="{nameOf(i)}: back to the generated colour"
+              data-tip="{nameOf(i)}: back to the generated colour"
               onclick={() => reset(i)}><Icon name="refresh" /></button
             >
           {:else}
@@ -150,13 +154,6 @@
         </div>
       {/each}
     </div>
-    <p class="faint">
-      Colours 0–8 run lightest to darkest, drifting towards yellow in the lights and violet in the
-      darks; SRC is the source itself. A is the accent: it marks highlights and selection wherever
-      the palette is worn, and widgets can use it as a tenth colour. It is made from the source's
-      opposite hue, to stand apart. Click any colour to pick your own; <Icon name="refresh" /> puts it
-      back.
-    </p>
 
     <div class="actions">
       <button class="btn primary" disabled={!nameOk || full} onclick={save}

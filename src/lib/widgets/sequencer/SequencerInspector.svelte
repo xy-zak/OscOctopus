@@ -91,23 +91,23 @@
           bind:value={s.address}
           oninput={onchange}
           placeholder="/address"
-          title={err ?? ''}
+          data-tip={err ?? ''}
         />
         <button
           class="btn icon ghost"
-          title="Move up"
+          data-tip="Move up"
           disabled={i === 0}
           onclick={() => move(i, -1)}>▲</button
         >
         <button
           class="btn icon ghost"
-          title="Move down"
+          data-tip="Move down"
           disabled={i === steps.length - 1}
           onclick={() => move(i, 1)}>▼</button
         >
         <button
           class="btn icon ghost"
-          title="Remove step"
+          data-tip="Remove step"
           disabled={steps.length <= LIMITS.seqSteps.min}
           onclick={() => remove(i)}><Icon name="close" /></button
         >
@@ -118,7 +118,7 @@
           <ConstArgFields arg={a} {onchange} />
           <button
             class="btn icon ghost"
-            title="Remove argument"
+            data-tip="Remove argument"
             onclick={() => (s.args.splice(j, 1), onchange())}><Icon name="close" /></button
           >
         </div>
@@ -135,7 +135,7 @@
             bind:value={s.delayMs}
             integer
             {...LIMITS.seqDelayMs}
-            title="Milliseconds before the next step"
+            tip="Milliseconds before the next step"
             {onchange}
           />
         </span>
@@ -148,13 +148,14 @@
   >
 
   <p class="faint">
-    One pass takes {seconds(pass.ms)}{pass.floored
-      ? ' (a pass never takes less, so it can’t flood the outputs)'
-      : ''}. The sequence plays on this device only, timed by the app’s core, in the background too.
-    OSC-OUT off holds its messages back; FREEZE leaves it playing.
+    <span
+      class="has-tip"
+      data-tip="The sequence plays on this device only, timed by the app’s core, in the background too. OSC-OUT off holds its messages back; FREEZE leaves it playing."
+      >One pass takes {seconds(pass.ms)}</span
+    >{pass.floored ? ' (a pass never takes less, so it can’t flood the outputs)' : ''}.
   </p>
   {#if sequencerStore.edited[widget.id]}
-    <p class="warn">
+    <p class="warn-text">
       Edited on another device: the running sequence keeps its steps until it is started again.
     </p>
   {/if}
@@ -202,8 +203,5 @@
   }
   .err {
     color: var(--danger);
-  }
-  .warn {
-    color: var(--warn);
   }
 </style>

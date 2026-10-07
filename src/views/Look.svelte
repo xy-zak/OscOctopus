@@ -28,7 +28,10 @@
 
 <div class="look scroll">
   <Lockable>
-    <Panel title="Background · all desks">
+    <Panel
+      title="Background · all desks"
+      hint="Dark (default) is near-black with near-white text; light is the inverse. The palette colours stay the same in both."
+    >
       <Segmented
         options={[
           { value: 'dark', label: '■ DARK' },
@@ -37,33 +40,23 @@
         value={appearance.theme.mode}
         onchange={(mode) => appearance.set({ mode })}
       />
-      <p class="faint">
-        Dark (default) is near-black with near-white text; light is the inverse. The palette colours
-        stay the same in both.
-      </p>
     </Panel>
 
-    <Panel title="Palette · all desks">
+    <Panel
+      title="Palette · all desks"
+      hint="Each palette is nine colours and an accent (the last, set apart). The accent marks highlights and selection. Widgets and each desk's identity colour pick one of all ten (widgets can also use AUTO: their desk's colour). A desk can have its own palette (DESK › LOOK)."
+    >
       <PalettePicker desk={null} {editing} onedit={(id) => (editing = id)} />
       <!-- Right under the list, where the new palette will appear. -->
       <div class="new">
         <button
           class="btn"
           disabled={editing !== null || appearance.customFull}
+          data-tip="Make your own: pick one colour, and nine and an accent are made from it."
           onclick={() => (editing = 'new')}><Icon name="plus" /> New palette</button
         >
-        <span class="faint">
-          {appearance.customFull
-            ? PALETTES_FULL
-            : 'Make your own: pick one colour, and nine and an accent are made from it.'}
-        </span>
+        {#if appearance.customFull}<span class="faint">{PALETTES_FULL}</span>{/if}
       </div>
-      <p class="faint">
-        Each palette is nine colours and an accent (the last, set apart). The accent marks
-        highlights and selection. Widgets and each desk's identity colour pick one of all ten
-        (widgets can also use AUTO: their desk's colour). A desk can have its own palette (DESK ›
-        LOOK).
-      </p>
     </Panel>
 
     {#if editing !== null && (editing === 'new' || editingPalette)}
@@ -73,21 +66,23 @@
       {/key}
     {/if}
 
-    <Panel title="Active colour · all desks">
+    <Panel
+      title="Active colour · all desks"
+      hint="What is pressed, on, filled or held turns this colour, in every palette. Pick one your widgets don't use, so it stands out. A desk can have its own (DESK › LOOK)."
+    >
       <ActivePicker desk={null} />
-      <p class="faint">
-        What is pressed, on, filled or held turns this colour, in every palette. Pick one your
-        widgets don't use, so it stands out. A desk can have its own (DESK › LOOK).
-      </p>
     </Panel>
 
-    <Panel title="Widget skin · all desks">
+    <Panel
+      title="Widget skin · all desks"
+      hint="How widgets are drawn: their shapes, lines, fills and motion. The palette and the active colour still colour them, and the text, the markers and the background stay the same in every skin. A desk can have its own skin (DESK › LOOK)."
+    >
       <SkinPicker desk={null}>
         {#snippet actions(skin)}
           <button
             class="btn ghost"
             aria-label="Export {skin.name}"
-            title="Save {skin.name} as a file, to use on another device or share"
+            data-tip="Save {skin.name} as a file, to use on another device or share"
             onclick={() => exportSkin(skin.id)}><Icon name="download" /> Export</button
           >
           <button
@@ -98,7 +93,7 @@
         {/snippet}
       </SkinPicker>
       <div class="new">
-        <label class="btn"
+        <label class="btn" data-tip="A skin file exported on another device, or shared with you."
           ><Icon name="upload" /> Import skin…<input
             type="file"
             accept=".json,application/json"
@@ -111,7 +106,6 @@
             }}
           /></label
         >
-        <span class="faint">A skin file exported on another device, or shared with you.</span>
       </div>
       {#each skinStore.problems as p (p.id)}
         <div class="problem">
@@ -121,11 +115,6 @@
           >
         </div>
       {/each}
-      <p class="faint">
-        How widgets are drawn: their shapes, lines, fills and motion. The palette and the active
-        colour still colour them, and the text, the markers and the background stay the same in
-        every skin. A desk can have its own skin (DESK › LOOK).
-      </p>
     </Panel>
   </Lockable>
 </div>
@@ -139,9 +128,6 @@
     gap: 16px;
     max-width: 110ch;
     margin: 0 auto;
-  }
-  p {
-    margin: 0;
   }
   .new,
   .problem {

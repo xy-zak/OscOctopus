@@ -72,7 +72,7 @@
     <input class="input name" bind:value={output.name} {onchange} aria-label="Output name" />
     <button
       class="btn icon ghost danger"
-      title={usedBy ? `Delete (used by ${usedBy} message${usedBy > 1 ? 's' : ''})` : 'Delete'}
+      data-tip={usedBy ? `Delete (used by ${usedBy} message${usedBy > 1 ? 's' : ''})` : 'Delete'}
       onclick={onremove}><Icon name="trash" /></button
     >
   </div>

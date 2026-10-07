@@ -51,17 +51,18 @@
 
 <div class="desk-sync scroll">
   <Lockable>
-    <Panel title="Share with the session" active={live} tone="var(--scope)">
+    <Panel
+      title="Share with the session"
+      hint="Everyone in your sync session can play a shared desk and edit it at the same time. Only the device you touch sends OSC; the others show the value."
+      active={live}
+      tone="var(--scope)"
+    >
       {#snippet actions()}
         {#if live}<span class="pill ok">shared</span>{:else if shared}<span class="pill off"
             >not syncing</span
           >{/if}
       {/snippet}
       {#if !shared}
-        <p>
-          Share this desk with the devices in your sync session: everyone can play it and edit it at
-          the same time. Only the device you touch sends OSC; the others show the value.
-        </p>
         <div class="actions">
           <button
             class="btn primary"
@@ -78,24 +79,20 @@
       {:else}
         {#if !syncSession.joined}
           <p class="warn-text">
-            <Icon name="warning" /> No session joined: edits made here are kept and merge when you join
-            again.
+            No session joined: edits made here are kept and merge when you join again.
           </p>
         {/if}
         <div class="actions">
-          <button class="btn" onclick={duplicateDesk}
+          <button class="btn" data-tip="A copy is a new desk, not shared" onclick={duplicateDesk}
             ><Icon name="copy" /> Make an independent copy</button
           >
           <button
             class="btn danger"
+            data-tip="It keeps its history: sharing it again merges with the others like a reconnect"
             onclick={() => runAction('Stop sharing', () => sharedDesks.unshare(desk.id))}
             >Stop sharing</button
           >
         </div>
-        <p class="faint">
-          Stopping keeps its history: sharing it again merges with the others like a reconnect. A
-          copy is a new, unshared desk.
-        </p>
       {/if}
     </Panel>
 
@@ -115,26 +112,27 @@
         </div>
         <label class="row check">
           <Toggle checked={forwarding} onchange={(on) => sharedDesks.setForwarding(desk.id, on)} />
-          Forward received OSC input from this device
+          <span
+            class="has-tip"
+            data-tip="On a shared desk only one device should forward input (messages with FORWARD on), or device feedback is sent once per device."
+            >Forward received OSC input from this device</span
+          >
         </label>
-        <p class="faint">
-          On a shared desk only one device should forward input (messages with FORWARD on), or
-          device feedback is sent once per device.{forwarders.length
-            ? ` Forwarding now: ${forwarders.join(', ')}${forwarding ? ' and this device' : ''}.`
-            : ''}
-        </p>
-        {#if clash}
-          <p class="warn-text">
-            <Icon name="warning" /> More than one device forwards input for this desk.
+        {#if forwarders.length}
+          <p class="faint">
+            Forwarding now: {forwarders.join(', ')}{forwarding ? ' and this device' : ''}.
           </p>
+        {/if}
+        {#if clash}
+          <p class="warn-text">More than one device forwards input for this desk.</p>
         {/if}
       </Panel>
 
-      <Panel title="Earlier versions">
+      <Panel
+        title="Earlier versions"
+        hint="Kept on this device before changes were saved, so a bad edit from anyone can be undone: at most one every 5 minutes while the desk changes, the last 10."
+      >
         {#if backups.length}
-          <p class="faint">
-            Kept on this device before changes were saved, so a bad edit from anyone can be undone.
-          </p>
           <ul class="list">
             {#each backups as b (b.path)}
               <li>
@@ -144,12 +142,9 @@
             {/each}
           </ul>
         {:else}
-          <p class="faint">
-            None yet. A copy of the desk is kept at most every 5 minutes while it changes (the last
-            10).
-          </p>
+          <p class="faint">None yet.</p>
         {/if}
-        {#if backupError}<p class="faint">{backupError}</p>{/if}
+        {#if backupError}<p class="error-text">{backupError}</p>{/if}
       </Panel>
     {/if}
   </Lockable>

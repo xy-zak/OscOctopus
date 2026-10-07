@@ -39,24 +39,31 @@
     />
   </Field>
   <div class="options-head">
-    <span class="axis-label">Label</span><span class="axis-label">Value</span>
+    <span class="axis-label">Label</span><span
+      class="axis-label has-tip"
+      data-tip={'Sends {index, label, value}; numeric-looking values are sent as numbers.'}
+      >Value</span
+    >
   </div>
   {#each options as o, i (i)}
     <div class="option">
       <input class="input" bind:value={o.label} oninput={onchange} placeholder="label" />
       <input class="input mono" bind:value={o.value} oninput={onchange} placeholder="value" />
-      <button class="btn icon ghost" title="Move up" disabled={i === 0} onclick={() => move(i, -1)}
-        >▲</button
+      <button
+        class="btn icon ghost"
+        data-tip="Move up"
+        disabled={i === 0}
+        onclick={() => move(i, -1)}>▲</button
       >
       <button
         class="btn icon ghost"
-        title="Move down"
+        data-tip="Move down"
         disabled={i === options.length - 1}
         onclick={() => move(i, 1)}>▼</button
       >
       <button
         class="btn icon ghost"
-        title="Remove option"
+        data-tip="Remove option"
         disabled={options.length <= LIMITS.listOptions.min}
         onclick={() => remove(i)}><Icon name="close" /></button
       >
@@ -72,9 +79,6 @@
       </select>
     </Field>
   </div>
-  <p class="faint">
-    Sends {'{'}index, label, value{'}'}; numeric-looking values are sent as numbers.
-  </p>
 </section>
 
 <style>

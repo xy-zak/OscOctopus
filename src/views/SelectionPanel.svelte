@@ -32,20 +32,20 @@
 </script>
 
 <div class="panel-body">
-  <WidgetHeader kind="SELECTION" label="{widgets.length} widgets">
+  <WidgetHeader
+    kind="SELECTION"
+    hint="Drag one to move them all, into a frame or out of it; a handle resizes them all alike; arrows nudge them. Shift+click a widget to add it or take it out; click one below to edit it alone."
+    label="{widgets.length} widgets"
+  >
     {#snippet actions()}
       <button
         class="btn icon danger"
-        title="Delete them"
+        data-tip="Delete them"
         onclick={() => removeWidgets(widgets.map((w) => w.id))}><Icon name="trash" /></button
       >
     {/snippet}
   </WidgetHeader>
-  <p class="faint">
-    On {where}. Drag one to move them all, into a frame or out of it; a handle resizes them all
-    alike; arrows nudge them. Shift+click a widget to add it or take it out; click one below to edit
-    it alone.
-  </p>
+  <p class="faint">On {where}.</p>
   {#if held.length}
     <div class="held" role="status">
       {#each held as line (line)}<span>● {line}</span>{/each}

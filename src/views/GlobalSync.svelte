@@ -149,8 +149,8 @@
       </div>
       {#if s.local.identityError}
         <p class="error-text">
-          <Icon name="warning" /> The saved device identity could not be read ({s.local
-            .identityError}). A temporary one is used until it is fixed.
+          The saved device identity could not be read ({s.local.identityError}). A temporary one is
+          used until it is fixed.
         </p>
       {/if}
     {:else}
@@ -159,7 +159,11 @@
   </Panel>
 
   <Lockable>
-    <Panel title="Session" active={syncSession.joined}>
+    <Panel
+      title="Session"
+      hint="The key never leaves this device and is not stored: with Remember on, only a key derived from it is kept. Shared desks and live values reach only devices that know it."
+      active={syncSession.joined}
+    >
       {#snippet actions()}
         {#if syncSession.joined}<span class="pill ok">joined</span>{/if}
       {/snippet}
@@ -221,7 +225,7 @@
         </div>
         {#if weak}
           <p class="warn-text">
-            <Icon name="warning" /> A short passphrase can be guessed. Generate a key, or use a long phrase.
+            A short passphrase can be guessed. Generate a key, or use a long phrase.
           </p>
         {/if}
         <div class="actions">
@@ -240,12 +244,8 @@
         </div>
       {/if}
       {#if syncSession.error}
-        <p class="error-text"><Icon name="warning" /> {syncSession.error}</p>
+        <p class="error-text">{syncSession.error}</p>
       {/if}
-      <p class="faint">
-        The key never leaves this device and is not stored: with Remember on, only a key derived
-        from it is kept. Shared desks and live values reach only devices that know it.
-      </p>
     </Panel>
 
     <Panel title="Shared in this session">
@@ -268,7 +268,7 @@
                 <button
                   class="btn"
                   onclick={() => sharedDesks.open(d.peers[0]!, d)}
-                  title="Open it here and edit it together"><Icon name="download" /> Open</button
+                  data-tip="Open it here and edit it together"><Icon name="download" /> Open</button
                 >
               {/if}
             </li>
@@ -278,22 +278,20 @@
         </ul>
         {#each links as [p, q] (p + q)}
           <p class="warn-text">
-            <Icon name="warning" />
             {syncSession.peerName(p)} and {syncSession.peerName(q)} are not connected to each other. Their
             edits still meet through this device, within a few seconds.
           </p>
         {/each}
         {#each Object.entries(sharedDesks.clockSkew) as [peer, ms] (peer)}
           <p class="warn-text">
-            <Icon name="warning" />
             {syncSession.peerName(peer)}'s clock is {Math.round(ms / 1000)} s ahead of this one: its edits
             are ignored until the clocks are set right.
           </p>
         {/each}
         {#each Object.keys(sharedDesks.unsettled) as peer (peer)}
           <p class="warn-text">
-            <Icon name="warning" /> Desks keep differing from {syncSession.peerName(peer)}'s: update
-            OscOctopus on both devices.
+            Desks keep differing from {syncSession.peerName(peer)}'s: update OscOctopus on both
+            devices.
           </p>
         {/each}
       {/if}
@@ -302,11 +300,7 @@
     <Panel title="Connection">
       {#if config && s}
         <div class="grid">
-          <Field
-            label="Listen port (TCP)"
-            hint={s.listenError ??
-              (s.listening ? `listening on ${s.listening}` : 'used once a session is joined')}
-          >
+          <Field label="Listen port (TCP)" hint="Other devices connect to this port.">
             <NumberInput
               value={config.port}
               min={0}
@@ -314,16 +308,33 @@
               integer
               onchange={(port) => void syncSession.setConfig({ ...config, port })}
             />
+            {#if s.listenError}
+              <span class="error-text">{s.listenError}</span>
+            {:else}
+              <span class="faint"
+                >{s.listening
+                  ? `listening on ${s.listening}`
+                  : 'used once a session is joined'}</span
+              >
+            {/if}
           </Field>
           <Field
             label="Find devices on the LAN"
-            hint={s.discoveryError ??
-              (s.discoveryActive ? 'discovery active (mDNS)' : 'devices must be added by address')}
+            hint="Other devices on this network are found by mDNS. Without it, add them by address."
           >
             <Toggle
               checked={config.discovery}
               onchange={(discovery) => void syncSession.setConfig({ ...config, discovery })}
             />
+            {#if s.discoveryError}
+              <span class="error-text">{s.discoveryError}</span>
+            {:else}
+              <span class="faint"
+                >{s.discoveryActive
+                  ? 'discovery active (mDNS)'
+                  : 'devices must be added by address'}</span
+              >
+            {/if}
           </Field>
           <Field
             label="Devices by address"
@@ -350,7 +361,7 @@
                 <span>{spec}</span>
                 <button
                   class="btn icon ghost"
-                  title="Stop connecting to {spec}"
+                  data-tip="Stop connecting to {spec}"
                   onclick={() => removePeer(spec)}><Icon name="close" /></button
                 >
               </li>
@@ -403,7 +414,7 @@
                 {#if p.peerId}
                   <button
                     class="btn ghost"
-                    title="Refuse this device from now on"
+                    data-tip="Refuse this device from now on"
                     onclick={() => p.peerId && syncSession.block(p.peerId)}
                     ><Icon name="ban" /> Block</button
                   >

@@ -25,7 +25,10 @@
 </script>
 
 <div class="global-network scroll">
-  <Panel title="All desk endpoints">
+  <Panel
+    title="All desk endpoints"
+    hint="Every open desk's outputs and inputs. Click one to edit it in that desk's NETWORK section."
+  >
     {#snippet actions()}
       {#if networkStore.paused}<span class="pill bad">output paused</span>{/if}
     {/snippet}
@@ -43,7 +46,7 @@
           <tr
             class="clickable"
             onclick={() => openDeskNetwork(r.desk.id)}
-            title="Edit in {r.desk.name} › Network"
+            data-tip="Edit in {r.desk.name} › Network"
           >
             <td class="desk">{r.desk.name}</td>
             <td class="faint">{r.kind === 'out' ? '↑' : '↓'} {r.cfg.transport.toUpperCase()}</td>
@@ -66,10 +69,12 @@
         {/each}
       </tbody>
     </table>
-    <p class="faint">Click a row to edit it in that desk's NETWORK section.</p>
   </Panel>
 
-  <Panel title="Interfaces on this device">
+  <Panel
+    title="Interfaces on this device"
+    hint="Use these addresses for “send from (bind)”, “listen on” and broadcast targets in a desk's NETWORK section."
+  >
     {#snippet actions()}
       <button class="btn ghost" onclick={() => networkStore.refreshInterfaces()}
         ><Icon name="refresh" /> Refresh</button
@@ -88,10 +93,6 @@
         {/each}
       </tbody>
     </table>
-    <p class="faint">
-      Use these addresses for "send from (bind)", "listen on" and broadcast targets in a desk's
-      NETWORK section.
-    </p>
   </Panel>
 </div>
 
@@ -137,8 +138,5 @@
   .detail td {
     color: var(--danger);
     white-space: normal;
-  }
-  p {
-    margin: 0;
   }
 </style>

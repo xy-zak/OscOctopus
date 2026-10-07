@@ -81,13 +81,13 @@
         class="pick"
         role="tab"
         aria-selected={on}
-        title="Desk {i + 1}: {d.name} (Alt+{i + 1})"
+        data-tip="Desk {i + 1}: {d.name} (Alt+{i + 1})"
         onclick={() => pick(d.id)}
       >
         <span class="chip" aria-hidden="true"></span>
         {#if sharedDesks.view[d.id]?.shared}<span
             class="shared"
-            title={syncSession.joined
+            data-tip={syncSession.joined
               ? 'Shared with the session'
               : 'Shared (not syncing: no session joined)'}
             class:off={!syncSession.joined}>⇄</span
@@ -97,18 +97,18 @@
           <span
             class="viewer"
             style:color={colorVars(syncSession.peers[peer]?.color ?? 0).c}
-            title="{syncSession.peerName(peer)} is on this desk">●</span
+            data-tip="{syncSession.peerName(peer)} is on this desk">●</span
           >
         {/each}
-        <span class="dot {h}" title="Network: {h}">●</span>{#if presetStore.isDirty(d.id)}<span
+        <span class="dot {h}" data-tip="Network: {h}">●</span>{#if presetStore.isDirty(d.id)}<span
             class="dirty"
-            title="Unsaved (autosaving)">+</span
+            data-tip="Unsaved (autosaving)">+</span
           >{/if}
       </button>
       {#if managing && presetStore.desks.length > 1}
         <button
           class="x"
-          title="Remove desk"
+          data-tip="Remove desk"
           aria-label="Remove desk {d.name}"
           onclick={() => removeDesk(d.id)}><Icon name="close" /></button
         >
@@ -120,7 +120,7 @@
     <div class="add-wrap">
       <button
         class="add"
-        title="Add a desk"
+        data-tip="Add a desk"
         aria-label="Add a desk"
         aria-expanded={menuOpen}
         onclick={() => (menuOpen = !menuOpen)}><Icon name="plus" /></button
@@ -158,7 +158,7 @@
         class="pick"
         role="tab"
         aria-selected={ui.view === 'global'}
-        title="GLOBAL SETTINGS: traffic of all desks, this device, preset library, look (Alt+0)"
+        data-tip="GLOBAL SETTINGS: traffic of all desks, this device, preset library, look (Alt+0)"
         onclick={() => showGlobal()}
       >
         <Icon name="grid" />

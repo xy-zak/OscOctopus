@@ -67,7 +67,7 @@
           <li>
             <button
               class="tab"
-              title="Show this tab"
+              data-tip="Show this tab"
               onclick={() => {
                 presetStore.showTab(w.id, tab.id);
                 presetStore.select(w.id);

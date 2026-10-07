@@ -27,7 +27,8 @@
     wide?: boolean;
     /** Blink the box while off (OSC-OUT: off is a safety state). */
     blinkOff?: boolean;
-    title: string;
+    /** Its tooltip (a mouse or the keyboard: its long press is its own). */
+    tip: string;
     /** Bumped whenever someone touches something this switch holds: the button nudges and hints. */
     nudge?: number;
     /** Only turning off needs the hold; turning on is a click. */
@@ -42,7 +43,7 @@
     offTone = '',
     wide = false,
     blinkOff = false,
-    title,
+    tip,
     nudge = 0,
     holdOff = false,
   }: Props = $props();
@@ -152,7 +153,8 @@
   aria-label={holdOff && !on
     ? label
     : `${label}: press and hold for one second to ${holdOff ? 'stop' : 'change'}`}
-  {title}
+  data-tip={tip}
+  data-tip-touch="off"
   onpointerdown={(e) => {
     if (e.button !== 0) return;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);

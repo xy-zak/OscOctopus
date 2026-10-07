@@ -34,7 +34,7 @@
       aria-checked={value === x.value}
       class="extra"
       class:on={value === x.value}
-      title={x.title}
+      data-tip={x.title}
       onclick={() => onchange(x.value)}
       >{#if x.color}<span class="extra-sw" style:background={x.color}></span>{/if}{x.label}</button
     >
@@ -45,7 +45,7 @@
       role="radio"
       aria-checked={value === i}
       aria-label={nameOf(i)}
-      title={nameOf(i)}
+      data-tip={nameOf(i)}
       class="sw"
       class:accent={i === ACCENT_INDEX}
       class:on={value === i}
