@@ -33,15 +33,18 @@ export function unshape(v: number, curve: Curve): number {
   }
 }
 
-/** Position (0..1) → output value in [min, max], quantised to `step`. */
-export function sliderValue(n: number, p: Pick<Axis, 'min' | 'max' | 'step' | 'curve'>): number {
+/** The smallest change a number with `decimals` places can make: 0 → 1, 2 → 0.01. */
+export const stepOf = (decimals: number) => 10 ** -decimals;
+
+/** Position (0..1) → output value in [min, max], rounded to `decimals` places. */
+export function sliderValue(
+  n: number,
+  p: Pick<Axis, 'min' | 'max' | 'decimals' | 'curve'>,
+): number {
   const raw = p.min + (p.max - p.min) * shape(n, p.curve);
-  if (p.step <= 0) return raw;
-  const q = p.min + Math.round((raw - p.min) / p.step) * p.step;
   const lo = Math.min(p.min, p.max);
   const hi = Math.max(p.min, p.max);
-  // Round away float noise from the step arithmetic (0.1 + 0.2 ...).
-  return clamp(Number(q.toFixed(10)), lo, hi);
+  return clamp(Number(raw.toFixed(p.decimals)), lo, hi);
 }
 
 /** Output value → position (0..1). */

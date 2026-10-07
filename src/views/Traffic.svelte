@@ -202,33 +202,43 @@
 
   <div class="split">
     <div class="list">
-      <VirtualList
-        items={filtered}
-        rowHeight={28}
-        bind:follow
-        key={(e, i) => (e.seq || -i) + ':' + e.tsMicros}
-      >
-        {#snippet row(e: DebugEvent)}
-          {@const b = badge(e)}
-          {@const t = formatTime(e.tsMicros)}
-          <button class="row mono" class:sel={selected === e} onclick={() => (selected = e)}>
-            <span class="time">{t.clock}<span class="faint">{t.micros}</span></span>
-            <span class="badge {b.cls}">{b.text}</span>
-            <span class="ep"
-              >{#if scope === undefined && e.desk}<span class="faint">{deskName(e.desk)}/</span
-                >{/if}{e.endpointName || e.endpointId || '—'}</span
-            >
-            <span class="remote faint">{e.remote ?? ''}</span>
-            <span class="text" class:bad={e.error || e.decodeError}
-              >{rowText(e)}{#if e.error && e.kind === 'packet'}
-                — {e.error}{/if}</span
-            >
-            <span class="size faint"
-              >{e.kind === 'packet' ? `${e.wireLen ?? e.bytes.length} B` : ''}</span
-            >
-          </button>
-        {/snippet}
-      </VirtualList>
+      <div class="head cols mono" role="row">
+        <span role="columnheader">Time</span>
+        <span role="columnheader">Event</span>
+        <span role="columnheader" class="ep">Endpoint</span>
+        <span role="columnheader" class="remote">Remote</span>
+        <span role="columnheader">Message</span>
+        <span role="columnheader" class="size">Size</span>
+      </div>
+      <div class="rows">
+        <VirtualList
+          items={filtered}
+          rowHeight={28}
+          bind:follow
+          key={(e, i) => (e.seq || -i) + ':' + e.tsMicros}
+        >
+          {#snippet row(e: DebugEvent)}
+            {@const b = badge(e)}
+            {@const t = formatTime(e.tsMicros)}
+            <button class="row cols mono" class:sel={selected === e} onclick={() => (selected = e)}>
+              <span class="time">{t.clock}<span class="faint">{t.micros}</span></span>
+              <span class="badge {b.cls}">{b.text}</span>
+              <span class="ep"
+                >{#if scope === undefined && e.desk}<span class="faint">{deskName(e.desk)}/</span
+                  >{/if}{e.endpointName || e.endpointId || '—'}</span
+              >
+              <span class="remote faint">{e.remote ?? ''}</span>
+              <span class="text" class:bad={e.error || e.decodeError}
+                >{rowText(e)}{#if e.error && e.kind === 'packet'}
+                  — {e.error}{/if}</span
+              >
+              <span class="size faint"
+                >{e.kind === 'packet' ? `${e.wireLen ?? e.bytes.length} B` : ''}</span
+              >
+            </button>
+          {/snippet}
+        </VirtualList>
+      </div>
     </div>
 
     {#if selected}
@@ -377,10 +387,29 @@
     flex: 1;
     min-width: 0;
     container-type: inline-size;
+    display: flex;
+    flex-direction: column;
   }
-  .row {
-    width: 100%;
-    height: 100%;
+  .rows {
+    flex: 1;
+    min-height: 0;
+  }
+  /* The headings and the rows reserve the same scrollbar space, so their columns line up. */
+  .head,
+  .rows :global(.viewport) {
+    scrollbar-gutter: stable;
+  }
+  .head {
+    flex: none;
+    overflow: hidden;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--line);
+    color: var(--fg-dim);
+    text-transform: uppercase;
+    background: var(--bg-2);
+  }
+  .cols {
     display: grid;
     /* Every column takes a share of the width (the message the biggest), so the columns spread
        across the whole list instead of bunching up at the left. */
@@ -389,16 +418,21 @@
       minmax(0, 3fr) minmax(6ch, 0.6fr);
     gap: 2ch;
     align-items: center;
-    padding: 0 12px;
+    padding-left: 12px;
+    padding-right: 12px;
+    white-space: nowrap;
+  }
+  .cols > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .row {
+    width: 100%;
+    height: 100%;
     border: 0;
     border-bottom: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
     background: none;
     text-align: left;
-    white-space: nowrap;
-  }
-  .row > span {
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
   .row:hover {
     background: var(--bg-2);
@@ -409,23 +443,23 @@
   /* Columns drop out as the list narrows (e.g. when the detail pane opens); the message
      text is the last thing to go. */
   @container (max-width: 820px) {
-    .row {
+    .cols {
       grid-template-columns:
         minmax(15ch, 1.2fr) minmax(7ch, 0.8fr) minmax(10ch, 1.6fr) minmax(0, 3fr)
         minmax(6ch, 0.6fr);
       gap: 1.5ch;
     }
-    .row .remote {
+    .cols .remote {
       display: none;
     }
   }
   @container (max-width: 560px) {
-    .row {
+    .cols {
       grid-template-columns: 12ch 7ch minmax(0, 1fr);
       gap: 1.5ch;
     }
-    .row .ep,
-    .row .size {
+    .cols .ep,
+    .cols .size {
       display: none;
     }
     .time .faint {

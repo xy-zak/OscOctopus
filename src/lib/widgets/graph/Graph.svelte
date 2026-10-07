@@ -1,11 +1,10 @@
 <script lang="ts">
   // XY pad drawn as a plot on grid paper: one finger sets two channels at once. X and Y each
-  // have their own range/step/curve (see Axis in model/preset.ts); messages pick a channel per
+  // have their own range/decimals/curve (see Axis in model/preset.ts); messages pick a channel per
   // argument. A cursor with crosshairs; while held, brackets lock on around it and it leaves a
   // trail of fading dots (TERMINAL: dashed lines and square pixels on a dot grid).
   import type { GraphWidget } from '../../model/preset';
   import { sliderPosition, sliderValue } from '../../osc/curves';
-  import { formatValue } from '../../osc/format';
   import { emitValue } from '../../osc/flow';
   import { isRecord, type XY } from '../../osc/value';
   import { tapHaptic } from '../../platform/haptics';
@@ -15,6 +14,7 @@
   import { doubleTap, dragScale, keyStep } from '../interaction';
   import WidgetFrame from '../WidgetFrame.svelte';
   import { graphDef } from './def';
+  import { valueTextOf } from '../defs';
 
   let { widget, live }: { widget: GraphWidget; live: boolean } = $props();
 
@@ -117,19 +117,17 @@
     e.preventDefault();
     setPos(nx + m[0], ny + m[1], true);
   }
-
-  const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(3));
 </script>
 
 <WidgetFrame
   {widget}
   {live}
   data-dragging={flag(drag !== null)}
-  status="{p.x.label}:{fmt(value.x)} {p.y.label}:{fmt(value.y)}"
+  status="{p.x.label}:{value.x.toFixed(p.x.decimals)} {p.y.label}:{value.y.toFixed(p.y.decimals)}"
   active={drag !== null}
   role="slider"
   aria-label="{widget.label}: {p.x.label} and {p.y.label}"
-  aria-valuetext={formatValue(value)}
+  aria-valuetext={valueTextOf(widget, value)}
   aria-valuenow={value.x}
   tabindex={live ? 0 : -1}
   {onpointerdown}

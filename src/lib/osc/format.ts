@@ -21,18 +21,13 @@ export function formatValue(v: WidgetValue): string {
 }
 
 /**
- * A value as people read it on a display (the text widget): whole numbers as they are, others
- * to `decimals` places, strings as written, lists joined by spaces, records as `k v · k v`.
+ * A value as people read it on a display (the text widget): every number with exactly
+ * `decimals` places (3.00, not 3), strings as written, lists joined by spaces, records as
+ * `k v · k v`.
  */
 export function displayValue(v: WidgetValue, decimals: number): string {
   const one = (x: Scalar | ValueList): string =>
-    isList(x)
-      ? x.map(one).join(' ')
-      : typeof x === 'number'
-        ? Number.isInteger(x)
-          ? String(x)
-          : x.toFixed(decimals)
-        : String(x);
+    isList(x) ? x.map(one).join(' ') : typeof x === 'number' ? x.toFixed(decimals) : String(x);
   if (isRecord(v))
     return Object.entries(v)
       .map(([k, x]) => `${k} ${one(x)}`)

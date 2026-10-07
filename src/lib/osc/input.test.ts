@@ -161,9 +161,9 @@ describe('coercion', () => {
     expect(nearestOnOff('off', 127, 0)).toBe(0);
     expect(nearestOnOff(1, 5, 5)).toBeUndefined();
   });
-  it('allows half a step (or 0.1% of the range) of echo drift', () => {
-    expect(rangeTolerance({ min: 0, max: 10, step: 1 })).toBe(0.5);
-    expect(rangeTolerance({ min: 0, max: 1, step: 0 })).toBeCloseTo(0.001);
+  it('allows half the last decimal place (or 0.1% of the range) of echo drift', () => {
+    expect(rangeTolerance({ min: 0, max: 10, decimals: 0 })).toBe(0.5);
+    expect(rangeTolerance({ min: 0, max: 1, decimals: 6 })).toBeCloseTo(0.001);
   });
 });
 

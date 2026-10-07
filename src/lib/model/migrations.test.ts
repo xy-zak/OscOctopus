@@ -277,7 +277,7 @@ describe('v8 → v9: knobs become faders', () => {
         orientation: 'vertical',
         min: -1,
         max: 5,
-        step: 0.5,
+        decimals: 1,
         curve: 'exp',
         touch: 'relative',
         defaultValue: 2,
@@ -325,5 +325,41 @@ describe('v11 → v12: frames', () => {
     const migrated = migratePreset(old);
     expect(migrated).toEqual(cur);
     expect(migrated.widgets.every((w) => w.parent === null)).toBe(true);
+  });
+});
+
+describe('v12 → v13: a step becomes decimals', () => {
+  it('gives faders and graph axes the decimals of their step, and 3 when continuous', () => {
+    const cur = newPreset();
+    const old = JSON.parse(JSON.stringify(cur)) as { schemaVersion: number; widgets: object[] };
+    old.schemaVersion = 12;
+    const steps = [0, 1, 0.25, 5];
+    const oldFaders = old.widgets.filter((w) => (w as { type: string }).type === 'slider');
+    expect(oldFaders).toHaveLength(steps.length);
+    oldFaders.forEach((w, i) => {
+      const props = (w as { props: Record<string, unknown> }).props;
+      delete props.decimals;
+      props.step = steps[i];
+    });
+    old.widgets.push({
+      ...old.widgets[0],
+      id: 'g1',
+      type: 'graph',
+      props: {
+        x: { label: 'X', min: 0, max: 1, step: 0.001, curve: 'linear', defaultValue: 0.5 },
+        y: { label: 'Y', min: 0, max: 1, step: 0, curve: 'linear', defaultValue: 0.5 },
+        touch: 'absolute',
+        trail: true,
+        maxRateHz: 60,
+      },
+    });
+    const migrated = migratePreset(old);
+    const faders = migrated.widgets.filter((w) => w.type === 'slider');
+    expect(faders.map((w) => w.props.decimals)).toEqual([3, 0, 2, 0]);
+    expect(faders.every((w) => !('step' in w.props))).toBe(true);
+    const graph = migrated.widgets.find((w) => w.type === 'graph');
+    expect(graph?.type === 'graph' && [graph.props.x.decimals, graph.props.y.decimals]).toEqual([
+      3, 3,
+    ]);
   });
 });

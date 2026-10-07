@@ -87,8 +87,9 @@ export interface WidgetDef<W extends Widget> {
    */
   show?(w: W, value: WidgetValue, fx: FeedbackApi): void;
   /**
-   * How its value reads (the info panel's VALUE) when the value itself means little to a person:
-   * a frame's tab by its name, not its id. Left out, the value is shown as it is.
+   * How its value reads (the info panel's VALUE and PREVIEW) when the value as it is would
+   * read wrong: a frame's tab by its name, not its id; a fader's number with its decimals.
+   * Left out, the value is shown as it is.
    */
   valueText?(w: W, value: WidgetValue): string;
   /** The touch key a value belongs to, when finer than the widget (one pad of a grid). */

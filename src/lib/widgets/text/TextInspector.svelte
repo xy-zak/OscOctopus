@@ -56,13 +56,8 @@
           {/each}
         </select>
       </Field>
-      <Field label="Decimals">
-        <NumberInput
-          bind:value={widget.props.decimals}
-          integer
-          {...LIMITS.textDecimals}
-          {onchange}
-        />
+      <Field label="Decimals" hint="0 = whole numbers">
+        <NumberInput bind:value={widget.props.decimals} integer {...LIMITS.decimals} {onchange} />
       </Field>
     </div>
   {:else if p.mode === 'osc'}

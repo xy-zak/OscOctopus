@@ -1,6 +1,7 @@
 // Interaction rules shared by the continuous widgets (fader, graph), so they all feel the
 // same: double-tap to reset, Shift for fine control, the same keyboard steps and readouts.
 import type { Axis } from '../model/preset';
+import { stepOf } from '../osc/curves';
 
 /** Two presses closer together than this are a double tap (reset to default). */
 export const DOUBLE_TAP_MS = 300;
@@ -24,23 +25,20 @@ export function doubleTap(now: () => number = () => performance.now()): () => bo
   };
 }
 
-/** Decimals worth showing for a value on `step`'s grid (0 = continuous: 3 decimals). */
-export function decimalsFor(step: number): number {
-  if (step >= 1) return 0;
-  if (step > 0) return Math.min(4, String(step).split('.')[1]?.length ?? 0);
-  return 3;
-}
-
-/** Decimals of a number as written, capped at 4 (e.g. an encoder value off the step grid). */
-export function decimalsOf(n: number): number {
-  return Math.min(4, String(n).split('.')[1]?.length ?? 0);
+/**
+ * One arrow-key press as a fraction of the range: 1%, or one unit of the last decimal place
+ * when that is bigger (a 0..10 fader with 0 decimals moves by 1). Shift makes it ten times
+ * bigger.
+ */
+export function keyStep(p: Pick<Axis, 'min' | 'max' | 'decimals'>, shift: boolean): number {
+  const one = Math.max(0.01, stepOf(p.decimals) / Math.abs(p.max - p.min || 1));
+  return one * (shift ? 10 : 1);
 }
 
 /**
- * One arrow-key step as a fraction of the range: one `step` if the widget has one, else 1%.
- * Shift makes it ten times bigger.
+ * Whether moving through the range is felt as ticks: when its decimals give it at most
+ * MAX_TICKS values (a 0..127 fader with 0 decimals), not when it is nearly continuous.
  */
-export function keyStep(p: Pick<Axis, 'min' | 'max' | 'step'>, shift: boolean): number {
-  const one = p.step > 0 ? p.step / Math.abs(p.max - p.min || 1) : 0.01;
-  return one * (shift ? 10 : 1);
-}
+export const MAX_TICKS = 200;
+export const ticks = (p: Pick<Axis, 'min' | 'max' | 'decimals'>) =>
+  Math.abs(p.max - p.min) / stepOf(p.decimals) <= MAX_TICKS;

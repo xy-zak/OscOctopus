@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { GraphWidget } from '../../model/preset';
+  import { LIMITS, type GraphWidget } from '../../model/preset';
   import Field from '../../ui/Field.svelte';
   import NumberInput from '../../ui/NumberInput.svelte';
   import Toggle from '../../ui/Toggle.svelte';
@@ -11,7 +11,7 @@
 </script>
 
 <section>
-  <!-- One column per axis: each has its own name, range, step, default and curve. -->
+  <!-- One column per axis: each has its own name, range, decimals, default and curve. -->
   <div class="axes">
     <span></span><span class="axis-head">X</span><span class="axis-head">Y</span>
     <span class="axis-label">Name</span>
@@ -23,9 +23,9 @@
     <span class="axis-label">Max</span>
     <NumberInput bind:value={widget.props.x.max} {onchange} />
     <NumberInput bind:value={widget.props.y.max} {onchange} />
-    <span class="axis-label" title="0 = continuous">Step</span>
-    <NumberInput bind:value={widget.props.x.step} min={0} {onchange} />
-    <NumberInput bind:value={widget.props.y.step} min={0} {onchange} />
+    <span class="axis-label" title="0 = whole numbers">Decimals</span>
+    <NumberInput bind:value={widget.props.x.decimals} integer {...LIMITS.decimals} {onchange} />
+    <NumberInput bind:value={widget.props.y.decimals} integer {...LIMITS.decimals} {onchange} />
     <span class="axis-label" title="Double-tap resets">Default</span>
     <NumberInput bind:value={widget.props.x.defaultValue} {onchange} />
     <NumberInput bind:value={widget.props.y.defaultValue} {onchange} />

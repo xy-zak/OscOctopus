@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { SliderWidget } from '../../model/preset';
+  import { LIMITS, type SliderWidget } from '../../model/preset';
   import Field from '../../ui/Field.svelte';
   import NumberInput from '../../ui/NumberInput.svelte';
   import Segmented from '../../ui/Segmented.svelte';
@@ -23,8 +23,8 @@
   </Field>
   <Field label="Min"><NumberInput bind:value={widget.props.min} {onchange} /></Field>
   <Field label="Max"><NumberInput bind:value={widget.props.max} {onchange} /></Field>
-  <Field label="Step" hint="0 = continuous">
-    <NumberInput bind:value={widget.props.step} min={0} {onchange} />
+  <Field label="Decimals" hint="0 = whole numbers">
+    <NumberInput bind:value={widget.props.decimals} integer {...LIMITS.decimals} {onchange} />
   </Field>
   <Field label="Default" hint="Double-tap resets">
     <NumberInput bind:value={widget.props.defaultValue} {onchange} />

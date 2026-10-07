@@ -31,14 +31,15 @@ describe('curves', () => {
 });
 
 describe('sliderValue', () => {
-  const p = { min: -10, max: 10, step: 0, curve: 'linear' as const };
+  const p = { min: -10, max: 10, decimals: 6, curve: 'linear' as const };
   it('maps position to range', () => {
     expect(sliderValue(0, p)).toBe(-10);
     expect(sliderValue(0.75, p)).toBe(5);
   });
-  it('quantises to step without float noise', () => {
-    expect(sliderValue(0.33, { ...p, min: 0, max: 1, step: 0.1 })).toBe(0.3);
-    expect(sliderValue(0.5, { ...p, step: 3 })).toBe(-1);
+  it('rounds to its decimals without float noise', () => {
+    expect(sliderValue(0.33, { ...p, min: 0, max: 1, decimals: 1 })).toBe(0.3);
+    expect(sliderValue(0.123456789, { ...p, min: 0, max: 1, decimals: 3 })).toBe(0.123);
+    expect(sliderValue(0.52, { ...p, decimals: 0 })).toBe(0);
   });
   it('supports inverted ranges', () => {
     expect(sliderValue(1, { ...p, min: 1, max: 0 })).toBe(0);

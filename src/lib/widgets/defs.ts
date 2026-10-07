@@ -3,6 +3,7 @@
 import type { Rect } from '../grid/engine';
 import { uid } from '../model/parts';
 import type { TabRef, Widget, WidgetType } from '../model/preset';
+import { formatValue } from '../osc/format';
 import type { WidgetValue } from '../osc/value';
 import { buttonDef } from './button/def';
 import { graphDef } from './graph/def';
@@ -68,6 +69,8 @@ export const gateFor = (w: Widget): Gate => defOf(w).gate(w);
 export const inputValue = (w: Widget, patch: InputPatch, current: WidgetValue) =>
   defOf(w).input(w, patch, current);
 export const echoToleranceOf = (w: Widget) => defOf(w).echoTolerance(w);
+export const valueTextOf = (w: Widget, value: WidgetValue): string =>
+  defOf(w).valueText?.(w, value) ?? formatValue(value);
 export const isValueFor = (w: Widget, value: unknown): value is WidgetValue =>
   defOf(w).isValue(w, value);
 export const touchKeyOf = (w: Widget, value: WidgetValue) => defOf(w).touchKey?.(w, value) ?? w.id;

@@ -109,7 +109,38 @@ const steps: Record<number, (preset: Raw) => Raw> = {
     schemaVersion: 12,
     widgets: ((p.widgets as Raw[] | undefined) ?? []).map((w) => ({ ...w, parent: null })),
   }),
+  // v13: a fader's and a graph axis's `step` became `decimals`, the one way the app sets how
+  // precise a number is. A step keeps its decimals (0.25 → 2, 5 → 0); continuous (0) became
+  // the 3 decimals it showed.
+  12: (p) => ({
+    ...p,
+    schemaVersion: 13,
+    widgets: ((p.widgets as Raw[] | undefined) ?? []).map((w) => {
+      const props = (w.props ?? {}) as Raw;
+      if (w.type === 'slider') return { ...w, props: stepToDecimals(props) };
+      if (w.type === 'graph')
+        return {
+          ...w,
+          props: { ...props, x: stepToDecimals(props.x as Raw), y: stepToDecimals(props.y as Raw) },
+        };
+      return w;
+    }),
+  }),
 };
+
+/** `step` → `decimals`: as many as the step has (at most 6), 3 when continuous (0). */
+function stepToDecimals(props: Raw | undefined): Raw | undefined {
+  if (!props || !('step' in props)) return props;
+  const { step, ...rest } = props;
+  const s = typeof step === 'number' && step > 0 ? step : 0;
+  let decimals = 3;
+  if (s > 0) {
+    decimals = 0;
+    while (decimals < 6 && Math.abs(Math.round(s * 10 ** decimals) - s * 10 ** decimals) > 1e-9)
+      decimals++;
+  }
+  return { ...rest, decimals };
+}
 
 const OLD_PAD_CHANNELS: Record<string, string> = {
   index: 'number',

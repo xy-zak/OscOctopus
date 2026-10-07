@@ -108,7 +108,7 @@ The screen always shows **where you are**, by containment:
 - **Button**: momentary or trigger. Optional **arm-then-fire**: *double-tap* (the first press
   arms it, a second press within the timeout fires) or *hold* (fires only after being held for
   N ms). Nothing is sent until it fires.
-- **Switch**, and **Fader** (range, step, curve, relative or absolute touch, rate limit).
+- **Switch**, and **Fader** (range, decimals, curve, relative or absolute touch, rate limit).
 - **Graph**: an XY pad with channels `x` and `y`.
 - **Pads**: a grid of up to 8×8 numbered pads (1…N from the top-left; momentary / toggle /
   trigger), multi-touch. Each hit sends `{number, row, col, on}`, and no hit is ever merged

@@ -10,7 +10,7 @@
   import { flag } from '../../skins/anatomy';
   import { numberValue } from '../../state/values.svelte';
   import { clamp } from '../../util';
-  import { decimalsFor, doubleTap, dragScale, keyStep } from '../interaction';
+  import { doubleTap, dragScale, keyStep, ticks } from '../interaction';
   import WidgetFrame from '../WidgetFrame.svelte';
 
   let { widget, live }: { widget: SliderWidget; live: boolean } = $props();
@@ -19,7 +19,6 @@
   const vertical = $derived(p.orientation === 'vertical');
   const value = $derived(numberValue(widget.id, p.defaultValue));
   const pos = $derived(sliderPosition(value, p));
-  const decimals = $derived(decimalsFor(p.step));
 
   /** The track: pointer positions are measured against it, so the cap centres on the finger. */
   let meter = $state<HTMLDivElement>();
@@ -44,7 +43,7 @@
   function setPos(n: number, final = false) {
     const v = sliderValue(clamp(n, 0, 1), p);
     if (v === value && !final) return;
-    if (p.step > 0 && v !== value) tickHaptic();
+    if (ticks(p) && v !== value) tickHaptic();
     emitValue(widget.id, v, final);
   }
 
@@ -99,7 +98,7 @@
 <WidgetFrame
   {widget}
   {live}
-  status={value.toFixed(decimals)}
+  status={value.toFixed(p.decimals)}
   active={drag !== null}
   data-vertical={flag(vertical)}
   data-dragging={flag(drag !== null)}

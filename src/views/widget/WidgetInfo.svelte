@@ -8,7 +8,6 @@
   // device once one is folded or unfolded (`ui.infoSections`).
   import type { Widget } from '../../lib/model/preset';
   import { colorOf } from '../../lib/model/tabs';
-  import { formatValue } from '../../lib/osc/format';
   import { rearmForward } from '../../lib/osc/receiver.svelte';
   import { ACTIVITY_ROWS, debugStore } from '../../lib/state/debug.svelte';
   import { inputStore } from '../../lib/state/input.svelte';
@@ -20,7 +19,7 @@
   import Collapsible from '../../lib/ui/Collapsible.svelte';
   import Icon from '../../lib/ui/Icon.svelte';
   import { plural } from '../../lib/util';
-  import { DEFS, defOf, initialValue, messagesOf } from '../../lib/widgets/defs';
+  import { DEFS, initialValue, messagesOf, valueTextOf } from '../../lib/widgets/defs';
   import WidgetActivity from './WidgetActivity.svelte';
   import WidgetHeader from './WidgetHeader.svelte';
   import WidgetPreview from './WidgetPreview.svelte';
@@ -41,7 +40,7 @@
   const value = $derived.by(() => {
     if (!widget) return '';
     const v = values[widget.id] ?? initialValue(widget);
-    return defOf(widget).valueText?.(widget, v) ?? formatValue(v);
+    return valueTextOf(widget, v);
   });
   const messagesSummary = $derived.by(() => {
     if (!widget) return '';

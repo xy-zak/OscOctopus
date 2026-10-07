@@ -725,6 +725,8 @@ missing.
      makes older apps refuse such a desk with "update" and keeps older sync peers out.
    - v10→v11 let a widget hide its title and value: every widget shows both (`show`).
    - v11→v12 added frames: every widget gets `parent: null` (on the desk itself).
+   - v12→v13 turned a fader's and a graph axis's `step` into `decimals` (the step's own, or 3
+     when it was continuous), the one way the app sets how precise a number is.
    - New widget types always bump the version: an older peer would drop them silently.
 
 ## Safety guarantees

@@ -49,9 +49,9 @@ Scripts.
   one frame tab), and on a shared desk others see all of them as being edited.
 - **A new widget fits where there is room:** its usual size, or the largest smaller one that
   fits, instead of "no free space".
-- **Preset schema v12** (for the new widgets, the title/value switches and frames; old desks are
-  unchanged, their widgets on the desk itself). Devices on v11 or older can't join a v12 sync
-  session.
+- **Preset schema v13** (for the new widgets, the title/value switches, frames and decimals; old
+  desks keep their widgets on the desk itself, and a fader's step becomes its decimals). Devices
+  on v12 or older can't join a v13 sync session.
 - **Presenting** (`[ ] PRESENT` at the right end of the master bar, or F11): the desk's
   widgets fill the screen, and on desktop the window goes fullscreen. Only the desk tabs,
   OSC-IN, OSC-OUT, LOCK and `[■] PRESENT` (click it, or Esc / F11, to stop) stay; the sections, the
@@ -113,6 +113,15 @@ Scripts.
 
 ### Changed
 
+- **DECIMALS everywhere, instead of a fader's STEP.** A fader, each graph axis and a text
+  widget set how precise their numbers are the same way: DECIMALS, where 0 means whole numbers.
+  A fader's values are rounded to its decimals and every number is shown with exactly that many
+  places, so 4 decimals always reads `1.2345` or `3.4560`, never `3.456`; a text widget shows
+  `3.00`, not `3`. A saved fader keeps its step's decimals (0.25 → 2, 5 → 0); one that was
+  continuous gets 3, the decimals it showed. A step that wasn't a power of ten (0.25, 5) now
+  rounds to its decimals instead.
+- **TRAFFIC has column headings** (TIME, EVENT, ENDPOINT, REMOTE, MESSAGE, SIZE), in a desk's
+  TRAFFIC and in GLOBAL SETTINGS › TRAFFIC.
 - **Each palette brings its own accent:** nine colours and an accent, last and set apart in
   every picker. The accent marks highlights and selection wherever the palette is worn, and
   widgets and desks can still use it as a tenth colour. The separate _Accent_ choice in LOOK is

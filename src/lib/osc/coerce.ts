@@ -2,6 +2,7 @@
 // type a sender used, turn it into what a widget needs, or `undefined` if it can't mean
 // that. Pure, dependency-free (widget defs import it); tested in input.test.ts.
 import { clamp } from '../util';
+import { stepOf } from './curves';
 import { isList, type Scalar, type ValueList } from './value';
 
 export type Loose = Scalar | ValueList | undefined;
@@ -73,9 +74,10 @@ export function nearestOnOff(v: Loose, on: number, off: number): number | undefi
 }
 
 /**
- * How far an echoed number may be from what was sent and still be our own echo: half a step,
- * or 0.1% of the range when continuous (devices often quantise, e.g. a mixer's 1024 steps).
+ * How far an echoed number may be from what was sent and still be our own echo: half of its
+ * last decimal place, but at least 0.1% of the range (devices often quantise, e.g. a mixer's
+ * 1024 steps).
  */
-export function rangeTolerance(p: { min: number; max: number; step: number }): number {
-  return p.step > 0 ? p.step / 2 : Math.abs(p.max - p.min) * 0.001;
+export function rangeTolerance(p: { min: number; max: number; decimals: number }): number {
+  return Math.max(stepOf(p.decimals) / 2, Math.abs(p.max - p.min) * 0.001);
 }

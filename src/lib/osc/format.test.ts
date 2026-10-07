@@ -17,13 +17,15 @@ describe('hexDump', () => {
 });
 
 describe('displayValue', () => {
-  it('shows values as people read them, without quotes', () => {
+  it('shows values as people read them, every number to the same decimals', () => {
     expect(displayValue(0.5, 2)).toBe('0.50');
-    expect(displayValue(3, 2)).toBe('3');
+    expect(displayValue(3, 2)).toBe('3.00');
+    expect(displayValue(3.456, 4)).toBe('3.4560');
+    expect(displayValue(4.6, 0)).toBe('5');
     expect(displayValue('Act 2', 2)).toBe('Act 2');
     expect(displayValue(true, 2)).toBe('true');
-    expect(displayValue([1, 2.25, 'a'], 1)).toBe('1 2.3 a');
-    expect(displayValue({ x: 0.125, y: 1 }, 1)).toBe('x 0.1 · y 1');
+    expect(displayValue([1, 2.25, 'a'], 1)).toBe('1.0 2.3 a');
+    expect(displayValue({ x: 0.125, y: 1 }, 1)).toBe('x 0.1 · y 1.0');
   });
 });
 

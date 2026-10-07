@@ -1,6 +1,7 @@
 import type { Axis, GraphWidget } from '../../model/preset';
 import { newBinding, valueArg } from '../../model/parts';
 import { clampTo, hasExactKeys, isNumberIn, rangeTolerance, toNumber } from '../../osc/coerce';
+import { formatValue } from '../../osc/format';
 import { isRecord, type WidgetValue } from '../../osc/value';
 import type { WidgetDef } from '../types';
 
@@ -8,7 +9,7 @@ const axis = (label: string): Axis => ({
   label,
   min: 0,
   max: 1,
-  step: 0,
+  decimals: 3,
   curve: 'linear',
   defaultValue: 0.5,
 });
@@ -47,6 +48,10 @@ export const graphDef: WidgetDef<GraphWidget> = {
     };
   },
   echoTolerance: (w) => ({ x: rangeTolerance(w.props.x), y: rangeTolerance(w.props.y) }),
+  valueText: (w, v) =>
+    isRecord(v) && typeof v.x === 'number' && typeof v.y === 'number'
+      ? `x ${v.x.toFixed(w.props.x.decimals)} · y ${v.y.toFixed(w.props.y.decimals)}`
+      : formatValue(v),
   isValue: (w, v): v is WidgetValue =>
     hasExactKeys(v, ['x', 'y']) &&
     isNumberIn(v.x, w.props.x.min, w.props.x.max) &&

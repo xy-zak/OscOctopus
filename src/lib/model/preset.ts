@@ -6,7 +6,7 @@ import { SEQUENCER_LIMITS } from '../ipc/defaults';
 import type { InputConfig, NetworkConfig, OutputConfig } from '../ipc/types';
 import { PALETTE_SIZE } from '../theme/palettes';
 
-export const CURRENT_SCHEMA_VERSION = 12;
+export const CURRENT_SCHEMA_VERSION = 13;
 
 /**
  * Every numeric range the schema enforces. The zod schemas below and the editor fields
@@ -33,8 +33,11 @@ export const LIMITS = {
   seqCount: { min: 1, max: SEQUENCER_LIMITS.maxCount },
   /** A text widget's source, and the most of a received text it shows. */
   textChars: { min: 0, max: 2000 },
-  /** Decimal places a text widget shows numbers with. */
-  textDecimals: { min: 0, max: 6 },
+  /**
+   * Decimal places of a number: a fader's or graph axis's values (which it sends and shows) and
+   * the numbers a text widget shows. 0 = whole numbers.
+   */
+  decimals: { min: 0, max: 6 },
   /** Rows a log widget keeps. */
   logRows: { min: 1, max: 200 },
   /** A frame's tabs, and the length of their names. */
@@ -216,8 +219,8 @@ export const SliderPropsSchema = z.object({
   orientation: z.enum(['vertical', 'horizontal']),
   min: z.number(),
   max: z.number(),
-  /** 0 = continuous. */
-  step: z.number().min(0),
+  /** Decimal places its values have (and are shown with): 0 = whole numbers. */
+  decimals: inRange(z.number().int(), LIMITS.decimals),
   curve: z.enum(['linear', 'exp', 'log']),
   /** absolute: jump to the touch point · relative: drag from the current value. */
   touch: z.enum(['absolute', 'relative']),
@@ -233,12 +236,12 @@ export const SwitchPropsSchema = z.object({
 });
 export type SwitchProps = z.infer<typeof SwitchPropsSchema>;
 
-/** One axis of the graph: its own range, step and curve, like a fader. */
+/** One axis of the graph: its own range, decimals and curve, like a fader. */
 export const AxisSchema = z.object({
   label: z.string(),
   min: z.number(),
   max: z.number(),
-  step: z.number().min(0),
+  decimals: inRange(z.number().int(), LIMITS.decimals),
   curve: z.enum(['linear', 'exp', 'log']),
   defaultValue: z.number(),
 });
@@ -315,8 +318,8 @@ export const TextPropsSchema = z.object({
   align: z.enum(['left', 'center', 'right']),
   valign: z.enum(['top', 'middle', 'bottom']),
   target: IdSchema.nullable(),
-  /** Decimal places for numbers that aren't whole. */
-  decimals: inRange(z.number().int(), LIMITS.textDecimals),
+  /** Decimal places every number is shown with: 0 = whole numbers. */
+  decimals: inRange(z.number().int(), LIMITS.decimals),
 });
 export type TextProps = z.infer<typeof TextPropsSchema>;
 
