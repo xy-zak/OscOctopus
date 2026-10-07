@@ -44,12 +44,12 @@
     <div class="bar">
       <div class="apply">
         {#if apply.applying}
-          <span class="pill starting">applying</span>
+          <span class="pill warn">applying</span>
         {:else if apply.error}
-          <span class="pill error">apply failed</span>
+          <span class="pill bad">apply failed</span>
           <span class="mono err">{apply.error}</span>
         {:else if lastApplied}
-          <span class="pill ready">applied</span><span class="faint">at {lastApplied}</span>
+          <span class="pill ok">applied</span><span class="faint">at {lastApplied}</span>
         {/if}
       </div>
       <button

@@ -7,6 +7,7 @@
   import { showDesk } from '../lib/state/ui.svelte';
   import Icon from '../lib/ui/Icon.svelte';
   import Panel from '../lib/ui/Panel.svelte';
+  import { toneOf } from '../lib/ui/status';
 
   const rows = $derived(
     presetStore.desks.flatMap((d) =>
@@ -26,7 +27,7 @@
 <div class="global-network scroll">
   <Panel title="All desk endpoints">
     {#snippet actions()}
-      {#if networkStore.paused}<span class="pill error">output paused</span>{/if}
+      {#if networkStore.paused}<span class="pill bad">output paused</span>{/if}
     {/snippet}
     <table>
       <thead>
@@ -47,7 +48,7 @@
             <td class="desk">{r.desk.name}</td>
             <td class="faint">{r.kind === 'out' ? '↑' : '↓'} {r.cfg.transport.toUpperCase()}</td>
             <td>{r.cfg.name}</td>
-            <td><span class="pill {s?.state ?? 'disabled'}">{s?.state ?? 'not applied'}</span></td>
+            <td><span class="pill {toneOf(s?.state)}">{s?.state ?? 'not applied'}</span></td>
             <td class="addr">{s?.local ?? '—'}{s?.remote ? ` → ${s.remote}` : ''}</td>
             <td class="faint">
               {#if s}{s.stats.txPackets}↑ {s.stats.rxPackets}↓{s.stats.blocked

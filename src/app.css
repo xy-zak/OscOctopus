@@ -36,6 +36,11 @@
   button {
     cursor: pointer;
   }
+
+  /* A long press shows a tooltip (Tooltip.svelte), not the system's menu. */
+  [data-tip] {
+    -webkit-touch-callout: none;
+  }
 }
 
 html,
@@ -166,10 +171,23 @@ h2::after {
   width: var(--control-h);
   padding: 0;
 }
+/* Inline in a dense row only (chips, swatch extras, palette Edit / Reset). */
+.btn.sm {
+  height: var(--control-h-sm);
+  padding: 0 1ch;
+}
+.btn.sm.icon {
+  width: var(--control-h-sm);
+  padding: 0;
+}
 .btn:disabled {
+  pointer-events: none;
+}
+/* Every control looks disabled the same way, including all of a FROZEN Lockable (a disabled
+   fieldset disables what is in it). */
+:is(button, input, select, textarea):disabled {
   opacity: 0.4;
   cursor: default;
-  pointer-events: none;
 }
 /* A button that reads as a link in running text (e.g. to GLOBAL SETTINGS › LOOK). */
 .link {
@@ -190,12 +208,13 @@ h2::after {
   display: inline-flex;
   align-items: center;
   gap: 1ch;
-  height: 28px;
+  height: var(--control-h);
   padding: 0 1ch;
   border: 1px solid var(--line-strong);
   background: var(--bg);
   color: var(--fg-dim);
   font-weight: 400;
+  text-transform: uppercase;
   white-space: nowrap;
   transition:
     background var(--t-ui) steps(2),
@@ -286,10 +305,13 @@ h2::after {
 select.input {
   appearance: none;
   padding-right: 3ch;
-  /* Pixel "▾" drawn as rects so it stays crisp at any scale. */
+  /* Pixel "▾" drawn as rects so it stays crisp at any scale, in --fg-dim of each mode. */
   background: var(--bg)
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' shape-rendering='crispEdges'%3E%3Cpath fill='%239a988f' d='M0 0h10v2H0zM2 2h6v2H2zM4 4h2v2H4z'/%3E%3C/svg%3E")
     no-repeat right 1ch center;
+}
+:root[data-mode='light'] select.input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' shape-rendering='crispEdges'%3E%3Cpath fill='%2357544d' d='M0 0h10v2H0zM2 2h6v2H2zM4 4h2v2H4z'/%3E%3C/svg%3E");
 }
 select.input option {
   background: var(--bg-2);
@@ -329,14 +351,63 @@ select.input option {
   border: 1px solid var(--line);
 }
 
+/* ---- text roles (docs/ARCHITECTURE.md › Design rules) ------------------------------------ */
 .muted {
   color: var(--fg-dim);
 }
 .faint {
   color: var(--fg-faint);
 }
+/* What names a value or a column: a field, a table head, an axis, a toggle. */
+.field-label {
+  color: var(--fg-dim);
+  text-transform: uppercase;
+}
+/* Something the user named (a desk, widget, preset, tab, endpoint, peer) shown as a label. */
+.name {
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.error-text,
+.warn-text {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.error-text {
+  color: var(--danger);
+}
+.warn-text {
+  color: var(--warn);
+}
+/* The icon (Nerd Font: close, warning) that says which, even without colour. */
+.error-text::before,
+.warn-text::before {
+  margin-right: 1ch;
+}
+.error-text::before {
+  content: '\f00d';
+}
+.warn-text::before {
+  content: '\f071';
+}
+/* A label with a tooltip (Tooltip.svelte): hover, focus or long-press it. */
+.has-tip {
+  text-decoration: underline dotted var(--fg-faint);
+  text-underline-offset: 3px;
+}
+/* A settings page: one padding and width for all of them. */
+.page {
+  height: 100%;
+  padding: 16px 2ch 32px;
+}
+.page > .page-body {
+  max-width: 120ch;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
 
-/* Reverse-video status tag: [READY] */
+/* Reverse-video status tag: [READY]. Tones are toneOf's (lib/ui/status.ts). */
 .pill {
   display: inline-block;
   padding: 0 1ch;
@@ -347,17 +418,16 @@ select.input option {
   background: var(--fg-faint);
   color: var(--bg);
 }
-.pill.ready {
+.pill.ok {
   background: var(--ok);
 }
-.pill.connecting,
-.pill.starting {
+.pill.warn {
   background: var(--warn);
 }
-.pill.error {
+.pill.bad {
   background: var(--danger);
 }
-.pill.disabled {
+.pill.off {
   background: var(--line-strong);
 }
 

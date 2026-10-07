@@ -2,12 +2,13 @@
   // Picks some of a list: one chip per item, reverse video while picked. An id that is picked
   // but no longer listed (a removed output, widget, …) shows as "missing"; clicking removes
   // it. `picked` is changed in place, then `onchange` runs.
+  import type { Tone } from './status';
   interface Item {
     id: string;
     name: string;
     title?: string;
-    /** A status lamp before the name (an endpoint's state: ready, error, …). */
-    lamp?: string;
+    /** A status lamp before the name (an endpoint's state, as toneOf says it). */
+    lamp?: Tone;
   }
   interface Props {
     items: readonly Item[];
@@ -84,14 +85,13 @@
     background: var(--fg-faint);
     box-shadow: 0 0 0 1px var(--bg);
   }
-  .lamp.ready {
+  .lamp.ok {
     background: var(--ok);
   }
-  .lamp.error {
+  .lamp.bad {
     background: var(--danger);
   }
-  .lamp.connecting,
-  .lamp.starting {
+  .lamp.warn {
     background: var(--warn);
   }
 </style>

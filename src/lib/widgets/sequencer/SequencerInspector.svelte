@@ -11,6 +11,7 @@
   import Icon from '../../ui/Icon.svelte';
   import NumberInput from '../../ui/NumberInput.svelte';
   import Segmented from '../../ui/Segmented.svelte';
+  import { toneOf } from '../../ui/status';
   import ConstArgFields from '../fields/ConstArgFields.svelte';
   import { newStep } from './def';
   import { passMs } from './plan';
@@ -22,7 +23,7 @@
     presetStore.current.network.outputs.map((o) => ({
       id: o.id,
       name: o.name,
-      lamp: networkStore.status(presetStore.current.id, o.id)?.state ?? 'disabled',
+      lamp: toneOf(networkStore.status(presetStore.current.id, o.id)?.state),
     })),
   );
   const pass = $derived(passMs(steps));

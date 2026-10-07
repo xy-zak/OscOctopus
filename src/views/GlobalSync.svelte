@@ -3,7 +3,7 @@
   // is no server. Every app in a session connects to the others: devices on the same LAN
   // find each other automatically, and others are added by address. Connections are
   // encrypted and only admit devices that know the session key.
-  import type { PeerState, PeerStatus } from '../lib/ipc/types';
+  import type { PeerStatus } from '../lib/ipc/types';
   import { presetStore } from '../lib/state/preset.svelte';
   import { showDesk } from '../lib/state/ui.svelte';
   import { sharedDesks } from '../lib/sync/app.svelte';
@@ -15,6 +15,7 @@
   import Lockable from '../lib/ui/Lockable.svelte';
   import NumberInput from '../lib/ui/NumberInput.svelte';
   import Panel from '../lib/ui/Panel.svelte';
+  import { toneOf } from '../lib/ui/status';
   import Swatches from '../lib/ui/Swatches.svelte';
   import Toggle from '../lib/ui/Toggle.svelte';
   import { toast } from '../lib/state/ui.svelte';
@@ -90,12 +91,6 @@
   }
 
   // ---- peers ---------------------------------------------------------------------------------
-  const PILL: Record<PeerState, string> = {
-    connected: 'ready',
-    connecting: 'connecting',
-    retrying: 'starting',
-    refused: 'error',
-  };
   const connectedCount = $derived(s?.peers.filter((p) => p.state === 'connected').length ?? 0);
   const ms = (v: number | null) => (v === null ? '—' : `${Math.round(v)} ms`);
   function offset(p: PeerStatus) {
@@ -166,7 +161,7 @@
   <Lockable>
     <Panel title="Session" active={syncSession.joined}>
       {#snippet actions()}
-        {#if syncSession.joined}<span class="pill ready">joined</span>{/if}
+        {#if syncSession.joined}<span class="pill ok">joined</span>{/if}
       {/snippet}
       {#if s?.session}
         <div class="grid">
@@ -393,7 +388,7 @@
                 {/if}
                 {#if p.fingerprint}<span class="faint"> · {p.fingerprint}</span>{/if}
               </td>
-              <td><span class="pill {PILL[p.state]}">{p.state}</span></td>
+              <td><span class="pill {toneOf(p.state)}">{p.state}</span></td>
               <td class="faint">{p.address}</td>
               <td>{ms(p.rttMs)}</td>
               <td>{offset(p)}</td>

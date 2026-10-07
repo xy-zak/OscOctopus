@@ -16,6 +16,7 @@
   import { syncSession } from '../lib/sync/session.svelte';
   import { colorVars, swatchOf } from '../lib/theme/palettes';
   import Icon from '../lib/ui/Icon.svelte';
+  import type { Tone } from '../lib/ui/status';
   import { addDesk, duplicateDesk, openDesk, removeDesk } from './deskActions';
 
   let menuOpen = $state(false);
@@ -29,9 +30,9 @@
     Object.values(networkStore.statuses).filter((s) => s.state === 'error').length,
   );
 
-  function health(deskId: string): 'ok' | 'warn' | 'bad' | 'none' {
+  function health(deskId: string): Tone {
     const list = networkStore.forDesk(deskId).filter((s) => s.state !== 'disabled');
-    if (list.length === 0) return 'none';
+    if (list.length === 0) return 'off';
     if (list.some((s) => s.state === 'error')) return 'bad';
     return list.every((s) => s.state === 'ready') ? 'ok' : 'warn';
   }

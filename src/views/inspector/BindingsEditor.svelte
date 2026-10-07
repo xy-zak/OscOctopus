@@ -16,6 +16,7 @@
   import Chips from '../../lib/ui/Chips.svelte';
   import Icon from '../../lib/ui/Icon.svelte';
   import Segmented from '../../lib/ui/Segmented.svelte';
+  import { toneOf } from '../../lib/ui/status';
   import Toggle from '../../lib/ui/Toggle.svelte';
   import { channelsFor, messagesOf } from '../../lib/widgets/defs';
   import ConstArgFields from '../../lib/widgets/fields/ConstArgFields.svelte';
@@ -29,7 +30,7 @@
     outputs.map((o) => ({
       id: o.id,
       name: o.name,
-      lamp: networkStore.status(presetStore.current.id, o.id)?.state ?? 'disabled',
+      lamp: toneOf(networkStore.status(presetStore.current.id, o.id)?.state),
     })),
   );
   /** Where a binding can listen: the desk's inputs, and replies arriving on its outputs. */

@@ -53,7 +53,7 @@
   <Lockable>
     <Panel title="Share with the session" active={live} tone="var(--scope)">
       {#snippet actions()}
-        {#if live}<span class="pill ready">shared</span>{:else if shared}<span class="pill disabled"
+        {#if live}<span class="pill ok">shared</span>{:else if shared}<span class="pill off"
             >not syncing</span
           >{/if}
       {/snippet}

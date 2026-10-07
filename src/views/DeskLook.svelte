@@ -23,11 +23,11 @@
     lookStore.chosen(p.id, field) === null ? 'all desks' : 'this desk';
 
   const saveState = $derived.by(() => {
-    if (presetStore.saving) return { cls: 'starting', text: 'saving' };
-    if (presetStore.saveError) return { cls: 'error', text: presetStore.saveError };
-    if (presetStore.dirty) return { cls: 'connecting', text: 'unsaved changes' };
+    if (presetStore.saving) return { cls: 'off', text: 'saving' };
+    if (presetStore.saveError) return { cls: 'bad', text: presetStore.saveError };
+    if (presetStore.dirty) return { cls: 'off', text: 'unsaved changes' };
     return {
-      cls: 'ready',
+      cls: 'ok',
       text: presetStore.lastSavedAt
         ? `saved ${new Date(presetStore.lastSavedAt).toLocaleTimeString()}`
         : 'saved',

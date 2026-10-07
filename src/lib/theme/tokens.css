@@ -143,12 +143,17 @@
      green by default (this, until the look is applied). */
   --active: var(--ok);
   --active-ink: var(--bg);
+  /* Ink on the accent; the look sets it for its palette (lookVars), this is until it does. */
+  --accent-ink: var(--bg);
 
   --font: 'JetBrainsMono NFM', 'JetBrains Mono', ui-monospace, Consolas, monospace;
   /* One size for everything. Hierarchy comes from case, weight, colour and reverse video. */
   --fs: 13px;
   --lh: 20px;
+  /* Every control's height; the small one only inline in dense rows (docs/ARCHITECTURE.md ›
+     Design rules). */
   --control-h: 28px;
+  --control-h-sm: 22px;
 
   /* Motion: instant press, springy release; `steps()` for the pixel-y transitions. */
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);

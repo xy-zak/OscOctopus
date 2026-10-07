@@ -638,6 +638,95 @@ write-locked while sockets are bound, never during a DNS lookup (see *Safety gua
     preview widgets aren't on a desk, so nothing is sent. Baselines are per machine and not
     committed.
 
+## Design rules (the app around the widgets)
+
+Everything that isn't a widget face (tabs, sections, side panels, settings pages, dialogs, the
+master bar) follows these rules. A new view picks from them instead of styling its own.
+
+- **Text roles.** One size; a role is case, weight and colour.
+
+  | Role | Look | Class / element |
+  |---|---|---|
+  | Heading | 700, UPPERCASE, `--fg` | `Panel` and `Collapsible` titles, `WidgetHeader` |
+  | Sub-heading | 700, UPPERCASE, `--fg-dim`, `── TITLE ───` | `h2`, only inside a Panel, Collapsible or detail pane |
+  | Label | 400, UPPERCASE, `--fg-dim` (a form field adds a faint `▸`) | `.field-label`, `Field` |
+  | Name | 700, UPPERCASE, `--fg` | `.name`: a desk, widget, preset, tab, endpoint or peer shown as a label |
+  | Body, value | 400, `--fg`, as written | |
+  | Caption | 400, `--fg-faint` | `.faint`: counts, stats, empty states |
+  | Error | `--danger`, `✕` before it | `.error-text`; never faint |
+  | Warning | `--warn`, `⚠` before it | `.warn-text`; caution only, never decoration |
+
+  Only weights 400 and 700 (the two the font ships). 700 marks headings, names, what is on,
+  active or picked, the primary button and tags. No other font size, no `letter-spacing`.
+  Labels are written in sentence case and upper-cased by CSS; running text is sentence case,
+  and names the UI's areas in capitals ("DESK › LOOK", "INSPECT").
+- **What colours mean.**
+  - `--fg`, `--fg-dim` (`.muted`), `--fg-faint` (`.faint`): first, second and third.
+  - The accent is what is in focus or in use: the primary button, links, the focus ring, the
+    markers (`(•)`, the `[■]` brackets, `▾`), the side panel's kind tag, the picked row of a
+    list (TRAFFIC, LIBRARY, the palette and skin pickers), a Panel that is on. A picked value
+    of a compact control (Segmented, Chips, a swatch's extra) is reverse video in `--fg`.
+  - `--scope`, the desk's colour, only says *this desk*: the frame, the active section, the
+    desk tab and its chip. It never means *on*.
+  - Status colours: `--ok` ready; `--warn` caution and the safety state FROZEN; `--danger`
+    failure, and OSC-OUT off / held (red everywhere, like the OSC-OUT alarm); `--info` incoming
+    traffic and type tags only. Unsaved and saving are `--fg-dim`. Every pill, lamp and dot
+    speaks one vocabulary: `ok | warn | bad | off` (`toneOf` in `lib/ui/status.ts`).
+  - A palette colour used as text is darkened to 55% in light mode, like `--accent-text`.
+- **Buttons.**
+  - Primary (`.btn.primary`): at most one per panel or dialog, the action it exists for. Never
+    a state. Secondary (`.btn`): other actions. Tertiary (`.btn.ghost`): actions in rows,
+    headers and lists; every icon button in a header is ghost.
+  - Danger: `.btn.danger` for a text button, `.btn.ghost.danger` for an icon in a row or header.
+    **Delete** (gone for good) has the trash icon; **Remove** (taken out of here, still exists:
+    a desk stays in the LIBRARY, a peer, a reference) has ✕. A confirmation's button repeats
+    the noun ("Delete preset").
+  - Ask first when work is lost or other devices are affected: widgets (one or several, by
+    button or Del), desks, presets, palettes, skins, a tab with widgets, an endpoint in use,
+    Clear traffic, Leave session, Stop sharing, Forget key, Block device. Never for one row of
+    an editor (a message, argument, option or step) or a peer address.
+  - Adding: "+ Noun" (ghost) appends to a list in an editor; "+ New noun" (secondary) makes a
+    top-level thing. Reordering: ▲ / ▼ ghost icons, "Move up" / "Move down".
+  - A footer is: danger far left, then [Cancel] [Primary] on the right. A button that opens a
+    dialog or file picker ends in "…". Going somewhere else is a `.link` (in capitals:
+    "GLOBAL SETTINGS › SYNC"), never a button or a clickable row.
+  - Heights: `--control-h` (28 px) for every control; `--control-h-sm` (22 px, `.btn.sm`) only
+    inline in dense rows (chips, swatch extras, the small Segmented, palette Edit and Reset).
+  - Disabled is 0.4 opacity on every control (`:disabled`, so a FROZEN `Lockable` dims all of
+    them).
+- **Which control.**
+
+  | Control | For |
+  |---|---|
+  | `HoldSwitch` (1 s hold) | master-bar states a stray touch must not flip mid-show: OSC-IN, OSC-OUT, FREEZE, stopping PRESENT. Nowhere else. |
+  | `ToggleSwitch` (`.mbtn [■] LABEL`, click) | on/off modes in bars and toolbars: INFO, EDIT, TRAFFIC's PAUSE and FOLLOW |
+  | `Toggle` (`[■] LABEL`) | a yes/no setting in a form, always with its short label after it |
+  | `Segmented` | one of 2–5 short fixed values; never navigation |
+  | `<select>` | more than 5, long labels, or a list that changes (desks, endpoints, widgets, channels) |
+  | `Chips` | several of a list |
+  | `Choice` rows | pickers with pictures (palettes, skins) |
+- **Navigation levels.** Each level looks different from its parent and shows "active" one way.
+
+  | Level | What | Active |
+  |---|---|---|
+  | Container | desk tabs, GLOBAL SETTINGS (`ContainerTabs`): folder tabs in the desk's colour | joins the frame, full border, 700 |
+  | Section | F1–F5 (`App`), a neutral bar | reverse video in `--scope`, 700 |
+  | Pane | ADD / INSPECT (`PaneTabs`): small neutral folder tabs | joins the panel, `--fg` 700 |
+  | Group | stacked, never tabs: `Panel`s on a page, `Collapsible`s in a side panel | |
+  | Sub-group | `h2` inside a group | |
+
+  Mode switches sit at the right end of the bar they change (INFO, EDIT). Every settings page
+  sits in `.page` (one padding, at most 120ch wide). The side panel opens with a
+  `WidgetHeader`, then Collapsibles.
+- **Tooltips.** Explanations are tooltips, and only state is text on screen (status, errors,
+  warnings, empty states, values). `data-tip` on any element gives it the app's one tooltip
+  (`lib/ui/Tooltip.svelte`, rules in `tooltip.ts`): hover a moment with a mouse, focus it with
+  the keyboard, or press and hold it with a finger (the click after a long press is
+  swallowed; moving cancels it). `data-tip-touch="off"` keeps the long press for the element
+  (`HoldSwitch`). `Field`'s `hint` and `Panel`'s `hint` are tips on their labels, which show a
+  dotted underline (`.has-tip`). Native `title`s aren't used. Shortcuts end a tip: "(Alt+L)";
+  holds read "Hold 1 s to …".
+
 ## Interaction model
 
 - Widgets use Pointer Events with `setPointerCapture` and `touch-action: none`. Each pointer is

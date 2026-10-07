@@ -3,6 +3,7 @@
   import type { EndpointStatus } from '../../lib/ipc/types';
   import { formatBytes } from '../../lib/osc/format';
   import type { Rates } from '../../lib/state/network.svelte';
+  import { toneOf } from '../../lib/ui/status';
 
   let { status, rates }: { status: EndpointStatus | undefined; rates: Rates | undefined } =
     $props();
@@ -11,7 +12,7 @@
 {#if status}
   <div class="status">
     <div class="line">
-      <span class="pill {status.state}">{status.state}</span>
+      <span class="pill {toneOf(status.state)}">{status.state}</span>
       {#if status.local}<span class="mono">{status.local}</span>{/if}
       {#if status.remote}<span class="faint">→</span><span class="mono">{status.remote}</span>{/if}
     </div>
