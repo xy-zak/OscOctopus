@@ -49,13 +49,12 @@
   const restore = (b: Backup) => runAction('Restore', () => presetStore.importFile(b.path));
 </script>
 
-<div class="desk-sync scroll">
+<div class="page scroll">
   <Lockable>
     <Panel
       title="Share with the session"
       hint="Everyone in your sync session can play a shared desk and edit it at the same time. Only the device you touch sends OSC; the others show the value."
       active={live}
-      tone="var(--scope)"
     >
       {#snippet actions()}
         {#if live}<span class="pill ok">shared</span>{:else if shared}<span class="pill off"
@@ -151,15 +150,6 @@
 </div>
 
 <style>
-  .desk-sync {
-    height: 100%;
-    padding: 16px 2ch 32px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    max-width: 110ch;
-    margin: 0 auto;
-  }
   p {
     margin: 0;
   }

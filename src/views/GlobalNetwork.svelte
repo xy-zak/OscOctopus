@@ -24,7 +24,7 @@
   }
 </script>
 
-<div class="global-network scroll">
+<div class="page scroll">
   <Panel
     title="All desk endpoints"
     hint="Every open desk's outputs and inputs. Click one to edit it in that desk's NETWORK section."
@@ -97,13 +97,6 @@
 </div>
 
 <style>
-  .global-network {
-    height: 100%;
-    padding: 16px 2ch 32px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
   table {
     width: 100%;
     border-collapse: collapse;

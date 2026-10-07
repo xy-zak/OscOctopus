@@ -180,7 +180,7 @@
     {#snippet actions()}
       <button class="btn ghost" onclick={() => showDesk('traffic')}>Traffic</button>
     {/snippet}
-    <WidgetActivity widgetId={widget.id} heading={false} />
+    <WidgetActivity widgetId={widget.id} />
   </Collapsible>
 </div>
 

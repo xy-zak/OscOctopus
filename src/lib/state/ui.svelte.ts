@@ -12,7 +12,9 @@ export type DeskView = 'controls' | 'network' | 'traffic' | 'look' | 'sync';
 export type GlobalView = 'network' | 'traffic' | 'library' | 'look' | 'sync';
 export type Mode = 'live' | 'edit';
 /** The Inspector's foldable sections (edit mode), in order. */
-export type InspectorSection = 'visual' | 'interaction' | 'messages' | 'activity';
+/** The folds of INSPECT: a widget's, and the desk's when none is selected (grid, widgets). */
+export type InspectorSection =
+  'visual' | 'interaction' | 'messages' | 'activity' | 'grid' | 'widgets';
 /** The live-mode info panel's foldable sections, in order. */
 export type InfoSection = 'value' | 'messages' | 'activity';
 /** What the side panel shows in edit mode: new widgets to add, or the selection to edit. */
@@ -69,10 +71,14 @@ export const ui = $state({
   /** Live mode: which info panel sections are unfolded (remembered per device once toggled). */
   infoSections: { value: true, messages: true, activity: true } as Record<InfoSection, boolean>,
   /** Edit mode: which Inspector sections are unfolded (remembered per device once toggled). */
-  inspectorOpen: { visual: true, interaction: true, messages: true, activity: false } as Record<
-    InspectorSection,
-    boolean
-  >,
+  inspectorOpen: {
+    visual: true,
+    interaction: true,
+    messages: true,
+    activity: false,
+    grid: true,
+    widgets: true,
+  } as Record<InspectorSection, boolean>,
   /**
    * FREEZE: everything is frozen for a show: widgets ignore input, no edit mode, network and
    * presets are read-only, desks can't be added or removed. Still usable: viewing, switching

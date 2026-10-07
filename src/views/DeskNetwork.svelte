@@ -4,6 +4,7 @@
   import { presetStore } from '../lib/state/preset.svelte';
   import { confirmAction, showGlobal } from '../lib/state/ui.svelte';
   import Lockable from '../lib/ui/Lockable.svelte';
+  import Panel from '../lib/ui/Panel.svelte';
   import InputCard from './network/InputCard.svelte';
   import OutputCard from './network/OutputCard.svelte';
 
@@ -39,7 +40,7 @@
   const lastApplied = $derived(apply.at ? new Date(apply.at).toLocaleTimeString() : null);
 </script>
 
-<div class="network scroll">
+<div class="page scroll">
   <Lockable>
     <div class="bar">
       <div class="apply">
@@ -60,16 +61,12 @@
     </div>
 
     <div class="columns">
-      <section>
-        <div class="section-head">
-          <h2>Outputs</h2>
-          <button
-            class="btn icon"
-            data-tip="Add output"
-            aria-label="Add output"
-            onclick={() => presetStore.addOutput()}><Icon name="plus" /></button
+      <Panel title="Outputs" hint="Where this desk's widgets send OSC">
+        {#snippet actions()}
+          <button class="btn ghost" onclick={() => presetStore.addOutput()}
+            ><Icon name="plus" /> Output</button
           >
-        </div>
+        {/snippet}
         {#each network.outputs as output, i (output.id)}
           <OutputCard
             bind:output={network.outputs[i]!}
@@ -80,18 +77,17 @@
         {:else}
           <p class="faint">No outputs. Widgets have nowhere to send.</p>
         {/each}
-      </section>
+      </Panel>
 
-      <section>
-        <div class="section-head">
-          <h2>Inputs</h2>
-          <button
-            class="btn icon"
-            data-tip="Add input"
-            aria-label="Add input"
-            onclick={() => presetStore.addInput()}><Icon name="plus" /></button
+      <Panel
+        title="Inputs"
+        hint="Where this desk listens for OSC. Incoming OSC (and replies to outputs) always appears in TRAFFIC."
+      >
+        {#snippet actions()}
+          <button class="btn ghost" onclick={() => presetStore.addInput()}
+            ><Icon name="plus" /> Input</button
           >
-        </div>
+        {/snippet}
         {#each network.inputs as input, i (input.id)}
           <InputCard
             bind:input={network.inputs[i]!}
@@ -99,11 +95,9 @@
             onremove={() => removeInput(input.id)}
           />
         {:else}
-          <p class="faint">
-            No inputs. Incoming OSC (and replies to outputs) still appears in TRAFFIC.
-          </p>
+          <p class="faint">No inputs.</p>
         {/each}
-      </section>
+      </Panel>
     </div>
   </Lockable>
 
@@ -116,13 +110,6 @@
 </div>
 
 <style>
-  .network {
-    height: 100%;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
   .bar {
     display: flex;
     align-items: center;
@@ -144,17 +131,6 @@
     grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
     gap: 16px;
     align-items: start;
-  }
-  section {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .section-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
   }
   p {
     margin: 0;

@@ -650,7 +650,7 @@ master bar) follows these rules. A new view picks from them instead of styling i
   | Heading | 700, UPPERCASE, `--fg` | `Panel` and `Collapsible` titles, `WidgetHeader` |
   | Sub-heading | 700, UPPERCASE, `--fg-dim`, `── TITLE ───` | `h2`, only inside a Panel, Collapsible or detail pane |
   | Label | 400, UPPERCASE, `--fg-dim` (a form field adds a faint `▸`) | `.field-label`, `Field` |
-  | Name | 700, UPPERCASE, `--fg` | `.name`: a desk, widget, preset, tab, endpoint or peer shown as a label |
+  | Name | 700, UPPERCASE, `--fg` | `.entity-name`: a desk, widget, preset, tab, endpoint or peer shown as a label (never where it is typed) |
   | Body, value | 400, `--fg`, as written | |
   | Caption | 400, `--fg-faint` | `.faint`: counts, stats, empty states |
   | Error | `--danger`, `✕` before it | `.error-text`; never faint |

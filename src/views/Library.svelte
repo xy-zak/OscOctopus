@@ -26,7 +26,7 @@
   }
 </script>
 
-<div class="library scroll">
+<div class="page scroll">
   <Lockable>
     <Panel
       title="Saved desk presets · this device"
@@ -76,15 +76,6 @@
 </div>
 
 <style>
-  .library {
-    height: 100%;
-    padding: 16px 2ch 32px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    max-width: 110ch;
-    margin: 0 auto;
-  }
   ul {
     list-style: none;
     margin: 0;

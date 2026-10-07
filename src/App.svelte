@@ -374,11 +374,13 @@
   <section class="frame" aria-label={ui.view === 'desk' ? `Desk ${desk.name}` : 'Global settings'}>
     {#if !ui.presenting}
       <div class="frame-head">
-        <nav class="sections" aria-label="Sections">
+        <div class="sections" role="tablist" aria-label="Sections">
           {#each currentSections() as s, i (s.id)}
             {@const bad = failing(s.id)}
             <button
               class="section"
+              role="tab"
+              aria-selected={currentSection() === s.id}
               class:on={currentSection() === s.id}
               data-tip="{s.hint} (F{i + 1})"
               onclick={() => showSectionAt(i)}
@@ -386,7 +388,7 @@
               >{#if bad > 0}<span class="badge">{bad}!</span>{/if}</button
             >
           {/each}
-        </nav>
+        </div>
         {#if ready && ui.view === 'desk' && ui.deskView === 'controls'}<DeskSwitches />{/if}
       </div>
     {/if}

@@ -1,24 +1,17 @@
 <script lang="ts">
   // What actually happened on the wire for this widget, newest first, straight from the debug
-  // log (so errors are the OS's own text), plus the throttle's counters.
+  // log (so errors are the OS's own text), plus the throttle's counters. The panel around it
+  // (a Collapsible) names it and links to TRAFFIC.
   import { formatTime, summarize } from '../../lib/osc/format';
   import { ACTIVITY_ROWS, debugStore } from '../../lib/state/debug.svelte';
-  import { showDesk } from '../../lib/state/ui.svelte';
 
-  /** `heading: false` when the surrounding panel already names it (the Inspector). */
-  let { widgetId, heading = true }: { widgetId: string; heading?: boolean } = $props();
+  let { widgetId }: { widgetId: string } = $props();
 
   const recent = $derived(debugStore.recentFor(widgetId, ACTIVITY_ROWS).reverse());
   const stats = $derived(debugStore.throttle[widgetId]);
 </script>
 
 <section>
-  {#if heading}
-    <div class="head">
-      <h2>Activity</h2>
-      <button class="btn ghost" onclick={() => showDesk('traffic')}>Traffic</button>
-    </div>
-  {/if}
   {#if stats}
     <p class="mono muted stats">
       to core {stats.sent} · coalesced {stats.coalesced} ·
@@ -47,14 +40,6 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-  }
-  .head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .head .btn {
-    height: 28px;
   }
   .event {
     display: grid;

@@ -121,7 +121,7 @@
   const links = $derived(missingLinks(syncSession.presence, Object.keys(syncSession.peers)));
 </script>
 
-<div class="sync scroll">
+<div class="page scroll">
   <Panel title="This device">
     {#if s}
       <div class="grid">
@@ -451,15 +451,6 @@
 </div>
 
 <style>
-  .sync {
-    height: 100%;
-    padding: 16px 2ch 32px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    max-width: 120ch;
-    margin: 0 auto;
-  }
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(28ch, 1fr));

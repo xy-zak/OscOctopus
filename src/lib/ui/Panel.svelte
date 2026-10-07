@@ -8,15 +8,14 @@
     hint?: string;
     actions?: Snippet;
     children: Snippet;
+    /** On (a joined session, a shared desk): the accent border and title. */
     active?: boolean;
-    /** CSS colour for the active border and title, instead of the global accent. */
-    tone?: string;
     dim?: boolean;
   }
-  let { title, hint, actions, children, active = false, tone, dim = false }: Props = $props();
+  let { title, hint, actions, children, active = false, dim = false }: Props = $props();
 </script>
 
-<section class="panel" class:active class:dim class:toned={!!tone} style:--tone={tone}>
+<section class="panel" class:active class:dim>
   <header>
     <span class="title"><span class:has-tip={!!hint} data-tip={hint}>{title}</span></span>
     {#if actions}<span class="actions">{@render actions()}</span>{/if}
@@ -26,8 +25,6 @@
 
 <style>
   .panel {
-    --pc: var(--accent);
-    --pc-text: var(--accent-text);
     position: relative;
     border: 1px solid var(--line);
     background: var(--bg-2);
@@ -37,16 +34,8 @@
       border-color var(--t-ui) steps(2),
       opacity var(--t-ui) steps(3);
   }
-  /* A tone used as text is darkened in light mode, like --accent-text (tokens.css). */
-  .panel.toned {
-    --pc: var(--tone);
-    --pc-text: var(--tone);
-  }
-  :global(:root[data-mode='light']) .panel.toned {
-    --pc-text: color-mix(in srgb, var(--tone) 55%, #000);
-  }
   .panel.active {
-    border-color: var(--pc);
+    border-color: var(--accent);
   }
   .panel.dim {
     opacity: 0.55;
@@ -77,7 +66,7 @@
     color: var(--fg);
   }
   .active .title {
-    color: var(--pc-text);
+    color: var(--accent-text);
   }
   .actions {
     display: flex;

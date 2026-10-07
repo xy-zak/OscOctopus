@@ -13,7 +13,7 @@
   import { lockedBy, sharedDesks } from '../lib/sync/app.svelte';
   import { syncSession } from '../lib/sync/session.svelte';
   import { colorVars } from '../lib/theme/palettes';
-  import Segmented from '../lib/ui/Segmented.svelte';
+  import PaneTabs from '../lib/ui/PaneTabs.svelte';
   import { removeWidgets } from '../lib/widgets/tabs/actions';
   import AddPanel from './AddPanel.svelte';
   import DeskPanel from './DeskPanel.svelte';
@@ -147,13 +147,14 @@
         {#if editing}
           <!-- Stays put while what is below it scrolls. -->
           <div class="switcher">
-            <Segmented
+            <PaneTabs
+              label="Side panel"
               options={[
-                { value: 'add', label: 'ADD', title: 'Add widgets to the desk or a frame' },
+                { value: 'add', label: 'Add', tip: 'Add widgets to the desk or a frame' },
                 {
                   value: 'inspect',
-                  label: 'INSPECT',
-                  title: 'Edit the selected widgets, or the desk when none is selected',
+                  label: 'Inspect',
+                  tip: 'Edit the selected widgets, or the desk when none is selected',
                 },
               ]}
               bind:value={ui.editPanel}
@@ -233,7 +234,7 @@
   }
   .switcher {
     flex: none;
-    padding: 12px 14px 0;
+    padding-top: 10px;
   }
   .content {
     flex: 1;

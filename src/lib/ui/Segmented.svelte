@@ -53,6 +53,10 @@
     transform: translateX(calc(var(--i) * 100%));
     transition: transform var(--t-release) var(--ease-spring);
   }
+  /* Disabled (a FROZEN Lockable): the block dims with the buttons (app.css). */
+  .seg:has(button:disabled) .thumb {
+    opacity: 0.4;
+  }
   button {
     position: relative;
     height: calc(var(--control-h) - 2px);

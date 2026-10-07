@@ -4,88 +4,108 @@
   import { LIMITS } from '../lib/model/preset';
   import { childrenIndex, isTabs, tabKey } from '../lib/model/tabs';
   import { presetStore } from '../lib/state/preset.svelte';
-  import { showDesk, showGlobal } from '../lib/state/ui.svelte';
+  import { persistSetting } from '../lib/state/persist';
+  import { showDesk, showGlobal, ui, type InspectorSection } from '../lib/state/ui.svelte';
+  import Collapsible from '../lib/ui/Collapsible.svelte';
   import Field from '../lib/ui/Field.svelte';
   import NumberInput from '../lib/ui/NumberInput.svelte';
   import { plural } from '../lib/util';
+  import WidgetHeader from './widget/WidgetHeader.svelte';
   import WidgetRow from './WidgetRow.svelte';
 
   const preset = $derived(presetStore.current);
   const index = $derived(childrenIndex(preset));
+
+  // Folded and unfolded like the Inspector's sections, and remembered with them.
+  const toggle = (s: InspectorSection) => (on: boolean) => {
+    ui.inspectorOpen[s] = on;
+    void persistSetting('inspectorSections', { ...ui.inspectorOpen });
+  };
 </script>
 
 <div class="panel-body">
-  <header>
-    <span class="title">DESK</span>
-    <span class="faint">{preset.widgets.length} widgets</span>
-  </header>
-  <p class="faint">Select a widget to edit it, or click one below; Shift+click selects several.</p>
+  <WidgetHeader
+    kind="DESK"
+    hint="Select a widget to edit it, or click one below; Shift+click selects several."
+    label={preset.name}
+  />
 
-  <h2>Grid</h2>
-  <div class="grid3">
-    <Field label="Cols">
-      <NumberInput
-        value={preset.grid.cols}
-        integer
-        {...LIMITS.gridSide}
-        onchange={(cols) => presetStore.setGrid({ cols })}
-      />
-    </Field>
-    <Field label="Rows">
-      <NumberInput
-        value={preset.grid.rows}
-        integer
-        {...LIMITS.gridSide}
-        onchange={(rows) => presetStore.setGrid({ rows })}
-      />
-    </Field>
-    <Field label="Gap px">
-      <NumberInput
-        value={preset.grid.gap}
-        {...LIMITS.gridGap}
-        onchange={(gap) => presetStore.setGrid({ gap })}
-      />
-    </Field>
-  </div>
+  <Collapsible
+    title="Grid"
+    open={ui.inspectorOpen.grid}
+    ontoggle={toggle('grid')}
+    summary="{preset.grid.cols}×{preset.grid.rows} · gap {preset.grid.gap}px"
+  >
+    <div class="grid3">
+      <Field label="Cols">
+        <NumberInput
+          value={preset.grid.cols}
+          integer
+          {...LIMITS.gridSide}
+          onchange={(cols) => presetStore.setGrid({ cols })}
+        />
+      </Field>
+      <Field label="Rows">
+        <NumberInput
+          value={preset.grid.rows}
+          integer
+          {...LIMITS.gridSide}
+          onchange={(rows) => presetStore.setGrid({ rows })}
+        />
+      </Field>
+      <Field label="Gap px">
+        <NumberInput
+          value={preset.grid.gap}
+          {...LIMITS.gridGap}
+          onchange={(gap) => presetStore.setGrid({ gap })}
+        />
+      </Field>
+    </div>
+    <p class="faint">
+      Palette, active colour and skin: this desk's own (<button
+        class="link"
+        onclick={() => showDesk('look')}>DESK › LOOK</button
+      >) or all desks' (<button class="link" onclick={() => showGlobal('look')}
+        >GLOBAL SETTINGS › LOOK</button
+      >).
+    </p>
+  </Collapsible>
 
-  <p class="faint">
-    Palette, active colour and skin: this desk's own (<button
-      class="link"
-      onclick={() => showDesk('look')}>DESK › LOOK</button
-    >) or all desks' (<button class="link" onclick={() => showGlobal('look')}
-      >GLOBAL SETTINGS › LOOK</button
-    >).
-  </p>
-
-  <h2>Widgets</h2>
-  <ul class="list">
-    {#each index.get('') ?? [] as w (w.id)}
-      <WidgetRow widget={w} />
-      {#if isTabs(w)}
-        {#each w.props.tabs as tab (tab.id)}
-          {@const on = index.get(tabKey({ widget: w.id, tab: tab.id })) ?? []}
-          <li>
-            <button
-              class="tab"
-              data-tip="Show this tab"
-              onclick={() => {
-                presetStore.showTab(w.id, tab.id);
-                presetStore.select(w.id);
-              }}
-              ><span class="faint">›</span><span class="name">{tab.name}</span><span class="faint"
-                >{plural(on.length, 'widget')}</span
-              ></button
-            >
-          </li>
-          {#each on as c (c.id)}
-            <WidgetRow widget={c} level={2} />
+  <Collapsible
+    title="Widgets"
+    open={ui.inspectorOpen.widgets}
+    ontoggle={toggle('widgets')}
+    summary={plural(preset.widgets.length, 'widget')}
+  >
+    <ul class="list">
+      {#each index.get('') ?? [] as w (w.id)}
+        <WidgetRow widget={w} />
+        {#if isTabs(w)}
+          {#each w.props.tabs as tab (tab.id)}
+            {@const on = index.get(tabKey({ widget: w.id, tab: tab.id })) ?? []}
+            <li>
+              <button
+                class="tab"
+                data-tip="Show this tab"
+                onclick={() => {
+                  presetStore.showTab(w.id, tab.id);
+                  presetStore.select(w.id);
+                }}
+                ><span class="faint">›</span><span class="name">{tab.name}</span><span class="faint"
+                  >{plural(on.length, 'widget')}</span
+                ></button
+              >
+            </li>
+            {#each on as c (c.id)}
+              <WidgetRow widget={c} level={2} />
+            {/each}
           {/each}
-        {/each}
-      {/if}
-    {:else}
-      <li class="faint">Empty desk: add a widget from ADD, above.</li>
-    {/each}
-  </ul>
+        {/if}
+      {:else}
+        <li class="faint">Empty desk: add a widget from ADD, above.</li>
+      {/each}
+    </ul>
+  </Collapsible>
 </div>
 
 <style>
@@ -93,16 +113,6 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-  }
-  header {
-    display: flex;
-    justify-content: space-between;
-  }
-  .title {
-    padding: 0 1ch;
-    background: var(--accent);
-    color: var(--accent-ink);
-    font-weight: 700;
   }
   p {
     margin: 0;

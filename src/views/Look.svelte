@@ -26,7 +26,7 @@
   );
 </script>
 
-<div class="look scroll">
+<div class="page scroll">
   <Lockable>
     <Panel
       title="Background · all desks"
@@ -120,15 +120,6 @@
 </div>
 
 <style>
-  .look {
-    height: 100%;
-    padding: 16px 2ch 32px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    max-width: 110ch;
-    margin: 0 auto;
-  }
   .new,
   .problem {
     display: flex;

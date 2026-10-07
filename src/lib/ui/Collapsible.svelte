@@ -39,11 +39,12 @@
   .fold.open {
     border-color: var(--line-strong);
   }
+  /* A shade darker than the side panel it sits in, so a group reads apart from its pane. */
   .bar {
     display: flex;
     align-items: center;
     gap: 1ch;
-    background: var(--bg-2);
+    background: var(--bg-3);
   }
   .open .bar {
     border-bottom: 1px solid var(--line);

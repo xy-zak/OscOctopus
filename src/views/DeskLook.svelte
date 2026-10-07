@@ -35,13 +35,11 @@
   });
 </script>
 
-<div class="desk-look scroll">
+<div class="page scroll">
   <Lockable>
     <Panel
       title="Desk preset"
       hint="The desk as a file: it saves automatically, and Export… makes a copy to use elsewhere."
-      active
-      tone="var(--scope)"
     >
       {#snippet actions()}<span class="pill {saveState.cls}">{saveState.text}</span>{/snippet}
       <div class="grid">
@@ -128,15 +126,6 @@
 </div>
 
 <style>
-  .desk-look {
-    height: 100%;
-    padding: 16px 2ch 32px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    max-width: 110ch;
-    margin: 0 auto;
-  }
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(24ch, 1fr));

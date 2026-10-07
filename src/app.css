@@ -363,8 +363,9 @@ select.input option {
   color: var(--fg-dim);
   text-transform: uppercase;
 }
-/* Something the user named (a desk, widget, preset, tab, endpoint, peer) shown as a label. */
-.name {
+/* Something the user named (a desk, widget, preset, tab, endpoint, peer) shown as a label;
+   never on the field where it is typed. */
+.entity-name {
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -395,13 +396,12 @@ select.input option {
   text-decoration: underline dotted var(--fg-faint);
   text-underline-offset: 3px;
 }
-/* A settings page: one padding and width for all of them. */
+/* A settings page (with .scroll): one padding and width for all of them. */
 .page {
   height: 100%;
-  padding: 16px 2ch 32px;
-}
-.page > .page-body {
   max-width: 120ch;
+  margin: 0 auto;
+  padding: 16px 2ch 32px;
   display: flex;
   flex-direction: column;
   gap: 16px;

@@ -111,7 +111,7 @@
       {#snippet actions()}
         <button class="btn ghost" onclick={() => showDesk('traffic')}>Traffic</button>
       {/snippet}
-      <WidgetActivity widgetId={widget.id} heading={false} />
+      <WidgetActivity widgetId={widget.id} />
     </Collapsible>
   {:else}
     <p class="faint">Touch a widget to see the messages it sends and what happened on the wire.</p>

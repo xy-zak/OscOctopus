@@ -223,6 +223,7 @@
     border-color: var(--tc);
     background: var(--bg-2);
     color: var(--fg);
+    font-weight: 700;
   }
   .pick {
     display: flex;
@@ -234,7 +235,6 @@
     background: none;
     color: inherit;
     white-space: nowrap;
-    font-weight: 700;
   }
   .chip {
     width: 1ch;
@@ -274,7 +274,6 @@
   }
   .viewer {
     margin-left: -0.5ch;
-    font-size: 0.8em;
   }
   .badge {
     padding: 0 0.5ch;
