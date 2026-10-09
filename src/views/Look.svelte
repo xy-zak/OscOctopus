@@ -32,6 +32,7 @@
 <div class="page scroll">
   <Lockable>
     <Panel
+      tour="bg-all"
       title="Background · all desks"
       hint="Dark (default) is near-black with near-white text; light is the inverse. The palette colours stay the same in both."
     >
@@ -46,6 +47,7 @@
     </Panel>
 
     <Panel
+      tour="palette-all"
       title="Palette · all desks"
       hint="Each palette is nine colours and an accent (the last, set apart). The accent marks highlights and selection. Widgets and each desk's identity colour pick one of all ten (widgets can also use AUTO: their desk's colour). A desk can have its own palette (DESK › LOOK)."
     >
@@ -54,6 +56,7 @@
       <div class="new">
         <button
           class="btn"
+          data-tour="new-palette"
           disabled={editing !== null || appearance.customFull}
           data-tip="Make your own: pick one colour, and nine and an accent are made from it."
           onclick={() => (editing = 'new')}><Icon name="plus" /> New palette</button
@@ -70,6 +73,7 @@
     {/if}
 
     <Panel
+      tour="active-all"
       title="Active colour · all desks"
       hint="What is pressed, on, filled or held turns this colour, in every palette. Pick one your widgets don't use, so it stands out. A desk can have its own (DESK › LOOK)."
     >
@@ -77,6 +81,7 @@
     </Panel>
 
     <Panel
+      tour="skin-all"
       title="Widget skin · all desks"
       hint="How widgets are drawn: their shapes, lines, fills and motion. The palette and the active colour still colour them, and the text, the markers and the background stay the same in every skin. A desk can have its own skin (DESK › LOOK)."
     >
@@ -97,6 +102,7 @@
       </SkinPicker>
       <div class="new">
         <button
+          data-tour="import-skin"
           class="btn"
           data-tip="A skin file exported on another device, or shared with you."
           onclick={() => skinFile?.click()}><Icon name="upload" /> Import skin…</button

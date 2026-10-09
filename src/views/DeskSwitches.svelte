@@ -8,7 +8,7 @@
   const editing = $derived(ui.mode === 'edit');
 </script>
 
-<div class="switches">
+<div class="switches" data-tour="desk-switches">
   {#if !editing}
     <ToggleSwitch
       label="INFO"

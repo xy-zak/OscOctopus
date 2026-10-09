@@ -13,10 +13,13 @@
   // Everything inside the frame belongs to the tab it hangs from. NETWORK, TRAFFIC and SYNC exist
   // in both a desk and GLOBAL SETTINGS; the frame's colour (the desk's own, or white) says which.
   //
+  // The logo opens ABOUT, which starts the tour (views/Tour.svelte); while it runs, the app is
+  // inert. main.ts mounts this behind the launch screen, which closes on `onready`.
+  //
   // PRESENTING keeps only the desk tabs and the switches (OSC-IN · OSC-OUT · FREEZE · PRESENT) in
   // the top bar, exactly where they were, and the frame holds nothing but the desk's widgets.
   import { getCurrentWindow } from '@tauri-apps/api/window';
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { isTauri } from './lib/ipc/commands';
   import { followPresenting } from './lib/platform/fullscreen';
   import { getSetting, type Settings } from './lib/platform/settings';
@@ -33,12 +36,14 @@
   import { sharedDesks, startSharedDesks } from './lib/sync/app.svelte';
   import { syncSession } from './lib/sync/session.svelte';
   import {
+    confirmAction,
     currentSection,
     currentSections,
     setLocked,
     setPresenting,
     showGlobal,
     showSectionAt,
+    toast,
     toggleEditMode,
     ui,
   } from './lib/state/ui.svelte';
@@ -50,7 +55,9 @@
   import HoldSwitch from './lib/ui/HoldSwitch.svelte';
   import PixelLogo from './lib/ui/PixelLogo.svelte';
   import { measureCharWidth } from './lib/ui/textfit';
+  import { tour } from './lib/tour/app.svelte';
   import { errorText } from './lib/util';
+  import About from './views/About.svelte';
   import ContainerTabs from './views/ContainerTabs.svelte';
   import Desk from './views/Desk.svelte';
   import DeskNetwork from './views/DeskNetwork.svelte';
@@ -61,10 +68,22 @@
   import GlobalSync from './views/GlobalSync.svelte';
   import Library from './views/Library.svelte';
   import Look from './views/Look.svelte';
+  import Tour from './views/Tour.svelte';
   import Traffic from './views/Traffic.svelte';
+
+  interface Props {
+    /** Called once the app has started (or failed to) and drawn it: the launch screen closes. */
+    onready?: () => void;
+    /** Resolves once the launch screen has gone. */
+    launched?: Promise<unknown>;
+  }
+  let { onready, launched }: Props = $props();
 
   let ready = $state(false);
   let fatal: string | null = $state(null);
+  $effect(() => {
+    if (ready || fatal) void tick().then(() => onready?.());
+  });
 
   onMount(async () => {
     // Text placement is character arithmetic, so measure the real font first.
@@ -87,6 +106,12 @@
       ui.locked = (await getSetting('locked')) ?? false;
       setPresenting((await getSetting('presenting')) ?? false);
       await presetStore.init();
+      // A TUTORIAL desk left by an app that died mid-tour goes before anything shows it.
+      await tour
+        .recover()
+        .catch((e: unknown) =>
+          debugStore.local(`could not remove the tour's desk: ${errorText(e)}`),
+        );
       // After the desks: a reloaded page picks up the sequences still playing in the core.
       await sequencerStore.start();
       await skinStore.load();
@@ -95,6 +120,7 @@
       Object.assign(ui.inspectorOpen, await getSetting('inspectorSections'));
       Object.assign(ui.infoSections, await getSetting('infoSections'));
       ready = true;
+      void offerTour();
       // Sync last: the desks it may share are open by now. A failure here (e.g. the port is
       // taken) is shown in the SYNC section, never blocks the app.
       await syncSession.start().catch((e: unknown) => (syncSession.error = errorText(e)));
@@ -103,6 +129,22 @@
       fatal = `Startup failed: ${errorText(e)}`;
     }
   });
+
+  /** Once per device, after the launch screen: a first look offers the tour. */
+  async function offerTour() {
+    if (await getSetting('tourOffered')) return;
+    await launched;
+    if (!tour.available) return;
+    await persistSetting('tourOffered', true);
+    const yes = await confirmAction({
+      title: 'Welcome',
+      message: 'New to OSC-OCTOPUS? A short tour shows where everything is.',
+      details: ['It is always in ABOUT: click the octopus, top left.'],
+      confirmLabel: 'Start tour',
+      cancelLabel: 'Not now',
+    });
+    if (yes) await tour.start().catch((e: unknown) => toast(`Tour: ${errorText(e)}`, 'error'));
+  }
 
   // Edits autosave after a short pause; write whatever is still pending before the window
   // closes, and whenever the app is hidden (a phone may kill a backgrounded app unasked).
@@ -199,7 +241,8 @@
 
   // F1…F5: sections of whatever container you're in. F11 presents; holding F11 or Esc for one
   // second stops, like holding PRESENT. Alt+E edit. Alt+I OSC-IN, Alt+P OSC-OUT and Alt+L
-  // FREEZE are held like their switches: one second, on and off alike, never a single keystroke.
+  // FREEZE act like their switches: Alt+I and Alt+P need a one-second hold, on and off alike;
+  // Alt+L freezes at once, and unfreezes only after the hold.
   function onkeydown(e: KeyboardEvent) {
     const plain = !e.altKey && !e.ctrlKey && !e.metaKey;
     const f = /^F([1-5])$/.exec(e.key);
@@ -209,7 +252,8 @@
       return;
     }
     // An Esc that closes a dialog (before or after this handler) is only for the dialog.
-    const stop = e.key === 'Escape' && ui.presenting && !ui.confirm && !e.defaultPrevented;
+    const stop =
+      e.key === 'Escape' && ui.presenting && !ui.confirm && !ui.aboutOpen && !e.defaultPrevented;
     if (plain && (e.key === 'F11' || stop)) {
       e.preventDefault();
       if (!ui.presenting) setPresenting(true);
@@ -276,20 +320,27 @@
   <!-- Whole-app states: full width, above everything, because they affect every desk. While
        presenting, the OSC-OUT and FREEZE switches say it on their own. -->
   {#if ui.locked && !ui.presenting}
-    <div class="banner locked" role="status">
+    <div class="banner locked" role="status" inert={tour.active}>
       ■ FROZEN · all desks · press and hold FREEZE for 1 second to unfreeze{waiting
         ? ` · edits from other devices on ${waiting} shared desk(s) are applied on unfreeze`
         : ''}
     </div>
   {/if}
   {#if networkStore.paused && !ui.presenting}
-    <div class="banner paused" role="status">
+    <div class="banner paused" role="status" inert={tour.active}>
       ▓▓ OUTPUT PAUSED · all desks · nothing leaves the app · held packets are logged ▓▓
     </div>
   {/if}
 
-  <header class="top">
-    {#if !ui.presenting}<span class="brand" data-tip="OscOctopus"><PixelLogo /></span>{/if}
+  <header class="top" inert={tour.active}>
+    {#if !ui.presenting}
+      <button
+        class="brand"
+        aria-label="About OSC-OCTOPUS"
+        data-tip="About OSC-OCTOPUS"
+        onclick={() => (ui.aboutOpen = true)}><PixelLogo /></button
+      >
+    {/if}
     {#if ready}<ContainerTabs />{:else}<span class="tabs-placeholder"></span>{/if}
     <!-- The master bar affects every desk, so it sits outside every tab and frame. Status first
          (click to open it), then the switches, from least to most restrictive: OSC-IN lets
@@ -301,6 +352,7 @@
       {#if !ui.presenting}
         <button
           class="mbtn"
+          data-tour="out-readout"
           onclick={() => showGlobal('network')}
           data-tip="Outputs ready / enabled across all desks · messages per second. Click for NETWORK"
         >
@@ -310,6 +362,7 @@
         </button>
         <button
           class="mbtn"
+          data-tour="sync-readout"
           onclick={() => showGlobal('sync')}
           data-tip={syncSession.joined
             ? `Session “${syncSession.status?.session}”: ${syncConnected} device(s) connected. Click for SYNC`
@@ -321,11 +374,12 @@
         </button>
         <span class="sep" aria-hidden="true"></span>
       {/if}
-      <!-- OSC-IN, OSC-OUT and FREEZE change only after a one-second hold, on and off alike;
-           PRESENT turns on with a click, and only a hold stops it. -->
+      <!-- OSC-IN and OSC-OUT change only after a one-second hold, on and off alike; FREEZE and
+           PRESENT turn on with a click, and only a hold turns them off. -->
       <HoldSwitch
         bind:this={inSwitch}
         label="OSC-IN"
+        tour="osc-in"
         on={inputStore.enabled}
         onchange={(on) => inputStore.setEnabled(on)}
         tip={inputStore.enabled
@@ -336,6 +390,7 @@
       <HoldSwitch
         bind:this={outSwitch}
         label="OSC-OUT"
+        tour="osc-out"
         wide
         offTone="alarm"
         blinkOff
@@ -348,18 +403,21 @@
       <HoldSwitch
         bind:this={lockSwitch}
         label="FREEZE"
+        tour="freeze"
         onLabel="FROZEN"
         onTone="warn"
+        holdOff
         on={ui.locked}
         onchange={setLocked}
         nudge={ui.lockNudge}
         tip={ui.locked
           ? 'Frozen: hold 1 s to unfreeze (Alt+L)'
-          : 'Hold 1 s to freeze widgets and settings for a show (Alt+L)'}
+          : 'Click to freeze widgets and settings for a show; unfreezing takes a 1 s hold (Alt+L)'}
       />
       <HoldSwitch
         bind:this={presentSwitch}
         label="PRESENT"
+        tour="present"
         wide
         holdOff
         on={ui.presenting}
@@ -371,10 +429,14 @@
     </div>
   </header>
 
-  <section class="frame" aria-label={ui.view === 'desk' ? `Desk ${desk.name}` : 'Global settings'}>
+  <section
+    class="frame"
+    aria-label={ui.view === 'desk' ? `Desk ${desk.name}` : 'Global settings'}
+    inert={tour.active}
+  >
     {#if !ui.presenting}
       <div class="frame-head">
-        <div class="sections" role="tablist" aria-label="Sections">
+        <div class="sections" role="tablist" aria-label="Sections" data-tour="sections">
           {#each currentSections() as s, i (s.id)}
             {@const bad = failing(s.id)}
             <button
@@ -430,6 +492,8 @@
   </section>
 
   <ConfirmDialog />
+  <About />
+  <Tour />
   <Tooltip />
 
   {#if ui.toast}
@@ -467,6 +531,9 @@
     align-self: center;
     display: flex;
     margin-right: 1ch;
+    padding: 0;
+    border: 0;
+    background: none;
   }
   .tabs-placeholder {
     flex: 1;

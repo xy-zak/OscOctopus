@@ -54,6 +54,7 @@
 <div class="page scroll">
   <Lockable>
     <Panel
+      tour="projects"
       title="Projects · this device"
       hint="A project is the whole setup at once: the open desks with their networks, which one is shown, and the look (palettes and skins included). It is saved only when you save it. Loading one opens its desks as they were saved."
     >
@@ -98,7 +99,7 @@
           <li class="empty faint">No projects yet: save the setup as one below.</li>
         {/each}
       </ul>
-      <div class="row">
+      <div class="row" data-tour="project-save">
         <input
           class="input"
           placeholder="Project name"
@@ -117,6 +118,7 @@
     </Panel>
 
     <Panel
+      tour="library-desks"
       title="Saved desk presets · this device"
       hint="■ = open as a desk. Stored in {presetStore.dir}"
     >

@@ -67,7 +67,7 @@
   );
 </script>
 
-<div class="inspector">
+<div class="inspector" data-tour="inspector">
   <WidgetHeader kind={DEFS[widget.type].label.toUpperCase()} label={widget.label} id={widget.id}>
     {#snippet actions()}
       <fieldset class="plain" disabled={locked}>
@@ -164,6 +164,7 @@
   {#if messages !== 'none'}
     <Collapsible
       title="Messages"
+      tour="messages"
       open={open('messages')}
       ontoggle={toggle('messages')}
       summary={messagesSummary}

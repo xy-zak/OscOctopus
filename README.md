@@ -54,6 +54,10 @@ it); bump `src-tauri/Cargo.toml` with it (a Rust test checks they match). Change
 
 ## Using it
 
+New here? The **tour** walks through every page: click the octopus (top left) › _Take the
+tour_. It is offered once on first launch, and runs on a TUTORIAL desk of its own that is
+deleted when it ends.
+
 The screen always shows **where you are**, by containment:
 
 ```
@@ -91,15 +95,16 @@ The screen always shows **where you are**, by containment:
   - **OSC-OUT** (switch, Alt+P, on by default): off, it pauses all outgoing OSC. It turns red and
     the OUTPUT PAUSED banner shows. This is enforced in the Rust core, and held packets are
     logged with their exact bytes.
-  - **FREEZE** (switch, Alt+L): freezes widgets and settings (amber while frozen). Edits from
-    other devices on shared desks wait until you unfreeze.
+  - **FREEZE** (switch, Alt+L): freezes widgets and settings (amber while frozen). It turns on
+    with a click; to unfreeze, hold it for 1 s. Edits from other devices on shared desks wait
+    until you unfreeze.
   - **PRESENT** (switch, F11): the active desk's widgets fill the screen (the window goes
     fullscreen on desktop). Only the desk tabs, OSC-IN, OSC-OUT, FREEZE and `[■] PRESENT` stay.
     It turns on with a click; to stop, hold it for 1 s (or hold Esc or F11), so a stray touch
     can't end a show.
   - Switches show `[■]` and fill with the accent colour when what they name is on (FREEZE fills
     amber). OSC-IN, OSC-OUT and FREEZE survive restarts, and so does presenting.
-  - **OSC-IN, OSC-OUT and FREEZE change only after a 1 s press-and-hold**, on and off alike, so a
+  - **OSC-IN and OSC-OUT change only after a 1 s press-and-hold**, on and off alike, so a
     stray touch can't flip them mid-show. The new state wipes in while you hold; let go early
     and it says HOLD 1 SEC. Their Alt shortcuts must be held for a second too.
 - **All open desks run at the same time.** A tab only chooses which one you see. **+** adds a desk
@@ -166,7 +171,7 @@ The screen always shows **where you are**, by containment:
 - Alt+1…9 opens desk N, Alt+0 opens GLOBAL SETTINGS, and Alt+[ / Alt+] go to the previous / next desk.
 - F1…F5 switch sections inside the current frame.
 - F11 presents (and stops); Esc also stops. While presenting, F1…F5, Alt+0 and Alt+E do nothing.
-- Alt+E edit. Hold for 1 s: Alt+I OSC-IN, Alt+P OSC-OUT (pause), Alt+L freeze; while presenting, Esc or F11 stops.
+- Alt+E edit. Alt+L freezes; hold for 1 s: Alt+L to unfreeze, Alt+I OSC-IN, Alt+P OSC-OUT (pause); while presenting, Esc or F11 stops.
 - In edit mode: Shift+click selects several (they move, resize, nudge and delete together),
   arrows nudge, Del removes, Esc deselects (or puts back what is being dragged).
 

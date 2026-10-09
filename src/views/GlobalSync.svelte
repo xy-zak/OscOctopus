@@ -152,7 +152,7 @@
 </script>
 
 <div class="page scroll">
-  <Panel title="This device">
+  <Panel tour="sync-device" title="This device">
     {#if s}
       <div class="grid">
         <Field label="Name (shown to others)">
@@ -190,6 +190,7 @@
 
   <Lockable>
     <Panel
+      tour="sync-session"
       title="Session"
       hint="The key never leaves this device and is not stored: with Remember on, only a key derived from it is kept. Shared desks and live values reach only devices that know it."
       active={syncSession.joined}
@@ -327,7 +328,7 @@
       {/if}
     </Panel>
 
-    <Panel title="Connection">
+    <Panel tour="sync-connection" title="Connection">
       {#if config && s}
         <div class="grid">
           <Field label="Listen port (TCP)" hint="Other devices connect to this port.">
@@ -402,7 +403,7 @@
     </Panel>
   </Lockable>
 
-  <Panel title="Devices">
+  <Panel tour="sync-devices" title="Devices">
     {#snippet actions()}
       <span class="faint">{connectedCount} connected</span>
     {/snippet}

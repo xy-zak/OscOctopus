@@ -416,6 +416,29 @@ transport that never reads app payloads (Rust) with desk semantics owned by the 
   `DESK_SECTIONS` / `GLOBAL_SECTIONS` (`state/ui.svelte.ts`) define their labels, hints and
   F-key order once. NETWORK, TRAFFIC and SYNC exist at both levels, so the frame colour (the desk's
   own, or white for GLOBAL SETTINGS) carries the scope.
+- `main.ts` starts in two steps, so the window shows something at once: the small entry chunk
+  paints the launch screen (`views/Launch.svelte`), and `App.svelte` is a separate chunk that is
+  loaded, mounted and started behind it. The launch screen types the title, waits for App's
+  `onready` (started or failed, at most 5 s), then closes in reverse: its background thins to
+  the dialogs' dither (`--backdrop-dither`) to show the app, the title is deleted and the octopus
+  undrawn. The top bar's octopus is a button that opens ABOUT (`views/About.svelte`, a `.modal`
+  like `ConfirmDialog`).
+- The tour (`lib/tour/`, drawn by `views/Tour.svelte`) walks through the UI, show only. Its
+  steps are data (`steps.ts`): a level, the text, where the UI goes (`Place`) and what to
+  highlight, by `data-tour` id (Panel, Collapsible and HoldSwitch take a `tour` prop for it).
+  Each level (15 steps) walks the sections in order and finishes a page before it moves on
+  (`steps.test.ts` checks both). Where the tour is, is always shown: the popup names the tab,
+  section and EDIT in a bar of the frame's colour, and the tab and section are framed in it
+  through the dither; both flash when a step moves somewhere else (`placeKey`).
+  `Tour` (`tour.svelte.ts`) moves between steps through injected `TourOps`; `app.svelte.ts`
+  wires the real ones. Starting snapshots the UI and opens a TUTORIAL desk (`presetStore.newDesk`),
+  whose id is kept in the `tourDesk` setting until the tour ends; leaving restores the snapshot
+  and deletes the desk, and App deletes one left by a crash at startup (`tour.recover`). While
+  it runs App makes the app `inert` and the tour hears every key first (capture phase), so
+  nothing underneath changes. It sits at z-index 150: over toasts (100) and menus (60), under
+  dialogs (200), the launch screen and tooltips (300). It is offered once per device after the
+  first launch (`tourOffered`), and is always in ABOUT. To add a step: put a `data-tour` on what
+  it shows, then add the step; `steps.test.ts` fails if a step names a hook that doesn't exist.
 - `ContainerTabs.svelte` renders the top row (double-click a desk tab to rename it in place,
   `presetStore.rename`; not while FROZEN or presenting): desk tabs in each desk's identity colour
   (`preset.color`, schema v5), then GLOBAL SETTINGS, set apart.
@@ -430,11 +453,12 @@ transport that never reads app payloads (Rust) with desk semantics owned by the 
   OSC-OUT off (PAUSE) is an unfilled red alarm. All six share one shape, `.mbtn` in `app.css`,
   which the desk's INFO and EDIT switches use too (`DeskSwitches`, at the right end of the
   section bar while the desk's CONTROLS are open; the sections scroll sideways when narrow, the
-  switches never do). INFO and EDIT are `ToggleSwitch`es (one click). OSC-IN, OSC-OUT and
-  FREEZE are `HoldSwitch`es: they change only after a 1 s hold, on and off alike (pointer,
-  Space/Enter, or their Alt shortcut, which App holds through the component's
-  `press`/`release`/`cancel`). PRESENT is a `HoldSwitch` with `holdOff`: a click starts it, and
-  only a 1 s hold stops it (held Esc or F11 too), so a stray touch can't end a show.
+  switches never do). INFO and EDIT are `ToggleSwitch`es (one click). OSC-IN and OSC-OUT are
+  `HoldSwitch`es: they change only after a 1 s hold, on and off alike (pointer, Space/Enter, or
+  their Alt shortcut, which App holds through the component's `press`/`release`/`cancel`).
+  FREEZE and PRESENT are `HoldSwitch`es with `holdOff`: a click turns them on, and only a 1 s
+  hold turns them off (for PRESENT, held Esc or F11 too), so the safe state is one tap away and
+  a stray touch can't end it.
 - **PRESENTING** (`setPresenting` in `state/ui.svelte.ts`) shows the active desk's widgets,
   live, and refuses every other way to navigate until it ends. On desktop the window follows it
   into fullscreen and back (`lib/platform/fullscreen.ts`).
@@ -495,8 +519,8 @@ The open desks and the active one are stored per device (`openDesks`, `activeDes
   - `Lockable.svelte` wraps editable views in a disabled `<fieldset>`, which natively disables
     every control inside.
   - Freezing also leaves edit mode and cancels any open confirmation (`setLocked` in
-    `state/ui.svelte.ts`). Freezing and unfreezing both need the 1 s hold on FREEZE
-    (`HoldSwitch`), never a single keystroke.
+    `state/ui.svelte.ts`). Freezing is one click (or Alt+L); unfreezing needs the 1 s hold on
+    FREEZE (`HoldSwitch` with `holdOff`), never a single keystroke.
 
 ## Reconciliation
 
@@ -681,7 +705,8 @@ master bar) follows these rules. A new view picks from them instead of styling i
   | Warning | `--warn`, `⚠` before it | `.warn-text`; caution only, never decoration |
 
   Only weights 400 and 700 (the two the font ships). 700 marks headings, names, what is on,
-  active or picked, the primary button and tags. No other font size, no `letter-spacing`.
+  active or picked, the primary button and tags. No other font size (only the OSC-OCTOPUS title
+  of the launch screen and ABOUT is larger), no `letter-spacing`.
   Labels are written in sentence case and upper-cased by CSS; running text is sentence case,
   and names the UI's areas in capitals ("DESK › LOOK", "INSPECT").
 - **What colours mean.**
@@ -722,7 +747,7 @@ master bar) follows these rules. A new view picks from them instead of styling i
 
   | Control | For |
   |---|---|
-  | `HoldSwitch` (1 s hold) | master-bar states a stray touch must not flip mid-show: OSC-IN, OSC-OUT, FREEZE, stopping PRESENT. Nowhere else. |
+  | `HoldSwitch` (1 s hold) | master-bar states a stray touch must not flip mid-show: OSC-IN, OSC-OUT, unfreezing FREEZE, stopping PRESENT. Nowhere else. |
   | `ToggleSwitch` (`.mbtn [■] LABEL`, click) | on/off modes in bars and toolbars: INFO, EDIT, TRAFFIC's PAUSE and FOLLOW |
   | `Toggle` (`[■] LABEL`) | a yes/no setting in a form, always with its short label after it |
   | `Segmented` | one of 2–5 short fixed values; never navigation |

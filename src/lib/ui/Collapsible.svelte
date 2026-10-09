@@ -12,12 +12,14 @@
     summary?: string;
     actions?: Snippet;
     children: Snippet;
+    /** Its `data-tour` id: what a step of the tour highlights (lib/tour/steps.ts). */
+    tour?: string;
   }
-  let { title, open, ontoggle, summary, actions, children }: Props = $props();
+  let { title, open, ontoggle, summary, actions, children, tour }: Props = $props();
   const id = $props.id();
 </script>
 
-<div class="fold" class:open>
+<div class="fold" class:open data-tour={tour}>
   <div class="bar">
     <button class="toggle" aria-expanded={open} aria-controls={id} onclick={() => ontoggle(!open)}>
       <span class="caret" aria-hidden="true">{open ? '▾' : '▸'}</span>

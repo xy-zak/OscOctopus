@@ -96,6 +96,8 @@ export const ui = $state({
   lockNudge: 0,
   /** The confirm dialog currently shown, if any. */
   confirm: null as ConfirmRequest | null,
+  /** The ABOUT dialog (views/About.svelte), opened from the logo in the top bar. */
+  aboutOpen: false,
   toast: null as { id: number; text: string; kind: 'info' | 'error' } | null,
 });
 
@@ -173,6 +175,7 @@ export function toggleEditMode() {
 export function setPresenting(on: boolean) {
   ui.presenting = on;
   if (!on) return;
+  ui.aboutOpen = false;
   ui.view = 'desk';
   ui.deskView = 'controls';
   ui.mode = 'live';

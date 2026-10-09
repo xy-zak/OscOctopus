@@ -11,11 +11,13 @@
     /** On (a joined session, a shared desk): the accent border and title. */
     active?: boolean;
     dim?: boolean;
+    /** Its `data-tour` id: what a step of the tour highlights (lib/tour/steps.ts). */
+    tour?: string;
   }
-  let { title, hint, actions, children, active = false, dim = false }: Props = $props();
+  let { title, hint, actions, children, active = false, dim = false, tour }: Props = $props();
 </script>
 
-<section class="panel" class:active class:dim>
+<section class="panel" class:active class:dim data-tour={tour}>
   <header>
     <span class="title"><span class:has-tip={!!hint} data-tip={hint}>{title}</span></span>
     {#if actions}<span class="actions">{@render actions()}</span>{/if}

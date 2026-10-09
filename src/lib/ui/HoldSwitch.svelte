@@ -1,7 +1,7 @@
 <script lang="ts">
   // A master switch that changes only after a deliberate press-and-hold (HOLD_MS), so a stray
-  // touch during a show can't flip it: on and off alike (FREEZE, OSC-IN, OSC-OUT), or only off
-  // (`holdOff`: PRESENT turns on with a click). While holding, the button wipes into its next
+  // touch during a show can't flip it: on and off alike (OSC-IN, OSC-OUT), or only off
+  // (`holdOff`: FREEZE and PRESENT turn on with a click, so the safe state is one tap away). While holding, the button wipes into its next
   // state in ten pixel columns; a release before HOLD_MS cancels and flashes a "HOLD 1 SEC"
   // hint so it's clear what to do.
   //
@@ -33,6 +33,8 @@
     nudge?: number;
     /** Only turning off needs the hold; turning on is a click. */
     holdOff?: boolean;
+    /** Its `data-tour` id: what a step of the tour highlights (lib/tour/steps.ts). */
+    tour?: string;
   }
   let {
     on,
@@ -46,6 +48,7 @@
     tip,
     nudge = 0,
     holdOff = false,
+    tour,
   }: Props = $props();
 
   const HOLD_MS = 1000;
@@ -152,9 +155,10 @@
   aria-checked={on}
   aria-label={holdOff && !on
     ? label
-    : `${label}: press and hold for one second to ${holdOff ? 'stop' : 'change'}`}
+    : `${label}: press and hold for one second to ${holdOff ? 'turn off' : 'change'}`}
   data-tip={tip}
   data-tip-touch="off"
+  data-tour={tour}
   onpointerdown={(e) => {
     if (e.button !== 0) return;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);

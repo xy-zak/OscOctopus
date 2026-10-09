@@ -57,6 +57,10 @@ export interface Settings {
   syncAutoJoin: boolean;
   /** Shared desks whose received OSC input this device forwards. */
   syncForwarding: string[];
+  /** The tour has been offered once, at a first launch (lib/tour). */
+  tourOffered: boolean;
+  /** The tour's TUTORIAL desk while it runs: removed at startup if the app died mid-tour. */
+  tourDesk: string | null;
 }
 
 export async function getSetting<K extends keyof Settings>(

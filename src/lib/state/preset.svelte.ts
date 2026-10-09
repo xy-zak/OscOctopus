@@ -201,12 +201,14 @@ class PresetStore {
     return this.desks.length % PALETTE_SIZE;
   }
 
-  async newDesk(name: string) {
+  /** Makes a new desk (the default widgets and a loopback output), opens and shows it. */
+  async newDesk(name: string): Promise<string> {
     const p = newPreset(name, { loopbackInput: false, color: this.nextDeskColor() });
     await this.writePreset(p);
     this.register(p);
     await networkStore.apply(p.id, this.snapshot(p.id).network);
     this.activate(p.id);
+    return p.id;
   }
 
   /** Copies a desk (the active one by default) into a new preset and opens it as a new tab. */

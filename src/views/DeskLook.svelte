@@ -38,6 +38,7 @@
 <div class="page scroll">
   <Lockable>
     <Panel
+      tour="desk-preset"
       title="Desk preset"
       hint="The desk as a file: it saves automatically, and Export… makes a copy to use elsewhere."
     >
@@ -78,6 +79,7 @@
     </Panel>
 
     <Panel
+      tour="desk-look"
       title="Look · this desk"
       hint="ALL DESKS follows GLOBAL SETTINGS › LOOK. Just on this device: a desk shared with others looks the way each of them chose, and an exported preset carries none of it. The desk colour and the widgets' colours are in the preset."
     >

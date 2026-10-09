@@ -62,6 +62,7 @@
 <div class="page scroll">
   <Lockable>
     <Panel
+      tour="desk-share"
       title="Share with the session"
       hint="Everyone in your sync session can play a shared desk and edit it at the same time. Only the device you touch sends OSC; the others show the value."
       active={live}

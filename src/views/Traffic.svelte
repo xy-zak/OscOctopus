@@ -154,7 +154,7 @@
 </script>
 
 <div class="debug">
-  <div class="toolbar">
+  <div class="toolbar" data-tour="traffic-toolbar">
     <ToggleSwitch
       label="Pause"
       on={debugStore.paused}
@@ -222,7 +222,7 @@
   </div>
 
   <div class="split">
-    <div class="list">
+    <div class="list" data-tour="traffic-list">
       <div class="head cols mono" role="row">
         <span role="columnheader">Time</span>
         <span role="columnheader">Event</span>
@@ -352,7 +352,7 @@
     {/if}
   </div>
 
-  <div class="footer faint">
+  <div class="footer faint" data-tour="traffic-counters">
     Per-endpoint counters: {#each Object.entries(networkStore.statuses).filter(([, st]) => !scope || st.desk === scope) as [id, s] (id)}<span
         class="mono"
         >{deskName(s.desk)}/{s.name}: {s.stats.txPackets}↑ {s.stats.rxPackets}↓ {s.stats.errors}✕{s

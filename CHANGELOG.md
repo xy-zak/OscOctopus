@@ -9,6 +9,20 @@ Scripts.
 
 ### Added
 
+- **A guided tour** (ABOUT › _Take the tour_, and offered once on first launch): it moves
+  through the app section by section and highlights one thing at a time, in three levels of 15
+  steps: EASY (a desk and its widgets, EDIT, the switches up top, a desk's look, saving and
+  loading), INTERMEDIATE (a desk's network and traffic, then every desk's, and the look of
+  every desk) and ADVANCED (your own palettes and skins, projects, sync, driving widgets with
+  received OSC). Where it has taken you is always clear: the tab and section are framed, and
+  the popup names them ("Moved to TUTORIAL › F2 NETWORK"). ← → or Back / Next move; the bar at
+  the bottom shows how far along you are, and a click on a level jumps to it. It only shows: nothing can be changed while it runs. It
+  uses a TUTORIAL desk of its own, deleted when it ends, so your desks are left as they are.
+- **A launch screen:** the octopus draws itself and OSC-OCTOPUS types out the moment the app
+  opens. The app loads and starts behind it; once it is ready, the screen turns see-through to
+  show it, and the title and octopus un-type themselves away.
+- **ABOUT:** click the octopus in the top bar for the version, who made the app and what it
+  stands for.
 - **Projects** (GLOBAL SETTINGS › LIBRARY): the whole setup saved at once, by hand: the open
   desks with their networks, which one is shown, and the look (palettes and skins included).
   Load one to get it back exactly; it says first which desks it resets and closes (they stay in
@@ -126,6 +140,8 @@ Scripts.
 
 ### Changed
 
+- **FREEZE turns on with a click** (or Alt+L), like PRESENT: the safe state is one tap away.
+  Unfreezing still takes a 1 s hold.
 - **One design language around the widgets** (docs/ARCHITECTURE.md › Design rules), applied to
   every tab, section, panel, page and dialog:
   - **Tooltips work on touch.** Hover with a mouse, focus with the keyboard, or press and hold a

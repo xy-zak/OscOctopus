@@ -71,7 +71,7 @@
   </span>
 {/snippet}
 
-<div class="panel-body" style:--auto-c={auto.c} style:--auto-ink={auto.ink}>
+<div class="panel-body" data-tour="add-panel" style:--auto-c={auto.c} style:--auto-ink={auto.ink}>
   <WidgetHeader
     kind="ADD"
     hint={`Drag a widget onto the desk or into a frame. A click adds it where there is room: on the desk, on the tab a selected frame shows, or beside the selected widgets on their tab. A frame always goes on the desk.

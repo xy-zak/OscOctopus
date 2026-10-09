@@ -26,6 +26,7 @@
 
 <div class="page scroll">
   <Panel
+    tour="all-endpoints"
     title="All desk endpoints"
     hint="Every open desk's outputs and inputs. Click one to edit it in that desk's NETWORK section."
   >
@@ -74,6 +75,7 @@
   </Panel>
 
   <Panel
+    tour="interfaces"
     title="Interfaces on this device"
     hint="Use these addresses for “send from (bind)”, “listen on” and broadcast targets in a desk's NETWORK section."
   >

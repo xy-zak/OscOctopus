@@ -121,7 +121,7 @@
     </div>
   {/if}
   <div class="body">
-    <div class="canvas-wrap">
+    <div class="canvas-wrap" data-tour="desk">
       <GridCanvas
         {preset}
         {drag}
@@ -143,7 +143,7 @@
     </div>
     {#if panel}
       <!-- One persistent panel: its content changes, the panel itself never re-animates. -->
-      <aside class="side">
+      <aside class="side" data-tour="side-panel">
         {#if editing}
           <!-- Stays put while what is below it scrolls. -->
           <div class="switcher">

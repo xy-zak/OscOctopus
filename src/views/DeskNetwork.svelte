@@ -42,7 +42,7 @@
 
 <div class="page scroll">
   <Lockable>
-    <div class="bar">
+    <div class="bar" data-tour="network-apply">
       <div class="apply">
         {#if apply.applying}
           <span class="pill warn">applying</span>
@@ -61,7 +61,7 @@
     </div>
 
     <div class="columns">
-      <Panel title="Outputs" hint="Where this desk's widgets send OSC">
+      <Panel tour="outputs" title="Outputs" hint="Where this desk's widgets send OSC">
         {#snippet actions()}
           <button class="btn ghost" onclick={() => presetStore.addOutput()}
             ><Icon name="plus" /> Output</button
@@ -80,6 +80,7 @@
       </Panel>
 
       <Panel
+        tour="inputs"
         title="Inputs"
         hint="Where this desk listens for OSC. Incoming OSC (and replies to outputs) always appears in TRAFFIC."
       >

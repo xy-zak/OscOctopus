@@ -351,6 +351,60 @@ select.input option {
   border: 1px solid var(--line);
 }
 
+/* ---- dialogs (ConfirmDialog, About): a TUI box over a dithered backdrop ------------------- */
+:root {
+  /* What is behind shows through it, dimmed (also the launch screen's, as it closes). */
+  --backdrop-dither: repeating-conic-gradient(rgb(0 0 0 / 0.75) 0 25%, rgb(0 0 0 / 0.45) 0 50%) 0
+    0 / 4px 4px;
+}
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 2ch;
+  background: var(--backdrop-dither);
+  animation: modal-fade var(--t-release) steps(3, end);
+}
+@keyframes modal-fade {
+  from {
+    opacity: 0;
+  }
+}
+.modal {
+  position: relative;
+  width: min(60ch, 100%);
+  padding: 20px 2ch 14px;
+  border: 1px solid var(--accent);
+  background: var(--bg-2);
+  box-shadow: 6px 6px 0 0 var(--shadow-px);
+  animation: modal-pop var(--t-release) steps(3, end);
+}
+@keyframes modal-pop {
+  from {
+    transform: translateY(10px);
+  }
+}
+/* The title tab, set into the box's top edge. */
+.modal-title {
+  position: absolute;
+  top: 0;
+  left: 1ch;
+  translate: 0 -50%;
+  padding: 0 1ch;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1ch;
+  margin-top: 14px;
+}
+
 /* ---- text roles (docs/ARCHITECTURE.md › Design rules) ------------------------------------ */
 .muted {
   color: var(--fg-dim);

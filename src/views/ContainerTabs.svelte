@@ -96,7 +96,14 @@
     {@const h = health(d.id)}
     {@const c = swatchOf(lookStore.forDesk(d.id).palette, d.color)}
     {@const on = ui.view === 'desk' && d.id === presetStore.activeId}
-    <div class="tab desk" class:on role="presentation" style:--tc={c.c} style:--tc-ink={c.ink}>
+    <div
+      class="tab desk"
+      class:on
+      role="presentation"
+      data-tour="desk-tab"
+      style:--tc={c.c}
+      style:--tc-ink={c.ink}
+    >
       {#if renaming === d.id}
         <span class="pick">
           <span class="chip" aria-hidden="true"></span>
@@ -163,6 +170,7 @@
     <div class="add-wrap">
       <button
         class="add"
+        data-tour="add-desk"
         data-tip="Add a desk"
         aria-label="Add a desk"
         aria-expanded={menuOpen}
@@ -196,7 +204,12 @@
 
   <!-- GLOBAL SETTINGS is not a desk: it's set apart at the end, neutral white, never numbered. -->
   {#if !ui.presenting}
-    <div class="tab global" class:on={ui.view === 'global'} role="presentation">
+    <div
+      class="tab global"
+      class:on={ui.view === 'global'}
+      role="presentation"
+      data-tour="global-tab"
+    >
       <button
         class="pick"
         role="tab"
